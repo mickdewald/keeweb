@@ -10,14 +10,27 @@
 #                   https://hub.docker.com/repository/docker/keeweb/alpine-base
 # #
 
-FROM ghcr.io/keeweb/alpine-base:3.20-amd64
+ARG ARCH=amd64
+ARG ALPINE_VERSION=3.20
+FROM ghcr.io/keeweb/alpine-base:${ALPINE_VERSION}-${ARCH}
+
+# #
+#   @todo: update to new docker source path once docker-base updated
+#
+#   new docker image path
+# 
+#   FROM --platform=linux/${ARCH} ghcr.io/keeweb/alpine-base:${ALPINE_VERSION}
+# #
 
 # #
 #   Set Args
 # #
 
-ARG BUILD_DATE
+ARG ARCH=amd64
+ARG ALPINE_VERSION=3.21
+ARG BUILDDATE
 ARG VERSION
+ARG RELEASE
 ARG NGINX_VERSION
 
 # #
@@ -25,7 +38,7 @@ ARG NGINX_VERSION
 # #
 
 LABEL maintainer="Aetherinox"
-LABEL org.opencontainers.image.authors="Aetherinox, Antelle"
+LABEL org.opencontainers.image.authors="Antelle, Aetherinox"
 LABEL org.opencontainers.image.vendor="Keeweb"
 LABEL org.opencontainers.image.title="Keeweb Password Manager"
 LABEL org.opencontainers.image.description="Keeweb password manager"
@@ -33,18 +46,25 @@ LABEL org.opencontainers.image.source="https://github.com/keeweb/keeweb"
 LABEL org.opencontainers.image.documentation="https://github.com/keeweb/keeweb"
 LABEL org.opencontainers.image.url="https://github.com/keeweb/keeweb/pkgs/container/keeweb"
 LABEL org.opencontainers.image.licenses="MIT"
-LABEL build_version="Keeweb v${VERSION} build-date: ${BUILD_DATE}"
+LABEL org.keeweb.image.maintainers="Antelle, Aetherinox"
+LABEL org.keeweb.image.build-version="Version:- ${VERSION} Date:- ${BUILDDATE}"
+LABEL org.keeweb.image.build-version-alpine="${ALPINE_VERSION}"
+LABEL org.keeweb.image.build-architecture="${ARCH}"
+LABEL org.keeweb.image.build-release="${RELEASE}"
 
 # #
 #   Set Env Var
 # #
 
 ENV TZ="Etc/UTC"
+ENV DIR_BUILD=/usr/src/keeweb
+ENV DIR_RUN=/usr/bin/keeweb
 ENV URL_REPO_BASE="https://github.com/keeweb/alpine-base/pkgs/container/alpine-base"
 ENV URL_REPO_APP="https://github.com/keeweb/keeweb/pkgs/container/keeweb"
 ENV FILE_NAME="index.html"
 ENV PORT_HTTP=80
 ENV PORT_HTTPS=443
+ENV LOG_LEVEL=4
 
 # #
 #   Install
@@ -58,6 +78,7 @@ RUN \
   apk add --no-cache \
       wget \
       logrotate \
+      bash \
       openssl \
       apache2-utils \
       nginx==${NGINX_VERSION} \
@@ -102,6 +123,10 @@ EXPOSE ${PORT_HTTP} ${PORT_HTTPS}
 # #
 #   In case user sets up the cron for a longer duration, do a first run
 #   and then keep the container running. Hacky, but whatever.
+# #
+
+# #
+#    @todo: add new init script after docker base image updated
 # #
 
 # CMD ["sh", "-c", "/run.sh ; /task.sh ; tail -f /dev/null"]

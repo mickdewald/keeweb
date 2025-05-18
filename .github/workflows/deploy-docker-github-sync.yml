@@ -75,9 +75,9 @@ on:
     #   Trigger › Push
     # #
 
-    push:
-        branches:
-            - docker/keeweb
+#   push:
+#       branches:
+#           - docker/keeweb
 
 # #
 #   Environment Vars

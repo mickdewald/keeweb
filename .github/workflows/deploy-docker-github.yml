@@ -102,9 +102,9 @@ on:
     #   Trigger › Push
     # #
 
-    push:
-        tags:
-            - '*'
+#   push:
+#       tags:
+#           - '*'
 
 # #
 #   Environment Vars

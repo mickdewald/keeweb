@@ -11,16 +11,8 @@
 # #
 
 ARG ARCH=amd64
-ARG ALPINE_VERSION=3.20
-FROM ghcr.io/keeweb/alpine-base:${ALPINE_VERSION}-${ARCH}
-
-# #
-#   @todo: update to new docker source path once docker-base updated
-#
-#   new docker image path
-# 
-#   FROM --platform=linux/${ARCH} ghcr.io/keeweb/alpine-base:${ALPINE_VERSION}
-# #
+ARG ALPINE_VERSION=3.21
+FROM --platform=linux/${ARCH} ghcr.io//keeweb/alpine-base:${ALPINE_VERSION}
 
 # #
 #   Set Args
@@ -37,7 +29,6 @@ ARG NGINX_VERSION
 #   Set Labels
 # #
 
-LABEL maintainer="Aetherinox"
 LABEL org.opencontainers.image.authors="Antelle, Aetherinox"
 LABEL org.opencontainers.image.vendor="Keeweb"
 LABEL org.opencontainers.image.title="Keeweb Password Manager"
@@ -46,6 +37,8 @@ LABEL org.opencontainers.image.source="https://github.com/keeweb/keeweb"
 LABEL org.opencontainers.image.documentation="https://github.com/keeweb/keeweb"
 LABEL org.opencontainers.image.url="https://github.com/keeweb/keeweb/pkgs/container/keeweb"
 LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.architecture="${ARCH}"
+LABEL org.opencontainers.image.release="${RELEASE}"
 LABEL org.keeweb.image.maintainers="Antelle, Aetherinox"
 LABEL org.keeweb.image.build-version="Version:- ${VERSION} Date:- ${BUILDDATE}"
 LABEL org.keeweb.image.build-version-alpine="${ALPINE_VERSION}"
@@ -57,13 +50,15 @@ LABEL org.keeweb.image.build-release="${RELEASE}"
 # #
 
 ENV TZ="Etc/UTC"
+ENV RELEASE="${RELEASE}"
 ENV DIR_BUILD=/usr/src/keeweb
 ENV DIR_RUN=/usr/bin/keeweb
 ENV URL_REPO_BASE="https://github.com/keeweb/alpine-base/pkgs/container/alpine-base"
 ENV URL_REPO_APP="https://github.com/keeweb/keeweb/pkgs/container/keeweb"
 ENV FILE_NAME="index.html"
-ENV PORT_HTTP=80
-ENV PORT_HTTPS=443
+ENV WEB_IP="0.0.0.0"
+ENV WEB_PORT_HTTP=80
+ENV WEB_PORT_HTTPS=443
 ENV LOG_LEVEL=4
 
 # #
@@ -71,36 +66,44 @@ ENV LOG_LEVEL=4
 # #
 
 RUN \
-  if [ -z ${NGINX_VERSION+x} ]; then \
-      NGINX_VERSION=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/v3.20/main/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp \
-      && awk '/^P:nginx$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://'); \
-  fi && \
-  apk add --no-cache \
-      wget \
-      logrotate \
-      bash \
-      openssl \
-      apache2-utils \
-      nginx==${NGINX_VERSION} \
-      nginx-mod-http-fancyindex==${NGINX_VERSION} && \
-  echo "**** Install Build Packages ****" && \
-  echo "**** Configure Nginx ****" && \
-  echo 'fastcgi_param  HTTP_PROXY         ""; # https://httpoxy.org/' >> \
-      /etc/nginx/fastcgi_params && \
-  echo 'fastcgi_param  PATH_INFO          $fastcgi_path_info; # http://nginx.org/en/docs/http/ngx_http_fastcgi_module.html#fastcgi_split_path_info' >> \
-      /etc/nginx/fastcgi_params && \
-  echo 'fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name; # https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/#connecting-nginx-to-php-fpm' >> \
-      /etc/nginx/fastcgi_params && \
-  echo 'fastcgi_param  SERVER_NAME        $host; # Send HTTP_HOST as SERVER_NAME. If HTTP_HOST is blank, send the value of server_name from nginx (default is `_`)' >> \
-      /etc/nginx/fastcgi_params && \
-  rm -f /etc/nginx/http.d/default.conf && \
-  rm -f /etc/nginx/conf.d/stream.conf && \
-  rm -f /config/www/index.html && \
-  echo "**** Setup Logrotate ****" && \
-  sed -i "s#/var/log/messages {}.*# #g" \
-      /etc/logrotate.conf && \
-  sed -i 's#/usr/sbin/logrotate /etc/logrotate.conf#/usr/sbin/logrotate /etc/logrotate.conf -s /config/log/logrotate.status#g' \
-      /etc/periodic/daily/logrotate
+    if [ -z ${NGINX_VERSION+x} ]; then \
+        if [ "$ARCH" = "arm64" ] ; then \
+            NGINX_VERSION=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/aarch64/APKINDEX.tar.gz" | tar -xz -C /tmp \
+            && awk '/^P:nginx$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://') ;\
+        elif [ "$ARCH" = "x86" ] ; then \
+            NGINX_VERSION=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/x86/APKINDEX.tar.gz" | tar -xz -C /tmp \
+            && awk '/^P:nginx$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://') ;\
+        else \
+            NGINX_VERSION=$(curl -sL "http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/x86_64/APKINDEX.tar.gz" | tar -xz -C /tmp \
+            && awk '/^P:nginx$/,/V:/' /tmp/APKINDEX | sed -n 2p | sed 's/^V://') ;\
+        fi \
+    fi && \
+    apk add --no-cache \
+        wget \
+        logrotate \
+        bash \
+        openssl \
+        apache2-utils \
+        nginx==${NGINX_VERSION} \
+        nginx-mod-http-fancyindex==${NGINX_VERSION} && \
+    echo "**** Install Build Packages ****" && \
+    echo "**** Configure Nginx ****" && \
+    echo 'fastcgi_param  HTTP_PROXY         ""; # https://httpoxy.org/' >> \
+        /etc/nginx/fastcgi_params && \
+    echo 'fastcgi_param  PATH_INFO          $fastcgi_path_info; # http://nginx.org/en/docs/http/ngx_http_fastcgi_module.html#fastcgi_split_path_info' >> \
+        /etc/nginx/fastcgi_params && \
+    echo 'fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name; # https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/#connecting-nginx-to-php-fpm' >> \
+        /etc/nginx/fastcgi_params && \
+    echo 'fastcgi_param  SERVER_NAME        $host; # Send HTTP_HOST as SERVER_NAME. If HTTP_HOST is blank, send the value of server_name from nginx (default is `_`)' >> \
+        /etc/nginx/fastcgi_params && \
+    rm -f /etc/nginx/http.d/default.conf && \
+    rm -f /etc/nginx/conf.d/stream.conf && \
+    rm -f /config/www/index.html && \
+    echo "**** Setup Logrotate ****" && \
+    sed -i "s#/var/log/messages {}.*# #g" \
+        /etc/logrotate.conf && \
+    sed -i 's#/usr/sbin/logrotate /etc/logrotate.conf#/usr/sbin/logrotate /etc/logrotate.conf -s /config/log/logrotate.status#g' \
+        /etc/periodic/daily/logrotate
 
 # #
 #   Set work directory
@@ -118,7 +121,7 @@ COPY root/ /
 #   Ports and volumes
 # #
 
-EXPOSE ${PORT_HTTP} ${PORT_HTTPS}
+EXPOSE ${WEB_PORT_HTTP}/tcp ${WEB_PORT_HTTPS}/tcp
 
 # #
 #   In case user sets up the cron for a longer duration, do a first run

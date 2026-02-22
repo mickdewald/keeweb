@@ -12,6 +12,31 @@
 
     &__content {
         margin: $medium-padding;
+        max-width: 980px;
+    }
+
+    &__content--cards,
+    &__content--file {
+        width: 100%;
+        max-width: 980px;
+        margin: $medium-padding auto;
+        padding-left: $small-spacing;
+        padding-right: $small-spacing;
+        padding-bottom: $medium-padding-v;
+        box-sizing: border-box;
+
+        input.settings__input[type='text'],
+        input.settings__input[type='password'],
+        select.settings__select {
+            min-height: 2.2em;
+            border-radius: calc(var(--input-border-radius) + 3px);
+            padding-left: $small-spacing;
+            padding-right: $small-spacing;
+        }
+
+        select.settings__select {
+            background-position: calc(100% - 10px) center;
+        }
     }
 
     > .scroller {
@@ -21,6 +46,130 @@
     h2,
     h3 {
         margin-top: 20px;
+    }
+
+    &__title {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: $small-spacing;
+    }
+
+    &__meta {
+        color: var(--muted-color);
+        margin: $small-spacing 0;
+    }
+
+    &__error {
+        color: var(--error-color);
+        margin: $small-spacing 0 0;
+    }
+
+    &__section {
+        margin-top: $base-spacing;
+        padding: $medium-padding;
+        border: light-border();
+        border-radius: calc(var(--input-border-radius) + 6px);
+        background: var(--secondary-background-color);
+        box-shadow: form-box-shadow();
+
+        > h2 {
+            margin: 0 0 $small-spacing;
+            line-height: 1.25em;
+        }
+    }
+
+    &__section--header {
+        margin-top: 0;
+    }
+
+    &__section-subtitle {
+        margin: 0 0 $small-spacing;
+        font-size: 1rem;
+    }
+
+    &__field {
+        display: grid;
+        grid-template-columns: minmax(11em, 15em) minmax(18em, 40em);
+        column-gap: $base-spacing;
+        align-items: center;
+        justify-content: start;
+        margin-bottom: $small-spacing;
+
+        > label {
+            margin: 0;
+        }
+
+        > label.input-base {
+            width: auto;
+        }
+
+        > .settings__input,
+        > .settings__select,
+        > .input-base {
+            width: 100%;
+            max-width: 40em;
+            margin: 0;
+        }
+    }
+
+    &__field-controls {
+        width: 100%;
+        max-width: 40em;
+
+        > .settings__input,
+        > .settings__select,
+        > .input-base {
+            width: 100%;
+            max-width: 40em;
+            margin: 0;
+        }
+
+        > a {
+            display: inline-block;
+            margin-top: $tiny-spacing;
+        }
+
+        #settings__file-confirm-master-pass-group {
+            margin-top: $small-spacing;
+        }
+
+        #settings__file-confirm-master-pass-group > label.input-base {
+            width: auto;
+        }
+    }
+
+    &__field--stack {
+        display: block;
+
+        > label {
+            display: block;
+            margin-bottom: $small-spacing / 2;
+        }
+
+        > .settings__input,
+        > .settings__select,
+        > .input-base {
+            width: 100%;
+            max-width: 40em;
+        }
+    }
+
+    &__check-row {
+        margin-bottom: $small-spacing;
+    }
+
+    &__check-row--with-help {
+        display: flex;
+        align-items: center;
+        gap: $tiny-spacing;
+    }
+
+    &__file-buttons {
+        margin-top: $small-spacing;
+        display: flex;
+        flex-wrap: wrap;
+        gap: $small-spacing;
     }
 
     .shortcut {
@@ -101,10 +250,27 @@
         height: 2em;
     }
 
+    &__shortcut-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: $small-spacing;
+    }
+
     &__row {
         display: flex;
         justify-content: space-between;
         @extend .input-size-base;
+    }
+
+    &__row--kdf {
+        width: 100%;
+        gap: $base-spacing;
+
+        .settings__col-small {
+            width: auto;
+            flex: 1 1 0;
+        }
     }
 
     &__col-small {
@@ -152,10 +318,16 @@
             display: inline-block;
             margin-right: $base-padding-h;
             text-align: center;
+            border: light-border();
+            border-radius: var(--input-border-radius);
+            padding: $small-spacing;
+            min-width: 8.5em;
+            margin-bottom: $small-spacing;
+            background: var(--background-color);
 
             > i {
                 display: block;
-                font-size: 3em;
+                font-size: 2.5em;
                 padding: $base-padding-px;
                 margin: auto;
             }
@@ -163,8 +335,15 @@
             &:hover {
                 transition: color $base-duration $base-timing;
                 color: var(--medium-color);
+                box-shadow: form-box-shadow-hover();
             }
         }
+    }
+
+    &__file-save-choose {
+        margin-top: $base-spacing;
+        padding-top: $base-spacing;
+        border-top: light-border();
     }
 
     &__general-update-buttons {
@@ -236,6 +415,22 @@
         }
     }
     &__plugins {
+        &-list {
+            display: flex;
+            flex-direction: column;
+            gap: $base-spacing;
+        }
+        &-plugin {
+            border: light-border();
+            border-radius: var(--input-border-radius);
+            background: var(--background-color);
+            padding: $medium-padding;
+        }
+        &-plugin-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: $small-spacing;
+        }
         &-install-error {
             margin-top: $base-padding-v;
         }
@@ -308,6 +503,17 @@
         }
     }
     &__browser {
+        &-session-card {
+            margin-top: $base-spacing;
+            padding-top: $base-spacing;
+            border-top: light-border();
+
+            &:first-of-type {
+                margin-top: 0;
+                padding-top: 0;
+                border-top: 0;
+            }
+        }
         &-table {
             th,
             td {
@@ -370,5 +576,42 @@
         position: relative;
         top: 0.1em;
         margin-right: 0.2em;
+    }
+
+    @include mobile {
+        &__content--cards,
+        &__content--file {
+            margin: $small-spacing auto;
+            padding-left: $tiny-spacing;
+            padding-right: $tiny-spacing;
+        }
+
+        &__section {
+            padding: $base-padding;
+        }
+
+        &__field {
+            grid-template-columns: minmax(9em, 13em) minmax(0, 1fr);
+            column-gap: $small-spacing;
+            align-items: start;
+
+            > label {
+                margin-top: 0.25em;
+            }
+
+            > .settings__input,
+            > .settings__select,
+            > .input-base {
+                width: 100%;
+            }
+        }
+
+        &__row--kdf {
+            display: block;
+
+            .settings__col-small {
+                margin-bottom: $small-spacing;
+            }
+        }
     }
 }

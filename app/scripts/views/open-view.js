@@ -63,6 +63,7 @@ class OpenView extends View {
     busy = false;
     currentSelectedIndex = -1;
     encryptedPassword = null;
+    autoUnlockAttemptedRef = null;
 
     constructor(model) {
         super(model);
@@ -155,6 +156,7 @@ class OpenView extends View {
     windowFocused() {
         this.inputEl.focus();
         this.checkIfEncryptedPasswordDateIsValid();
+        this.displayOpenDeviceOwnerAuth();
     }
 
     focusInput(focusOnMobile) {
@@ -361,6 +363,46 @@ class OpenView extends View {
         this.el
             .querySelector('.open__pass-enter-btn')
             .classList.toggle('open__pass-enter-btn--touch-id', canUseEncryptedPassword);
+        if (canUseEncryptedPassword) {
+            this.maybeAutoTriggerDeviceOwnerAuth();
+        }
+    }
+
+    getCurrentAutoUnlockRef() {
+        return (
+            this.params.id || [this.params.storage, this.params.path, this.params.name].join('|')
+        );
+    }
+
+    maybeAutoTriggerDeviceOwnerAuth() {
+        if (
+            this.busy ||
+            !this.params.name ||
+            !this.encryptedPassword ||
+            this.passwordInput.length ||
+            !FocusDetector.hasFocus()
+        ) {
+            return;
+        }
+
+        const unlockRef = this.getCurrentAutoUnlockRef();
+        if (!unlockRef || this.autoUnlockAttemptedRef === unlockRef) {
+            return;
+        }
+
+        this.autoUnlockAttemptedRef = unlockRef;
+        this.afterPaint(() => {
+            if (
+                this.getCurrentAutoUnlockRef() !== unlockRef ||
+                this.busy ||
+                !this.encryptedPassword ||
+                this.passwordInput.length ||
+                !FocusDetector.hasFocus()
+            ) {
+                return;
+            }
+            this.openDb();
+        });
     }
 
     setFile(file, keyFile, fileReadyCallback) {

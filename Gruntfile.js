@@ -29,6 +29,14 @@ module.exports = function (grunt) {
     const skipSign = grunt.option('skip-sign');
     const getCodeSignConfig = () =>
         skipSign ? { identities: {} } : require('./keys/codesign.json');
+    const appBundleId =
+        grunt.option('app-bundle-id') || process.env.KEEWEB_APP_BUNDLE_ID || 'net.antelle.keeweb';
+    const appleTeamId =
+        grunt.option('apple-team-id') || process.env.KEEWEB_APPLE_TEAM_ID || '3LE7JZ657W';
+    const provisioningProfile =
+        grunt.option('provisioning-profile') ||
+        process.env.KEEWEB_PROVISIONING_PROFILE ||
+        './keys/keeweb.provisionprofile';
 
     let sha = grunt.option('commit-sha');
     if (!sha) {
@@ -48,7 +56,7 @@ module.exports = function (grunt) {
         date,
         beta: !!grunt.option('beta'),
         sha,
-        appleTeamId: '3LE7JZ657W'
+        appleTeamId
     };
 
     const windowsAppVersionString = {
@@ -395,7 +403,7 @@ module.exports = function (grunt) {
                     platform: 'darwin',
                     arch: 'x64',
                     icon: 'graphics/icon.icns',
-                    appBundleId: 'net.antelle.keeweb',
+                    appBundleId,
                     appCategoryType: 'public.app-category.productivity',
                     extendInfo: 'package/osx/extend.plist'
                 }
@@ -405,7 +413,7 @@ module.exports = function (grunt) {
                     platform: 'darwin',
                     arch: 'arm64',
                     icon: 'graphics/icon.icns',
-                    appBundleId: 'net.antelle.keeweb',
+                    appBundleId,
                     appCategoryType: 'public.app-category.productivity',
                     extendInfo: 'package/osx/extend.plist'
                 }
@@ -445,7 +453,7 @@ module.exports = function (grunt) {
                     targets: 'linux',
                     prepackaged: 'tmp/desktop/keeweb-linux-x64',
                     config: {
-                        appId: 'net.antelle.keeweb',
+                        appId: appBundleId,
                         productName: 'keeweb',
                         copyright: `Copyright © ${year} Antelle`,
                         directories: {
@@ -637,13 +645,13 @@ module.exports = function (grunt) {
             },
             'desktop-x64': {
                 options: {
-                    'provisioning-profile': './keys/keeweb.provisionprofile'
+                    'provisioning-profile': provisioningProfile
                 },
                 src: 'tmp/desktop/KeeWeb-darwin-x64/KeeWeb.app'
             },
             'desktop-arm64': {
                 options: {
-                    'provisioning-profile': './keys/keeweb.provisionprofile'
+                    'provisioning-profile': provisioningProfile
                 },
                 src: 'tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app'
             },
@@ -653,7 +661,7 @@ module.exports = function (grunt) {
         },
         notarize: {
             options: {
-                appBundleId: 'net.antelle.keeweb',
+                appBundleId,
                 get appleId() {
                     return getCodeSignConfig().appleId;
                 },

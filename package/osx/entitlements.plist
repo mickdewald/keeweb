@@ -10,15 +10,11 @@
     <true/>
     <key>keychain-access-groups</key>
     <array>
-      <string>3LE7JZ657W.net.antelle.keeweb</string>
-    </array>
-    <key>com.apple.security.application-groups</key>
-    <array>
-      <string>3LE7JZ657W.keeweb</string>
+      <string>GGYLL32K99.com.mickdewald.keeweb</string>
     </array>
     <key>com.apple.application-identifier</key>
-    <string>3LE7JZ657W.net.antelle.keeweb</string>
+    <string>GGYLL32K99.com.mickdewald.keeweb</string>
     <key>com.apple.developer.team-identifier</key>
-    <string>3LE7JZ657W</string>
+    <string>GGYLL32K99</string>
   </dict>
 </plist>

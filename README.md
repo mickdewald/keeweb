@@ -827,6 +827,11 @@ grunt dev-desktop-darwin --skip-sign
 npm run dev-desktop-macos
 ```
 
+For a reproducible **signed** macOS dev build where Touch ID works, use:
+`docs/dev/macos-signed-touchid-build.md`.
+Agent default command:
+`scripts/dev/build-macos-touchid-agent.sh`.
+
 <br />
 
 Once the build is complete, all (html files will be in `dist/` folder. To build KeeWeb, utilize the following commands below.

@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, app, BrowserWindow } = require('electron');
 const { spawnSync } = require('child_process');
 const { readXoredValue, makeXoredValue } = require('../util/byte-utils');
 const { reqNative } = require('../util/req-native');
@@ -42,6 +42,7 @@ async function hardwareEncrypt(e, value) {
 }
 
 async function hardwareDecrypt(e, value, touchIdPrompt) {
+    focusWindowForTouchIdPrompt(e);
     return await hardwareCrypto(value, false, touchIdPrompt);
 }
 
@@ -108,6 +109,36 @@ async function hardwareCrypto(value, encrypt, touchIdPrompt) {
             if (!e.keyExists) {
                 throw e;
             }
+        }
+    }
+}
+
+function focusWindowForTouchIdPrompt(e) {
+    if (process.platform !== 'darwin') {
+        return;
+    }
+
+    const senderWindowFromIpc = e?.sender ? BrowserWindow.fromWebContents(e.sender) : null;
+    const senderWindow =
+        senderWindowFromIpc ||
+        BrowserWindow.getFocusedWindow() ||
+        BrowserWindow.getAllWindows().find((window) => !window.isDestroyed());
+
+    if (senderWindow) {
+        if (senderWindow.isMinimized()) {
+            senderWindow.restore();
+        }
+        if (!senderWindow.isVisible()) {
+            senderWindow.show();
+        }
+        senderWindow.focus();
+    }
+
+    if (typeof app.focus === 'function') {
+        try {
+            app.focus({ steal: true });
+        } catch (err) {
+            app.focus();
         }
     }
 }

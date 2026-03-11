@@ -94,7 +94,7 @@ env:
 
 jobs:
     cleanup:
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         permissions: write-all
   
         steps:

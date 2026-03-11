@@ -114,7 +114,7 @@ jobs:
     job-cfpublish:
         name: >-
             ☁️ Publish Website
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         outputs:
             upload_github: ${{ steps.task_cloudflare_project_create_github.outputs.SUCCESS }}
             upload_assets: ${{ steps.task_cloudflare_project_create_assets.outputs.SUCCESS }}
@@ -317,7 +317,7 @@ jobs:
             UPLOAD_GITHUB: ${{ needs.job-cfpublish.outputs.upload_github }}
             UPLOAD_ASSETS: ${{ needs.job-cfpublish.outputs.upload_assets }}
             EXISTING_SITE: ${{ needs.job-cfpublish.outputs.existing_site }}
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         steps:
   
             # #

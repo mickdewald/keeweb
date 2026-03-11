@@ -116,7 +116,7 @@ jobs:
     job-docker-release-tags-create:
         name: >-
             📦 Release › Sync
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         permissions:
             contents: write
             packages: write

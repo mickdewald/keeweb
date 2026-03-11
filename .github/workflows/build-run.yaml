@@ -64,7 +64,7 @@ jobs:
     # #
 
     web:
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         steps:
 
             - name: 'Get current git tag'
@@ -121,7 +121,7 @@ jobs:
     # #
 
     linux:
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         needs:
             - web
         steps:
@@ -366,7 +366,7 @@ jobs:
     # #
 
     publish:
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         needs:
             - linux
             - darwin

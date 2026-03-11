@@ -116,7 +116,7 @@ jobs:
     # #
 
     pr-autoscan:
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         permissions:
             contents: read
             actions: read

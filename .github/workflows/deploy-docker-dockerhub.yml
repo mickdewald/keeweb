@@ -135,7 +135,7 @@ jobs:
     job-docker-release-tags-create:
         name: >-
             📦 Release › Create Tag
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         permissions:
             contents: write
             packages: write
@@ -204,7 +204,7 @@ jobs:
     job-docker-release-dockerhub-arm64:
         name: >-
             📦 Release › Dockerhub › Arm64
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         needs: [ job-docker-release-tags-create ]
         permissions:
             contents: write
@@ -366,7 +366,7 @@ jobs:
     job-docker-release-dockerhub-amd64:
         name: >-
           📦 Release › Dockerhub › Amd64
-        runs-on: ubuntu-latest
+        runs-on: [self-hosted, Linux, nas, general-ci]
         permissions:
             contents: write
             packages: write

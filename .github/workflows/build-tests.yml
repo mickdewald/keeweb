@@ -71,6 +71,22 @@ env:
 jobs:
 
     # #
+    #   Jobs › File Size Guard
+    # #
+
+    file-size-guard:
+        runs-on: [self-hosted, macOS, general-ci]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+            - name: File size ratchet
+              uses: mickdewald/dotfiles/.github/actions/file-size-guard@main
+              with:
+                  extensions: ".js,.jsx,.mjs,.cjs"
+
+    # #
     #   Jobs › Initialize
     # #
 

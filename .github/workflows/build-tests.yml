@@ -92,7 +92,7 @@ jobs:
     job-initialize:
         name: >-
             💡 Initialize
-        runs-on: [self-hosted, Linux, nas, general-ci]
+        runs-on: [self-hosted, macOS, general-ci]
         outputs:
             package_version: ${{ steps.task_init_pkg_ver_get.outputs.PACKAGE_VERSION }}
             guid: ${{ steps.task_init_dotenv_get.outputs.GUID }}
@@ -193,7 +193,7 @@ jobs:
     job-lint:
         name: >-
             📚 Lint
-        runs-on: [self-hosted, Linux, nas, general-ci]
+        runs-on: [self-hosted, macOS, general-ci]
         needs: [job-initialize]
         env:
             PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}
@@ -247,7 +247,7 @@ jobs:
     job-test:
         name: >-
             🧪 Tests
-        runs-on: [self-hosted, Linux, nas, general-ci]
+        runs-on: [self-hosted, macOS, general-ci]
         needs: [job-initialize]
         env:
             PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}
@@ -308,7 +308,7 @@ jobs:
     job-complete-run:
         name: >-
             ✅ Complete
-        runs-on: [self-hosted, Linux, nas, general-ci]
+        runs-on: [self-hosted, macOS, general-ci]
         needs: [job-initialize, job-lint, job-test]
         env:
             PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}

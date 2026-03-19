@@ -440,7 +440,7 @@ jobs:
                             const filesData                     = fs.readFileSync( file_current, 'utf8' );
                             const bContainsStyle                = /([A-Za-z]+\.style\.[A-Za-z]+)/gi.test( filesData );
                             const bFuncFetch                    = /(fetch)\((.*)\)(\[([^\]]*)\])?/gim.test( filesData );
-                            const bVar                          = /^(?:var|)\s(\w+)\s*=\s*/gm.test( filesData );
+                            const bVar                          = /^\s*var\s+(\w+)\s*=\s*/gm.test( filesData );
                             const bLookBehind                   = /\(\?<[=!].*?\)/gmi.test( filesData );
                             const bAsAny                        = /\((.*? as Any\s*)\)/gi.test( filesData );
                             const bInnerHTML                    = /^\s?.*[a-zA-Z0-9_]+\.innerHTML*\s?.*$/gm.test( filesData );
@@ -636,13 +636,20 @@ jobs:
 
                             if ( !pr_title.startsWith( pr_title_append ) )
                             {
-                                await github.rest.pulls.update(
-                                {
-                                    owner:        context.repo.owner,
-                                    repo:         context.repo.repo,
-                                    pull_number:  context.issue.number,
-                                    title:        `${ pr_title_append } ${ context.payload.pull_request.title }`
-                                } );
+                        try
+                        {
+                            await github.rest.pulls.update(
+                            {
+                                owner:        context.repo.owner,
+                                repo:         context.repo.repo,
+                                pull_number:  context.issue.number,
+                                title:        `${ pr_title_append } ${ context.payload.pull_request.title }`
+                            } );
+                        }
+                        catch ( err )
+                        {
+                            core.warning( `Unable to update PR title: ${ err.message || err }` );
+                        }
                             }
 
                             if ( !context.payload.pull_request.labels.filter( label => label.name === "${{ env.LABEL_CHECK_CHANGES_REQ }}" ).length > 0 ) {
@@ -686,22 +693,36 @@ jobs:
                             Set Label
                         */
 
-                        await github.rest.issues.setLabels(
+                        try
                         {
-                            issue_number:   context.issue.number,
-                            owner:          context.repo.owner,
-                            repo:           context.repo.repo,
-                            labels,
-                        } );
+                            await github.rest.issues.setLabels(
+                            {
+                                issue_number:   context.issue.number,
+                                owner:          context.repo.owner,
+                                repo:           context.repo.repo,
+                                labels,
+                            } );
+                        }
+                        catch ( err )
+                        {
+                            core.warning( `Unable to set labels: ${ err.message || err }` );
+                        }
 
                         /*
                             Create Comment
                         */
 
-                        await github.rest.issues.createComment(
+                        try
                         {
-                            issue_number:   context.issue.number,
-                            owner:          context.repo.owner,
-                            repo:           context.repo.repo,
-                            body:           message.join('\n'),
-                        } );
+                            await github.rest.issues.createComment(
+                            {
+                                issue_number:   context.issue.number,
+                                owner:          context.repo.owner,
+                                repo:           context.repo.repo,
+                                body:           message.join('\n'),
+                            } );
+                        }
+                        catch ( err )
+                        {
+                            core.warning( `Unable to create PR comment: ${ err.message || err }` );
+                        }

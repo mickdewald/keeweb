@@ -78,7 +78,7 @@ jobs:
         runs-on: [self-hosted, macOS, general-ci]
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@v4
               with:
                   fetch-depth: 0
             - name: File size ratchet

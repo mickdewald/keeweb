@@ -78,7 +78,7 @@ jobs:
         runs-on: [self-hosted, macOS, general-ci]
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   fetch-depth: 0
             - name: File size ratchet
@@ -117,7 +117,7 @@ jobs:
 
             - name: '☑️ Checkout'
               id: task_init_checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   fetch-depth: 0
 
@@ -127,7 +127,7 @@ jobs:
 
             - name: '⚙️ Setup Node'
               id: task_init_node_setup
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version-file: '.nvmrc'
 
@@ -209,7 +209,7 @@ jobs:
 
             - name: '☑️ Checkout'
               id: task_lint_checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
 
             # #
             #   Lint › Setup Node
@@ -217,7 +217,7 @@ jobs:
 
             - name: '⚙️ Setup Node'
               id: task_lint_node_setup
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version-file: '.nvmrc'
                   cache: 'npm'
@@ -270,7 +270,7 @@ jobs:
 
             - name: '☑️ Checkout'
               id: task_test_checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
 
             # #
             #   Test › Setup Node
@@ -278,7 +278,7 @@ jobs:
 
             - name: '⚙️ Setup Node'
               id: task_test_node_setup
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version-file: '.nvmrc'
                   cache: 'npm'

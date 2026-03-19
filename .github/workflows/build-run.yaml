@@ -23,7 +23,7 @@
 #                   secrets.GITHUB_TOKEN                        Gthub token
 #                   secrets.CF_TOKEN                            Cloudflare account token (on cf dashboard)
 #
-#   @changelog      [ 12-17-24 ]  updated actions/setup-node@v2             › actions/setup-node@v4
+#   @changelog      [ 12-17-24 ]  updated actions/setup-node@v2             › actions/setup-node@v6
 #                                 updated actions/download-artifact@v1      › actions/download-artifact@v4
 #                                 updated actions/upload-artifact@v1        › actions/upload-artifact@v4
 #                                 updated node-version: '16'                › node-version: '18'
@@ -75,13 +75,13 @@ jobs:
                   tagRegexGroup: 1
 
             - name: 'Checkout'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   repository: keeweb/keeweb
                   ref: ${{ github.repository == 'keeweb/keeweb' && github.sha || 'develop' }}
 
             - name: 'Upgrade Node.js'
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: '18'
                   registry-url: 'https://registry.npmjs.org'
@@ -134,7 +134,7 @@ jobs:
                   tagRegexGroup: 1
 
             - name: 'Checkout'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   repository: keeweb/keeweb
                   ref: ${{ github.repository == 'keeweb/keeweb' && github.sha || 'develop' }}
@@ -205,7 +205,7 @@ jobs:
                   tagRegexGroup: 1
 
             - name: 'Checkout'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   repository: keeweb/keeweb
                   ref: ${{ github.repository == 'keeweb/keeweb' && github.sha || 'develop' }}
@@ -217,7 +217,7 @@ jobs:
                   path: dist
 
             - name: 'Upgrade Node.js'
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: '18'
                   registry-url: 'https://registry.npmjs.org'
@@ -282,7 +282,7 @@ jobs:
                   tagRegexGroup: 1
 
             - name: 'Checkout'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   repository: keeweb/keeweb
                   ref: ${{ github.repository == 'keeweb/keeweb' && github.sha || 'develop' }}
@@ -294,7 +294,7 @@ jobs:
                   path: dist
 
             - name: 'Upgrade Node.js'
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: '18'
                   registry-url: 'https://registry.npmjs.org'
@@ -387,14 +387,14 @@ jobs:
                   export_default_credentials: true
 
             - name: 'Checkout'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   repository: keeweb/keeweb
                   path: keeweb
                   ref: ${{ github.repository == 'keeweb/keeweb' && github.sha || 'develop' }}
 
             - name: 'Upgrade Node.js'
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: '18'
                   registry-url: 'https://registry.npmjs.org'
@@ -555,7 +555,7 @@ jobs:
                   body_path: keeweb/tmp/release-body.md
 
             - name: 'Checkout gh-pages'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   ref: gh-pages
                   path: gh-pages

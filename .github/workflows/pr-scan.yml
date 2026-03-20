@@ -116,7 +116,7 @@ jobs:
     # #
 
     pr-autoscan:
-        runs-on: [self-hosted, macOS, general-ci]
+        runs-on: [self-hosted, macOS, mick-macbook]
         permissions:
             contents: read
             actions: read

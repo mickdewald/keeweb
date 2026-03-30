@@ -272,6 +272,7 @@ jobs:
 
     win32:
         runs-on: windows-latest
+        timeout-minutes: 60
         needs:
             - web
         steps:

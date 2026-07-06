@@ -3,14 +3,32 @@ module.exports = function (grunt) {
         const done = this.async();
         const opt = this.options();
         const file = this.files[0].src[0];
+        const fs = require('fs');
         const path = require('path');
         const puppeteer = require('puppeteer');
+        function getChromeExecutablePath() {
+            if (process.env.CHROME_BIN) {
+                return process.env.CHROME_BIN;
+            }
+            if (process.env.CI && process.platform === 'darwin') {
+                const macChromePath =
+                    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+                if (fs.existsSync(macChromePath)) {
+                    return macChromePath;
+                }
+            }
+            return null;
+        }
         (async function () {
             grunt.log.writeln('Running tests...');
             const fullPath = 'file://' + path.resolve(file);
+            const executablePath = getChromeExecutablePath();
+            if (executablePath) {
+                grunt.log.writeln(`Using browser: ${executablePath}`);
+            }
             const browser = await puppeteer.launch({
                 headless: opt.headless,
-                executablePath: process.env.CHROME_BIN || null,
+                executablePath,
                 args: [
                     '--disable-dev-shm-usage',
                     '--disable-gpu',

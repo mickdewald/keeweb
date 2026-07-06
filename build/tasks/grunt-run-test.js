@@ -11,10 +11,27 @@ module.exports = function (grunt) {
             const browser = await puppeteer.launch({
                 headless: opt.headless,
                 executablePath: process.env.CHROME_BIN || null,
-                args: ['--disable-dev-shm-usage']
+                args: [
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox'
+                ]
             });
             grunt.log.writeln('puppeteer launched...');
             const page = await browser.newPage();
+            page.on('console', (message) => {
+                const type = message.type();
+                if (type === 'error' || type === 'warning') {
+                    grunt.log.writeln(`[browser:${type}] ${message.text()}`);
+                }
+            });
+            page.on('pageerror', (error) => {
+                grunt.fail.fatal(error.stack || error.message || error);
+            });
+            page.on('error', (error) => {
+                grunt.fail.fatal(error.stack || error.message || error);
+            });
             await page.goto(fullPath);
             async function check() {
                 const result = await page.evaluate(() => {
@@ -44,6 +61,8 @@ module.exports = function (grunt) {
             }
 
             check();
-        })();
+        })().catch((error) => {
+            grunt.fail.fatal(error.stack || error.message || error);
+        });
     });
 };

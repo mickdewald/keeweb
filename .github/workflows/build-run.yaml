@@ -193,7 +193,7 @@ jobs:
     # #
 
     darwin:
-        runs-on: [self-hosted, macOS, mick-macbook]
+        runs-on: [self-hosted, macOS, general-ci]
         needs:
             - web
         steps:

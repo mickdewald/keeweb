@@ -8,9 +8,10 @@ Usage: scripts/dev/build-macos-touchid-agent.sh [options]
 Builds a signed arm64 KeeWeb macOS dev app with Touch ID support and deploys it.
 
 Options:
-  --deploy-path <path>   Target app path (default: /Applications/KeeWeb-Codex.app)
+  --deploy-path <path>   Target app path (default: /Applications/KeeWeb.app)
   --skip-build           Skip build/sign, only deploy from existing tmp build app
   --skip-deploy          Build/sign only, do not copy to /Applications
+  --no-backup            Replace the target app without creating a backup
   --no-open              Do not open app after deploy
   -h, --help             Show this help
 EOF
@@ -23,9 +24,10 @@ require_cmd() {
     fi
 }
 
-DEPLOY_PATH="/Applications/KeeWeb-Codex.app"
+DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb.app}"
 DO_BUILD=1
 DO_DEPLOY=1
+BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-1}"
 OPEN_AFTER_DEPLOY=1
 
 while [[ $# -gt 0 ]]; do
@@ -40,6 +42,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-deploy)
             DO_DEPLOY=0
+            shift
+            ;;
+        --no-backup)
+            BACKUP_ON_DEPLOY=0
             shift
             ;;
         --no-open)
@@ -70,6 +76,30 @@ require_cmd /usr/bin/codesign
 require_cmd ditto
 require_cmd xattr
 
+ensure_node_runtime() {
+    local major
+
+    major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
+    if [[ "$major" == "20" ]]; then
+        return 0
+    fi
+
+    if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+        # shellcheck disable=SC1091
+        source "$HOME/.nvm/nvm.sh"
+        nvm use 20.5.1 >/dev/null 2>&1 || nvm use 20 >/dev/null 2>&1 || true
+        major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
+    fi
+
+    if [[ "$major" != "20" ]]; then
+        echo "KeeWeb's macOS packaging flow requires Node 20. Current node: $(node --version 2>/dev/null || echo missing)" >&2
+        echo "Install/use Node 20 before running this script." >&2
+        exit 1
+    fi
+}
+
+ensure_node_runtime
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 cd "$ROOT_DIR"
 
@@ -95,6 +125,39 @@ fi
 
 TEAM_ID="${APP_ID_FULL%%.*}"
 APP_BUNDLE_ID="${APP_ID_FULL#*.}"
+
+next_backup_deploy_path() {
+    local app_path="$1"
+    local timestamp app_dir app_name candidate counter
+
+    timestamp="$(date +%Y-%m-%d-%H-%M)"
+    app_dir="$(dirname "$app_path")"
+    app_name="$(basename "$app_path" .app)"
+    candidate="${app_dir}/${app_name}-backup-${timestamp}.app"
+    counter=1
+
+    while [[ -e "$candidate" ]]; do
+        candidate="${app_dir}/${app_name}-backup-${timestamp}-$(printf '%02d' "$counter").app"
+        counter=$((counter + 1))
+    done
+
+    printf '%s\n' "$candidate"
+}
+
+stop_running_app() {
+    /usr/bin/osascript -e "tell application id \"${APP_BUNDLE_ID}\" to quit" >/dev/null 2>&1 || true
+    pkill -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1 || true
+
+    local attempt
+    for attempt in {1..20}; do
+        if ! pgrep -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 0.1
+    done
+
+    pkill -9 -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1 || true
+}
 
 if [[ ! -d node_modules ]]; then
     echo "node_modules missing, running npm ci..."
@@ -158,8 +221,16 @@ if [[ ! -d "$APP_BUILD_PATH" ]]; then
 fi
 
 if [[ "$DO_DEPLOY" -eq 1 ]]; then
-    pkill -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1 || true
-    rm -rf "$DEPLOY_PATH"
+    stop_running_app
+
+    if [[ "$BACKUP_ON_DEPLOY" -eq 1 && -d "$DEPLOY_PATH" ]]; then
+        BACKUP_PATH="$(next_backup_deploy_path "$DEPLOY_PATH")"
+        mv "$DEPLOY_PATH" "$BACKUP_PATH"
+        echo "Backup created: $BACKUP_PATH"
+    else
+        rm -rf "$DEPLOY_PATH"
+    fi
+
     ditto "$APP_BUILD_PATH" "$DEPLOY_PATH"
     xattr -cr "$DEPLOY_PATH"
     /usr/bin/codesign --verify --deep --strict --verbose=4 "$DEPLOY_PATH" >/dev/null

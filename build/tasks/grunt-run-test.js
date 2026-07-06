@@ -29,6 +29,8 @@ module.exports = function (grunt) {
             const browser = await puppeteer.launch({
                 headless: opt.headless,
                 executablePath,
+                dumpio: Boolean(process.env.CI),
+                pipe: Boolean(process.env.CI),
                 args: [
                     '--disable-dev-shm-usage',
                     '--disable-gpu',

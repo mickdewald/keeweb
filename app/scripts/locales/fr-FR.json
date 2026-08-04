@@ -214,7 +214,7 @@
   "openConfigErrorNotFound": "Aucun fichier trouvé",
   "openError": "Erreur",
   "openErrorDescription": "Une erreur est survenue à l'ouverture du fichier",
-  "openErrorDescriptionMaybeTouchIdChanged": "L'erreur ressemble à ce qu'y arrive habituellement quand la configuration de Touch ID a été changée. Par exemple, vous avez ajouté ou supprimé un doigt supplémentaire. Si c'est le cas, allez dans Paramètres, désactiver Touch ID et activer le de nouveau.",
+  "touchIdRecoveryBody": "Vos empreintes Touch ID ont changé, macOS a donc invalidé l'ancienne clé de sécurité de KeeWeb. Sélectionnez OK, puis saisissez une fois votre mot de passe maître. Après l'ouverture de la base de données, KeeWeb reconnectera automatiquement Touch ID à vos empreintes actuelles. Si cela ne fonctionne pas, fermez puis rouvrez la base de données et saisissez de nouveau votre mot de passe maître.",
   "openErrorFileNotFound": "Fichier non trouvé",
   "openListErrorBody": "Erreur au chargement de la liste des fichiers",
   "openShowAllFiles": "Tous les fichiers",

@@ -3,6 +3,7 @@ import { View } from 'framework/views/view';
 import { Events } from 'framework/events';
 import { Storage } from 'storage';
 import { DropboxChooser } from 'comp/app/dropbox-chooser';
+import { TouchIdRecovery } from 'comp/app/touch-id-recovery';
 import { FocusDetector } from 'comp/browser/focus-detector';
 import { KeyHandler } from 'comp/browser/key-handler';
 import { SecureInput } from 'comp/browser/secure-input';
@@ -736,11 +737,11 @@ class OpenView extends View {
                 })
                 .catch((err) => {
                     Events.emit('hardware-decrypt-finished');
-
                     if (err.message.includes('User refused')) {
                         err.userCanceled = true;
-                    } else if (err.message.includes('SecKeyCreateDecryptedData')) {
-                        err.maybeTouchIdChanged = true;
+                    } else if (TouchIdRecovery.handleDecryptionError(err, this.params.id)) {
+                        err.touchIdRecoveryRequired = true;
+                        this.encryptedPassword = null;
                     }
                     logger.error('Error in hardware decryption', err);
                     this.openDbComplete(err);
@@ -756,7 +757,7 @@ class OpenView extends View {
     openDbComplete(err) {
         this.busy = false;
         this.$el.toggleClass('open--opening', false);
-        const showInputError = err && !err.userCanceled;
+        const showInputError = err && !err.userCanceled && !err.touchIdRecoveryRequired;
         this.inputEl.removeAttr('disabled').toggleClass('input--error', !!showInputError);
         if (err) {
             logger.error('Error opening file', err);
@@ -767,17 +768,16 @@ class OpenView extends View {
                 InputFx.shake(this.inputEl);
             } else if (err.userCanceled) {
                 // nothing to do
+            } else if (err.touchIdRecoveryRequired) {
+                this.displayOpenDeviceOwnerAuth();
+                TouchIdRecovery.showRequiredAlert(() => this.focusInput(true));
             } else {
                 if (err.notFound) {
                     err = Locale.openErrorFileNotFound;
                 }
-                let alertBody = Locale.openErrorDescription;
-                if (err.maybeTouchIdChanged) {
-                    alertBody += '\n' + Locale.openErrorDescriptionMaybeTouchIdChanged;
-                }
                 Alerts.error({
                     header: Locale.openError,
-                    body: alertBody,
+                    body: Locale.openErrorDescription,
                     pre: this.errorToString(err)
                 });
             }

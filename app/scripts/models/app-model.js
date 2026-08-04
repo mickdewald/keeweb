@@ -5,6 +5,7 @@ import { FileCollection } from 'collections/file-collection';
 import { FileInfoCollection } from 'collections/file-info-collection';
 import { RuntimeInfo } from 'const/runtime-info';
 import { UsbListener } from 'comp/app/usb-listener';
+import { TouchIdRecovery } from 'comp/app/touch-id-recovery';
 import { NativeModules } from 'comp/launcher/native-modules';
 import { Timeouts } from 'const/timeouts';
 import { AppSettingsModel } from 'models/app-settings-model';
@@ -879,7 +880,21 @@ class AppModel {
             }
         }
         if (this.settings.deviceOwnerAuth) {
-            this.saveEncryptedPassword(file, params);
+            if (!params) {
+                return;
+            }
+            if (TouchIdRecovery.isRequired()) {
+                if (!params.encryptedPassword && TouchIdRecovery.isRequired(file.id)) {
+                    return TouchIdRecovery.recover(this, file, params, NativeModules)
+                        .then(() => this.appLogger.info('Touch ID reconnected'))
+                        .catch((error) => {
+                            this.appLogger.error('Error reconnecting Touch ID', error);
+                            TouchIdRecovery.showFailedAlert();
+                        });
+                }
+                return;
+            }
+            return this.saveEncryptedPassword(file, params);
         }
     }
 
@@ -1362,33 +1377,7 @@ class AppModel {
     }
 
     saveEncryptedPassword(file, params) {
-        if (!this.settings.deviceOwnerAuth || params.encryptedPassword) {
-            return;
-        }
-        NativeModules.hardwareEncrypt(params.password)
-            .then((encryptedPassword) => {
-                encryptedPassword = encryptedPassword.toBase64();
-                const fileInfo = this.fileInfos.get(file.id);
-                const encryptedPasswordDate = new Date();
-                file.encryptedPassword = encryptedPassword;
-                file.encryptedPasswordDate = encryptedPasswordDate;
-                if (this.settings.deviceOwnerAuth === 'file') {
-                    fileInfo.encryptedPassword = encryptedPassword;
-                    fileInfo.encryptedPasswordDate = encryptedPasswordDate;
-                    this.fileInfos.save();
-                } else if (this.settings.deviceOwnerAuth === 'memory') {
-                    this.memoryPasswordStorage[file.id] = {
-                        value: encryptedPassword,
-                        date: encryptedPasswordDate
-                    };
-                }
-            })
-            .catch((e) => {
-                file.encryptedPassword = null;
-                file.encryptedPasswordDate = null;
-                delete this.memoryPasswordStorage[file.id];
-                this.appLogger.error('Error encrypting password', e);
-            });
+        return TouchIdRecovery.savePassword(this, file, params, NativeModules);
     }
 
     getMemoryPassword(fileId) {

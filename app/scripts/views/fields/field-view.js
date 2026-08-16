@@ -8,6 +8,7 @@ import { Features } from 'util/features';
 import { Locale } from 'util/locale';
 import { AutoType } from 'auto-type';
 import { PasswordPresenter } from 'util/formatting/password-presenter';
+import { highlightDom } from 'hbs-helpers/highlight';
 import { DropdownView } from 'views/dropdown-view';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { Timeouts } from 'const/timeouts';
@@ -51,6 +52,9 @@ class FieldView extends View {
         });
         this.valueEl = this.$el.find('.details__field-value');
         this.valueEl.html(renderedValue);
+        if (this.searchTerms && !(this.value && this.value.isProtected)) {
+            highlightDom(this.valueEl[0], this.searchTerms);
+        }
         this.labelEl = this.$el.find('.details__field-label');
         if (this.model.tip) {
             this.tip = typeof this.model.tip === 'function' ? this.model.tip() : this.model.tip;

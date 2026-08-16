@@ -107,6 +107,9 @@ class ListView extends View {
                 }
             });
             presenter.columns = columns;
+            const filter = this.model.filter;
+            presenter.searchTerms =
+                filter.textLowerParts || (filter.textLower ? [filter.textLower] : null);
             this.presenter = presenter;
 
             presenter.present(this.items[0]);

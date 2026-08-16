@@ -6,6 +6,7 @@ import { CopyPaste } from 'comp/browser/copy-paste';
 import { KeyHandler } from 'comp/browser/key-handler';
 import { OtpQrReader } from 'comp/format/otp-qr-reader';
 import { Alerts } from 'comp/ui/alerts';
+import { highlightDom } from 'hbs-helpers/highlight';
 import { Keys } from 'const/keys';
 import { Timeouts } from 'const/timeouts';
 import { AppSettingsModel } from 'models/app-settings-model';
@@ -130,6 +131,7 @@ class DetailsView extends View {
         this.template = template;
         super.render(model);
         this.setSelectedColor(this.model.color);
+        highlightDom(this.$el.find('.details__header-title')[0], this.searchTerms());
         this.addFieldViews();
         this.checkPasswordIssues();
         this.createScroll({
@@ -150,16 +152,23 @@ class DetailsView extends View {
         return this.fieldViews.find((fv) => fv.model.name === name);
     }
 
+    searchTerms() {
+        const filter = (this.appModel && this.appModel.filter) || {};
+        return filter.textLowerParts || (filter.textLower ? [filter.textLower] : null);
+    }
+
     addFieldViews() {
         const { fieldViews, fieldViewsAside } = createDetailsFields(this);
 
         const hideEmptyFields = AppSettingsModel.hideEmptyFields;
+        const searchTerms = this.searchTerms();
 
         const fieldsMainEl = this.$el.find('.details__body-fields');
         const fieldsAsideEl = this.$el.find('.details__body-aside');
         for (const views of [fieldViews, fieldViewsAside]) {
             for (const fieldView of views) {
                 fieldView.parent = views === fieldViews ? fieldsMainEl[0] : fieldsAsideEl[0];
+                fieldView.searchTerms = searchTerms;
                 fieldView.render();
                 fieldView.on('change', this.fieldChanged.bind(this));
                 fieldView.on('copy', (e) => this.copyFieldValue(e));

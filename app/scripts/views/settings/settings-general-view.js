@@ -141,7 +141,11 @@ class SettingsGeneralView extends View {
             supportsTitleBarStyles: Features.supportsTitleBarStyles,
             supportsCustomTitleBarAndDraggableWindow:
                 Features.supportsCustomTitleBarAndDraggableWindow,
-            titlebarStyle: AppSettingsModel.titlebarStyle,
+            titlebarForcedHiddenInset: Features.isDesktop && Features.isMac,
+            titlebarStyle:
+                Features.isDesktop && Features.isMac && AppSettingsModel.titlebarStyle === 'default'
+                    ? 'hidden-inset'
+                    : AppSettingsModel.titlebarStyle,
             storageProviders,
             showReloadApp: Features.isStandalone,
             hasDeviceOwnerAuth: Features.isDesktop && Features.isMac,

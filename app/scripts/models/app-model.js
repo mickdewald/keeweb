@@ -22,6 +22,8 @@ import { Launcher } from 'comp/launcher';
 import { UrlFormat } from 'util/formatting/url-format';
 import { IdGenerator } from 'util/generators/id-generator';
 import { Locale } from 'util/locale';
+import { StringFormat } from 'util/formatting/string-format';
+import { MenuItemModel } from 'models/menu/menu-item-model';
 import { Logger } from 'util/logger';
 import { noop } from 'util/fn';
 import debounce from 'lodash/debounce';
@@ -169,6 +171,7 @@ class AppModel {
         for (const group of file.groups) {
             this.menu.groupsSection.addItem(group);
         }
+        this._presentGroupsMenu();
         this._addTags(file);
         this._tagsChanged();
         this.menu.filesSection.addItem({
@@ -205,6 +208,7 @@ class AppModel {
 
     reloadFile(file) {
         this.menu.groupsSection.replaceByFile(file, file.groups[0]);
+        this._presentGroupsMenu();
         this.updateTags();
     }
 
@@ -225,23 +229,54 @@ class AppModel {
     }
 
     _tagsChanged() {
-        if (this.tags.length) {
-            this.menu.tagsSection.scrollable = true;
-            this.menu.tagsSection.setItems(
-                this.tags.map((tag) => {
-                    return {
-                        title: tag,
-                        icon: 'tag',
-                        filterKey: 'tag',
-                        filterValue: tag,
-                        editable: true
-                    };
-                })
-            );
-        } else {
-            this.menu.tagsSection.scrollable = false;
-            this.menu.tagsSection.removeAllItems();
+        const section = this.menu.allItemsSection;
+        while (section.items.length > 1) {
+            section.items.pop();
         }
+        if (this.tags.length) {
+            const tagItems = this.tags.map((tag) => {
+                return new MenuItemModel({
+                    title: tag,
+                    icon: 'tag',
+                    filterKey: 'tag',
+                    filterValue: tag,
+                    editable: true
+                });
+            });
+            section.addItem({
+                title: StringFormat.capFirst(Locale.tags),
+                icon: 'tags',
+                expanded: !!AppSettingsModel.tagsMenuExpanded || !!this.filter.tag,
+                items: tagItems,
+                sectionHeader: true,
+                persistExpandedKey: 'tagsMenuExpanded',
+                cls: 'menu__item--disclosure'
+            });
+        } else {
+            section.emit('change-items');
+        }
+    }
+
+    _presentGroupsMenu() {
+        const singleFile = this.files.length <= 1;
+        let hasVisibleSubgroups = false;
+        for (const root of this.menu.groupsSection.items) {
+            if (singleFile && root.top) {
+                root.cls = 'menu__item--hide-self';
+                if (!root.expanded) {
+                    root.expanded = true;
+                }
+                if (root.items) {
+                    hasVisibleSubgroups = root.items.some((group) => group.visible !== false);
+                }
+            } else {
+                root.cls = null;
+                hasVisibleSubgroups = true;
+            }
+        }
+        const showGroups = !singleFile || hasVisibleSubgroups;
+        this.menu.groupsSection.visible = showGroups;
+        this.menu.groupsSection.grow = showGroups;
     }
 
     updateTags() {
@@ -270,10 +305,10 @@ class AppModel {
         }
         this.files.length = 0;
         this.menu.groupsSection.removeAllItems();
-        this.menu.tagsSection.scrollable = false;
-        this.menu.tagsSection.removeAllItems();
+        this._presentGroupsMenu();
         this.menu.filesSection.removeAllItems();
         this.tags.splice(0, this.tags.length);
+        this._tagsChanged();
         this.filter = {};
         this.menu.select({ item: this.menu.allItemsItem });
         Events.emit('all-files-closed');
@@ -285,6 +320,7 @@ class AppModel {
         this.files.remove(file);
         this.updateTags();
         this.menu.groupsSection.removeByFile(file);
+        this._presentGroupsMenu();
         this.menu.filesSection.removeByFile(file);
         this.menu.select({ item: this.menu.allItemsSection.items[0] });
         Events.emit('one-file-closed');
@@ -311,6 +347,7 @@ class AppModel {
     }
 
     refresh() {
+        this._presentGroupsMenu();
         this.setFilter(this.filter);
     }
 

@@ -22,7 +22,8 @@ body.th-dark {
     --light-border-color: rgba(255, 255, 255, 0.08);
     --secondary-background-color: #1c1c1c;
     --selected-item-color: #2463c8;
-    --selected-on-secondary-item-color: #2a2a2a;
+    --selected-on-secondary-item-color: rgba(255, 255, 255, 0.08);
+    --selectable-on-secondary-item-color: rgba(255, 255, 255, 0.05);
 
     .list__item--active .blue-color {
         color: #689ff7;

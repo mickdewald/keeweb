@@ -93,7 +93,9 @@
         <div class="settings__field">
             <label for="settings__general-titlebar-style">{{res 'setGenTitlebarStyle'}}:</label>
             <select class="settings__general-titlebar-style settings__select input-base" id="settings__general-titlebar-style">
+                {{#unless titlebarForcedHiddenInset}}
                 <option value="default" {{#ifeq titlebarStyle 'default'}}selected{{/ifeq}}>{{res 'setGenTitlebarStyleDefault'}}</option>
+                {{/unless}}
                 <option value="hidden" {{#ifeq titlebarStyle 'hidden'}}selected{{/ifeq}}>{{res 'setGenTitlebarStyleHidden'}}</option>
                 {{#if supportsCustomTitleBarAndDraggableWindow}}
                     <option value="hidden-inset" {{#ifeq titlebarStyle 'hidden-inset'}}selected{{/ifeq}}>{{res 'setGenTitlebarStyleHiddenInset'}}</option>

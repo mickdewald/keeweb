@@ -30,6 +30,10 @@ class MenuItemModel extends Model {
         this.expanded = expanded;
     }
 
+    setExpanded(expanded) {
+        this.expanded = expanded;
+    }
+
     changeTitle(model, newTitle) {
         this.title = newTitle;
     }
@@ -59,7 +63,9 @@ MenuItemModel.defineModelProperties({
     page: null,
     editable: false,
     file: null,
-    section: null
+    section: null,
+    sectionHeader: false,
+    persistExpandedKey: null
 });
 
 export { MenuItemModel };

@@ -14,8 +14,16 @@
     position: relative;
     @include padding-if-titlebar;
 
+    .macos-vibrancy & {
+        background-color: var(--background-color);
+    }
+
+    .titlebar-hidden-inset & {
+        padding-top: $titlebar-padding-tiny;
+    }
+
     &__content {
-        margin: $medium-padding auto;
+        margin: $medium-padding-v auto;
         width: 100%;
         max-width: $settings-column-width;
         box-sizing: border-box;
@@ -25,7 +33,7 @@
     &__content--file {
         width: 100%;
         max-width: $settings-column-width;
-        margin: $small-spacing auto $medium-padding;
+        margin: $small-spacing auto $medium-padding-v;
         padding-left: $small-spacing;
         padding-right: $small-spacing;
         padding-bottom: $medium-padding-v;
@@ -368,12 +376,18 @@
         }
         @include nomobile {
             position: absolute;
-            top: 0;
+            top: $small-spacing;
             right: $base-padding-h;
-            padding: $base-padding-v * 2 0 1px 0;
-            z-index: 1;
-            background: var(--background-color);
-            box-shadow: 0 0 5px 5px var(--background-color);
+            padding: 0.45em 0.9em;
+            z-index: 3;
+            border-radius: 2em;
+            background: var(--secondary-background-color);
+            &:hover {
+                background: var(--intermediate-background-color);
+            }
+            .titlebar-hidden-inset & {
+                top: calc(#{$small-spacing} + #{$titlebar-padding-tiny});
+            }
             &-post {
                 display: inline;
             }

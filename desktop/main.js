@@ -278,7 +278,11 @@ function createMainWindow() {
     const bgColor = themeBgColors[theme] || defaultBgColor;
 
     const isWindows = process.platform === 'win32';
+    const isMac = process.platform === 'darwin';
     let titlebarStyle = appSettings.titlebarStyle;
+    if (isMac && (!titlebarStyle || titlebarStyle === 'default')) {
+        titlebarStyle = 'hidden-inset';
+    }
     if (titlebarStyle === 'hidden-inset') {
         titlebarStyle = 'hiddenInset';
     }
@@ -292,7 +296,7 @@ function createMainWindow() {
         minHeight: 400,
         titleBarStyle: titlebarStyle,
         frame: !frameless,
-        backgroundColor: bgColor,
+        backgroundColor: isMac ? '#00000000' : bgColor,
         webPreferences: {
             contextIsolation: false,
             backgroundThrottling: false,
@@ -305,6 +309,9 @@ function createMainWindow() {
     };
     if (process.platform !== 'win32') {
         windowOptions.icon = path.join(__dirname, 'img', 'icon.png');
+    }
+    if (isMac) {
+        windowOptions.vibrancy = 'sidebar';
     }
     mainWindow = new electron.BrowserWindow(windowOptions);
     logProgress('creating main window');

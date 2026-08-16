@@ -19,6 +19,8 @@ class MenuSectionView extends View {
     constructor(model, options) {
         super(model, options);
         this.listenTo(this.model, 'change-items', this.itemsChanged);
+        this.listenTo(this.model, 'change:visible', this.visibilityChanged);
+        this.listenTo(this.model, 'change:grow', this.growChanged);
         this.listenTo(this, 'view-resize', this.viewResized);
         this.once('remove', () => {
             if (this.scroll) {
@@ -55,7 +57,17 @@ class MenuSectionView extends View {
                 this.$el.css('flex', '0 0 ' + height + 'px');
             }
         }
+        this.visibilityChanged();
+        this.growChanged();
         this.pageResized();
+    }
+
+    visibilityChanged() {
+        this.$el.toggleClass('hide', this.model.visible === false);
+    }
+
+    growChanged() {
+        this.$el.toggleClass('menu__section--grow', !!this.model.grow);
     }
 
     maxHeight() {

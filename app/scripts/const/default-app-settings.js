@@ -6,6 +6,7 @@ const DefaultAppSettings = {
     listViewWidth: null, // width of the entry list representation
     menuViewWidth: null, // width of the left menu
     tagsViewHeight: null, // tags menu section height
+    tagsMenuExpanded: false, // keep the sidebar tags list expanded
     autoUpdate: 'install', // auto-update options: "install", "check", ""
     clipboardSeconds: 0, // number of seconds after which the clipboard will be cleared
     autoSave: true, // auto-save open files
@@ -19,7 +20,7 @@ const DefaultAppSettings = {
     useMarkdown: true, // use Markdown in Notes field
     directAutotype: true, // if only one matching entry is found, select that one automatically
     autoTypeTitleFilterEnabled: true, // enable the title filtering in auto-type by default
-    titlebarStyle: 'default', // window titlebar style
+    titlebarStyle: 'hidden-inset', // window titlebar style
     lockOnMinimize: true, // lock the app when it's minimized
     lockOnCopy: false, // lock the app after a password was copied
     lockOnAutoType: false, // lock the app after performing auto-type

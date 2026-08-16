@@ -13,6 +13,14 @@
         position: relative;
         overflow: hidden;
         padding: $small-spacing 0;
+        -webkit-app-region: no-drag;
+        .macos-vibrancy & {
+            border-bottom-color: rgba(255, 255, 255, 0.06);
+            padding: 0.3em 0;
+        }
+        body.th-light.macos-vibrancy & {
+            border-bottom-color: rgba(0, 0, 0, 0.06);
+        }
 
         &--grow {
             flex: 1;
@@ -40,6 +48,158 @@
         }
     }
 
+    &__sections {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        -webkit-app-region: drag;
+    }
+
+    &__workspace {
+        flex: 0 0 auto;
+        padding: 8px;
+        -webkit-app-region: no-drag;
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__workspace-trigger {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        border: 0;
+        padding: 8px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        color: var(--text-color);
+        font: inherit;
+        text-align: left;
+        -webkit-app-region: no-drag;
+        background-color: rgba(255, 255, 255, 0.06);
+        &:hover,
+        &--open {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        body.th-light.macos-vibrancy & {
+            background-color: rgba(0, 0, 0, 0.05);
+            &:hover,
+            &--open {
+                background-color: rgba(0, 0, 0, 0.08);
+            }
+        }
+    }
+
+    &__workspace-icon,
+    &__workspace-caret {
+        flex: 0 0 auto;
+        opacity: 0.7;
+    }
+
+    &__workspace-copy {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        margin: 0 8px;
+    }
+
+    &__workspace-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    &__workspace-subtitle {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        color: var(--muted-color);
+    }
+
+    &__workspace-dot {
+        flex: 0 0 auto;
+        font-size: 6px;
+        color: var(--action-color);
+        margin-right: 6px;
+    }
+
+    &__workspace-popover {
+        position: fixed;
+        z-index: $z-index-no-modal;
+        box-sizing: border-box;
+        padding: 6px;
+        border-radius: 12px;
+        background: var(--secondary-background-color);
+        border: light-border();
+        box-shadow: dropdown-box-shadow();
+        .macos-vibrancy & {
+            background: rgba(32, 32, 32, 0.96);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        body.th-light.macos-vibrancy & {
+            background: rgba(255, 255, 255, 0.96);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+    }
+
+    &__workspace-files {
+        display: flex;
+        flex-direction: column;
+    }
+
+    &__workspace-sep {
+        height: 1px;
+        margin: 6px 8px;
+        background: var(--light-border-color);
+    }
+
+    &__workspace-item {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-color);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        > .fa {
+            width: 1.2em;
+            margin-right: 8px;
+            opacity: 0.7;
+            text-align: center;
+        }
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        body.th-light.macos-vibrancy &:hover {
+            background-color: rgba(0, 0, 0, 0.06);
+        }
+        &--current {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+        &-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
     &__drag-section {
         @include drag-handle;
         flex: 0 0 auto;
@@ -55,6 +215,7 @@
         align-items: stretch;
         flex-direction: column;
         justify-content: flex-start;
+        -webkit-app-region: no-drag;
 
         .menu__item--collapsed > & {
             display: none;
@@ -79,10 +240,27 @@
             white-space: nowrap;
             border-radius: var(--block-border-radius);
             margin: 0 $small-spacing;
+            .macos-vibrancy & {
+                padding: 0.45em 0.7em;
+                margin: 1px 8px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 400;
+                letter-spacing: -0.01em;
+            }
 
             .menu__item--active > &,
             .menu__item--active.menu__item--hover > & {
                 @include area-selected-on-secondary();
+            }
+            .macos-vibrancy .menu__item--active > &,
+            .macos-vibrancy .menu__item--active.menu__item--hover > & {
+                background-color: rgba(255, 255, 255, 0.08);
+                color: var(--text-color);
+            }
+            body.th-light.macos-vibrancy .menu__item--active > &,
+            body.th-light.macos-vibrancy .menu__item--active.menu__item--hover > & {
+                background-color: rgba(0, 0, 0, 0.06);
             }
 
             .menu__item > .menu__item > & {
@@ -128,6 +306,12 @@
             width: 0.8em;
             position: relative;
             top: 0.1em;
+            .macos-vibrancy & {
+                width: 1.05em;
+                top: 0;
+                text-align: center;
+                opacity: 0.72;
+            }
             &--image {
                 width: 12px;
                 height: 12px;
@@ -196,6 +380,22 @@
         &--drag:not(.menu__item--drag-top) {
             > .menu__item-body {
                 color: var(--action-color);
+            }
+        }
+
+        &--disclosure {
+            > .menu__item-body {
+                padding-right: 1.6em;
+            }
+        }
+
+        &--hide-self {
+            > .menu__item-body,
+            > .menu__item-collapse {
+                display: none;
+            }
+            > .menu__item > .menu__item-body {
+                padding-left: $base-padding-h;
             }
         }
     }

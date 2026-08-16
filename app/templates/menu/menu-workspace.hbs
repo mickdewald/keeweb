@@ -1,0 +1,9 @@
+<button type="button" class="menu__workspace-trigger {{#if open}}menu__workspace-trigger--open{{/if}}">
+    <i class="menu__workspace-icon fa fa-lock"></i>
+    <span class="menu__workspace-copy">
+        <span class="menu__workspace-title">{{title}}</span>
+        {{#if subtitle}}<span class="menu__workspace-subtitle">{{subtitle}}</span>{{/if}}
+    </span>
+    {{#if modified}}<i class="menu__workspace-dot fa fa-circle"></i>{{/if}}
+    <i class="menu__workspace-caret fa fa-angle-up"></i>
+</button>

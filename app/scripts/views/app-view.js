@@ -48,8 +48,14 @@ class AppView extends View {
         super(model);
 
         this.titlebarStyle = this.model.settings.titlebarStyle;
+        if (Features.isDesktop && Features.isMac && this.titlebarStyle === 'default') {
+            this.titlebarStyle = 'hidden-inset';
+        }
 
-        this.views.menu = new MenuView(this.model.menu, { ownParent: true });
+        this.views.menu = new MenuView(this.model.menu, {
+            ownParent: true,
+            appModel: this.model
+        });
         this.views.menuDrag = new DragView('x', { parent: '.app__menu-drag' });
         this.views.footer = new FooterView(this.model, { ownParent: true });
         this.views.listWrap = new ListWrapView(this.model, { ownParent: true });
@@ -130,6 +136,9 @@ class AppView extends View {
                 document.body.classList.add('titlebar-custom');
             }
         }
+        if (Features.isDesktop && Features.isMac && this.titlebarStyle === 'hidden-inset') {
+            document.body.classList.add('macos-vibrancy');
+        }
         if (Features.isMobile) {
             document.body.classList.add('mobile');
         }
@@ -146,6 +155,7 @@ class AppView extends View {
         this.views.menu.render();
         this.views.menuDrag.render();
         this.views.footer.render();
+        this.views.footer.hide();
         this.views.list.render();
         this.views.listDrag.render();
         this.views.details.render();
@@ -161,7 +171,7 @@ class AppView extends View {
         this.views.list.hide();
         this.views.listDrag.hide();
         this.views.details.hide();
-        this.views.footer.toggle(this.model.files.hasOpenFiles());
+        this.views.footer.hide();
         this.hidePanelView();
         this.hideSettings();
         this.hideOpenFile();
@@ -202,7 +212,7 @@ class AppView extends View {
         this.views.listWrap.show();
         this.views.listDrag.show();
         this.views.details.show();
-        this.views.footer.show();
+        this.views.footer.hide();
         this.hidePanelView();
         this.hideOpenFile();
         this.hideSettings();
@@ -272,6 +282,7 @@ class AppView extends View {
         this.hideOpenFile();
         this.hideKeyChange();
         this.hideImportCsv();
+        this.views.footer.hide();
         this.views.settings = new SettingsView(this.model);
         this.views.settings.render();
         if (!selectedMenuItem) {
@@ -486,7 +497,9 @@ class AppView extends View {
 
     menuSelect(opt) {
         this.model.menu.select(opt);
-        if (this.views.panel && !this.views.panel.isHidden()) {
+        if (opt.item && opt.item.filterKey && this.views.settings) {
+            this.showEntries();
+        } else if (this.views.panel && !this.views.panel.isHidden()) {
             this.showEntries();
         }
     }

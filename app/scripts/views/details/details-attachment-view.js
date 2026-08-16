@@ -1,22 +1,17 @@
 import { View } from 'framework/views/view';
-import { Shortcuts } from 'comp/app/shortcuts';
-import { Features } from 'util/features';
 import template from 'templates/details/details-attachment.hbs';
 
 class DetailsAttachmentView extends View {
     template = template;
 
     events = {
-        'click .details__subview-close': 'closeAttachment',
-        'click .details__attachment-preview-download-btn': 'downloadAttachment'
+        'click .details__attachment-preview-back': 'closeAttachment',
+        'click .details__attachment-preview-download-btn': 'downloadAttachment',
+        'click .details__attachment-preview-delete-btn': 'deleteAttachment'
     };
 
     render(complete) {
-        super.render({
-            isMobile: Features.isMobile
-        });
-        const shortcut = this.$el.find('.details__attachment-preview-download-text-shortcut');
-        shortcut.text(Shortcuts.actionShortcutSymbol());
+        super.render();
         const blob = new Blob([this.model.getBinary()], { type: this.model.mimeType });
         const dataEl = this.$el.find('.details__attachment-preview-data');
         switch ((this.model.mimeType || '').split('/')[0]) {
@@ -41,6 +36,10 @@ class DetailsAttachmentView extends View {
 
     downloadAttachment() {
         this.emit('download');
+    }
+
+    deleteAttachment() {
+        this.emit('delete');
     }
 
     closeAttachment() {

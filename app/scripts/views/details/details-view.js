@@ -423,6 +423,7 @@ class DetailsView extends View {
         subView.attId = id;
         subView.render(this.pageResized.bind(this));
         subView.on('download', () => this.downloadAttachment(attachment));
+        subView.on('delete', () => this.confirmDeleteAttachment(attachment));
         this.listenTo(subView, 'close', this.render.bind(this));
         this.views.sub = subView;
         attBtn.addClass('details__attachment--active');
@@ -728,9 +729,23 @@ class DetailsView extends View {
         if (this.views.sub && this.views.sub.attId !== undefined) {
             e.preventDefault();
             const attachment = this.model.attachments[this.views.sub.attId];
-            this.model.removeAttachment(attachment.title);
-            this.render();
+            this.confirmDeleteAttachment(attachment);
         }
+    }
+
+    confirmDeleteAttachment(attachment) {
+        if (!attachment) {
+            return;
+        }
+        Alerts.yesno({
+            header: Locale.detAttDelete,
+            body: Locale.detAttDeleteBody.replace('{}', attachment.title),
+            icon: 'trash-alt',
+            success: () => {
+                this.model.removeAttachment(attachment.title);
+                this.render();
+            }
+        });
     }
 
     editTitle() {

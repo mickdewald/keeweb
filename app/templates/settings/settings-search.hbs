@@ -1,0 +1,36 @@
+<div class="settings__search">
+    <div class="settings__search-field-wrap{{#if query}} settings__search-field-wrap--text{{/if}}">
+        <i class="fa fa-search settings__search-icon settings__search-icon-search"></i>
+        <input
+            type="text"
+            class="settings__search-field settings__input input-base"
+            placeholder="{{res 'setSearchPlaceholder'}}"
+            value="{{query}}"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="{{res 'setSearchPlaceholder'}}"
+        />
+        <div class="settings__search-icon settings__search-icon-clear" title="{{res 'setShClearSearch'}}">
+            <i class="fa fa-times-circle"></i>
+        </div>
+    </div>
+    {{#if query}}
+        <div class="settings__search-results" role="listbox">
+            {{#if results.length}}
+                {{#each results as |result index|}}
+                    <button
+                        type="button"
+                        class="settings__search-result{{#ifeq index ../activeIndex}} settings__search-result--active{{/ifeq}}"
+                        data-id="{{result.id}}"
+                        role="option"
+                    >
+                        <span class="settings__search-result-title">{{result.title}}</span>
+                        <span class="settings__search-result-path">{{result.path}}</span>
+                    </button>
+                {{/each}}
+            {{else}}
+                <div class="settings__search-empty">{{res 'setSearchEmpty'}}</div>
+            {{/if}}
+        </div>
+    {{/if}}
+</div>

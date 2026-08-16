@@ -79,6 +79,18 @@
     }
 }
 
+@keyframes settings-search-hit {
+    0% {
+        box-shadow: 0 0 0 0 var(--action-color);
+    }
+    40% {
+        box-shadow: 0 0 0 6px transparent;
+    }
+    100% {
+        box-shadow: none;
+    }
+}
+
 @keyframes shake {
     0%,
     1%,

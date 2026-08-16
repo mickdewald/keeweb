@@ -22,6 +22,8 @@
   "shortcuts": "Tastenkürzel",
   "help": "Hilfe",
   "settings": "Einstellungen",
+  "setSearchPlaceholder": "Einstellungen durchsuchen",
+  "setSearchEmpty": "Keine passenden Einstellungen",
   "plugins": "Plugins",
   "ctrlKey": "Strg",
   "shiftKey": "Umschalt",

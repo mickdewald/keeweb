@@ -22,6 +22,8 @@
   "shortcuts": "Raccourcis",
   "help": "Aide",
   "settings": "Paramètres",
+  "setSearchPlaceholder": "Rechercher dans les réglages",
+  "setSearchEmpty": "Aucun réglage correspondant",
   "plugins": "Modules (plugins)",
   "ctrlKey": "ctrl",
   "shiftKey": "shift",

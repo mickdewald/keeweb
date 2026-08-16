@@ -205,6 +205,17 @@ class EntryModel extends Model {
         }
     }
 
+    isInRecycleBin() {
+        let group = this.group;
+        while (group) {
+            if (typeof group.isRecycleBin === 'function' && group.isRecycleBin()) {
+                return true;
+            }
+            group = group.parentGroup;
+        }
+        return false;
+    }
+
     matches(filter) {
         return this._search.matches(filter);
     }

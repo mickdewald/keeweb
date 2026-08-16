@@ -22,6 +22,16 @@ describe('EntrySearch', () => {
         expect(search.matches({ textLower: 'something' })).to.be.false;
     });
 
+    it('hides recycled entries from normal filters', () => {
+        const search = new EntrySearch({
+            searchText: 'test',
+            isInRecycleBin: () => true
+        });
+        expect(search.matches({ textLower: 'test' })).to.be.false;
+        expect(search.matches({ trash: true, textLower: 'test' })).to.be.true;
+        expect(search.matches({ includeDisabled: true, textLower: 'test' })).to.be.true;
+    });
+
     it('should match text parts', () => {
         const search = new EntrySearch({ searchText: 'some test' });
         expect(

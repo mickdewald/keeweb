@@ -120,7 +120,15 @@ class GroupModel extends MenuItemModel {
         });
     }
 
+    isRecycleBin() {
+        const recycleBinUuid = this.file && this.file.db && this.file.db.meta.recycleBinUuid;
+        return !!(recycleBinUuid && this.group && this.group.uuid.equals(recycleBinUuid));
+    }
+
     matches(filter) {
+        if (this.isRecycleBin()) {
+            return !!(filter && (filter.trash || filter.includeDisabled));
+        }
         return (
             ((filter && filter.includeDisabled) ||
                 (this.group.enableSearching !== false &&

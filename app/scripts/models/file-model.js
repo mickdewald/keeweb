@@ -685,7 +685,7 @@ class FileModel extends Model {
     }
 
     renameTag(from, to) {
-        this.forEachEntry({}, (entry) => entry.renameTag(from, to));
+        this.forEachEntry({ includeDisabled: true }, (entry) => entry.renameTag(from, to));
     }
 
     setFormatVersion(version) {

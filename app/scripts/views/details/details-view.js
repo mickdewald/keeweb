@@ -44,6 +44,7 @@ class DetailsView extends View {
         'click .details__history-link': 'showHistory',
         'click .details__buttons-trash': 'moveToTrash',
         'click .details__buttons-trash-del': 'deleteFromTrash',
+        'click .details__buttons-trash-restore': 'restoreFromTrash',
         'click .details__back-button': 'backClick',
         'click .details__attachment-add': 'attachmentBtnClick',
         'change .details__attachment-input-file': 'attachmentFileChange',
@@ -899,6 +900,11 @@ class DetailsView extends View {
                 Events.emit('refresh');
             }
         });
+    }
+
+    restoreFromTrash() {
+        this.model.restoreFromTrash();
+        Events.emit('refresh');
     }
 
     backClick() {

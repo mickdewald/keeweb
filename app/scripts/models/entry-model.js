@@ -433,6 +433,19 @@ class EntryModel extends Model {
         this.file.reload();
     }
 
+    restoreFromTrash() {
+        this.file.setModified();
+        const db = this.file.db;
+        let group = this.entry.previousParentGroup
+            ? db.getGroup(this.entry.previousParentGroup)
+            : null;
+        if (!group || (db.meta.recycleBinUuid && group.uuid.equals(db.meta.recycleBinUuid))) {
+            group = db.getDefaultGroup();
+        }
+        db.move(this.entry, group);
+        this.file.reload();
+    }
+
     deleteFromTrash() {
         this.file.setModified();
         this.file.db.move(this.entry, null);

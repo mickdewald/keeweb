@@ -700,6 +700,12 @@
             margin-right: 10px;
         }
 
+        &-trash-restore {
+            @include icon-btn;
+            align-self: flex-end;
+            margin-right: 10px;
+        }
+
         &-trash-del {
             color: var(--muted-color);
         }

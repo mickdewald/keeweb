@@ -96,6 +96,7 @@
   "genLen": "Length",
   "genNewPass": "New password",
   "genPresetDefault": "default preset",
+  "genPresetCustom": "custom",
   "genPresetDerived": "like old password",
   "genPresetPronounceable": "pronounceable",
   "genPresetMed": "medium length",

@@ -92,6 +92,7 @@
   "genLen": "Länge",
   "genNewPass": "Neues Passwort",
   "genPresetDefault": "Standardeinstellung",
+  "genPresetCustom": "Angepasst",
   "genPresetDerived": "Wie das alte Passwort",
   "genPresetPronounceable": "aussprechbar",
   "genPresetMed": "Durchschnittliche Länge",

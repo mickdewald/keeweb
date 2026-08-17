@@ -4,7 +4,7 @@ import { GeneratorPresets } from 'comp/app/generator-presets';
 import { CopyPaste } from 'comp/browser/copy-paste';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { PasswordGenerator } from 'util/generators/password-generator';
-import { PasswordPresenter } from 'util/formatting/password-presenter';
+import { PasswordPresenter, charClass } from 'util/formatting/password-presenter';
 import { Locale } from 'util/locale';
 import { Tip } from 'util/ui/tip';
 import template from 'templates/generator.hbs';
@@ -121,8 +121,50 @@ class GeneratorView extends View {
         if (this.hide && !this.model.copy) {
             this.resultEl.text(PasswordPresenter.present(this.password.length));
         } else {
-            this.resultEl.text(this.password);
+            this.resultEl.empty();
+            for (const ch of this.password) {
+                const span = document.createElement('span');
+                span.textContent = ch;
+                const cls = charClass(ch.charCodeAt(0));
+                if (cls) {
+                    span.className = cls;
+                }
+                this.resultEl.append(span);
+            }
         }
+        this.updateStrength();
+    }
+
+    updateStrength() {
+        const bar = this.$el.find('.gen__strength-bar')[0];
+        if (!bar) {
+            return;
+        }
+        let pool = 0;
+        if (/[a-z]/.test(this.password)) {
+            pool += 26;
+        }
+        if (/[A-Z]/.test(this.password)) {
+            pool += 26;
+        }
+        if (/[0-9]/.test(this.password)) {
+            pool += 10;
+        }
+        if (/[^a-zA-Z0-9]/.test(this.password)) {
+            pool += 33;
+        }
+        const bits = this.password.length * Math.log2(pool || 1);
+        const pct = Math.min(100, Math.round((bits / 128) * 100));
+        let level = 'weak';
+        if (bits >= 100) {
+            level = 'strong';
+        } else if (bits >= 75) {
+            level = 'good';
+        } else if (bits >= 50) {
+            level = 'ok';
+        }
+        bar.style.width = pct + '%';
+        bar.className = 'gen__strength-bar gen__strength-bar--' + level;
     }
 
     click(e) {

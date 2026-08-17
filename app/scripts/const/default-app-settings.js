@@ -40,7 +40,7 @@ const DefaultAppSettings = {
     cacheConfigSettings: false, // cache config settings and use them if the config can't be loaded
     allowIframes: false, // allow displaying the app in IFrames
     useGroupIconForEntries: false, // automatically use group icon when creating new entries
-    enableUsb: true, // enable interaction with USB devices
+    enableUsb: false, // enable interaction with USB devices (YubiKey; off in this fork, the usb-detection native module is not N-API and died with Electron 22+)
     fieldLabelDblClickAutoType: false, // trigger auto-type by doubleclicking field label
     auditPasswords: true, // enable password audit
     auditPasswordEntropy: true, // show warnings for weak passwords

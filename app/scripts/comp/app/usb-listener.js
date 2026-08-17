@@ -2,12 +2,13 @@ import { Events } from 'framework/events';
 import { Logger } from 'util/logger';
 import { NativeModules } from 'comp/launcher/native-modules';
 import { AppSettingsModel } from 'models/app-settings-model';
-import { Features } from 'util/features';
 
 const logger = new Logger('usb-listener');
 
 const UsbListener = {
-    supported: Features.isDesktop,
+    // hard-disabled in this fork: no YubiKey usage, and the usb-detection
+    // native module is not N-API, so it does not load on Electron 22+
+    supported: false,
     attachedYubiKeys: 0,
 
     init() {

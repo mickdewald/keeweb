@@ -32,7 +32,7 @@
     "cross-env": "^7.0.3",
     "css-loader": "^5.2.4",
     "dompurify": "^2.2.8",
-    "electron": "22.3.27",
+    "electron": "43.4.0",
     "electron-builder": "^22.11.1",
     "@electron/remote": "^2.1.2",
     "electron-evil-feature-patcher": "^1.2.1",
@@ -145,6 +145,6 @@
     "Electron > 6.0.1"
   ],
   "allowScripts": {
-    "electron@22.3.27": true
+    "electron@43.4.0": true
   }
 }

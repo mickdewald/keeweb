@@ -831,7 +831,7 @@ function getAppMainRoot() {
     if (isDev) {
         return __dirname;
     } else {
-        return process.mainModule.path;
+        return require.main.path;
     }
 }
 

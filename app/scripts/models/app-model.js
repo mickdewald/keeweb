@@ -1263,7 +1263,8 @@ class AppModel {
             enabled: true,
             storage: 'file',
             path: defaultPath + '/' + file.name + '.kdbx.{date}.bak',
-            schedule: '1d'
+            schedule: '1d',
+            pending: true
         };
         file.backup = backup;
         this.setFileBackup(file.id, backup);

@@ -29,6 +29,7 @@ import { TitlebarView } from 'views/titlebar-view';
 import { SelectEntryView } from 'views/select/select-entry-view';
 import { SelectEntryFilter } from 'comp/app/select-entry-filter';
 import { CopyPaste } from 'comp/browser/copy-paste';
+import { Timeouts } from 'const/timeouts';
 import template from 'templates/app.hbs';
 
 class AppView extends View {
@@ -325,7 +326,15 @@ class AppView extends View {
             const password = entry.password;
             const text = password && password.isProtected ? password.getText() : password;
             if (text) {
-                CopyPaste.copy(text);
+                if (!CopyPaste.simpleCopy) {
+                    CopyPaste.createHiddenInput(text);
+                }
+                const copyRes = CopyPaste.copy(text);
+                if (copyRes && this.model.settings.lockOnCopy) {
+                    setTimeout(() => {
+                        Events.emit('lock-workspace');
+                    }, Timeouts.BeforeAutoLock);
+                }
             }
         });
         view.render();

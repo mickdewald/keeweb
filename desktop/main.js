@@ -864,8 +864,14 @@ function loadSettingsEncryptionKey() {
 
             const keyFilePath = path.join(main.getPath('userData'), 'settings-key.bin');
             if (fs.existsSync(keyFilePath)) {
-                const hex = safeStorage.decryptString(fs.readFileSync(keyFilePath));
-                return Buffer.from(hex, 'hex');
+                try {
+                    const hex = safeStorage.decryptString(fs.readFileSync(keyFilePath));
+                    fs.chmodSync(keyFilePath, 0o600);
+                    return Buffer.from(hex, 'hex');
+                } catch (e) {
+                    // corrupted or written by another keychain state: fall through to keytar
+                    logStartupMessage(`Error reading settings key file, trying keytar: ${e}`);
+                }
             }
 
             // migrate the key from keytar, or create a fresh one on first run
@@ -878,7 +884,15 @@ function loadSettingsEncryptionKey() {
                     keyPromise = migrateOldConfigs(key).then(() => key);
                 }
                 return keyPromise.then((key) => {
-                    fs.writeFileSync(keyFilePath, safeStorage.encryptString(key.toString('hex')));
+                    try {
+                        fs.writeFileSync(
+                            keyFilePath,
+                            safeStorage.encryptString(key.toString('hex')),
+                            { mode: 0o600 }
+                        );
+                    } catch (e) {
+                        logStartupMessage(`Error writing settings key file: ${e}`);
+                    }
                     return key;
                 });
             });

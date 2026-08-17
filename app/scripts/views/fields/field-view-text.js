@@ -87,6 +87,7 @@ class FieldViewText extends FieldView {
         const input = this.input[0];
         const overlay = document.createElement('div');
         overlay.className = 'details__field-colored-edit';
+        overlay.setAttribute('aria-hidden', 'true');
         const styles = getComputedStyle(input);
         for (const prop of [
             'fontFamily',

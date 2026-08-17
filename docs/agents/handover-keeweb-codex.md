@@ -76,6 +76,10 @@ Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Dat
 
 Ein-Sidebar-Layout (`compactLayout: true`): Die Eintragsliste ist die linke Spalte; Nav-Sidebar nur noch in den Settings. Tags über Dropdown in der Suchleiste, Workspace-Button unten in der Listen-Spalte, Drag-Streifen (38px) über der Suchleiste für die Traffic Lights, Liste ist die transluzente Vibrancy-Fläche. `compactLayout: false` stellt das klassische Drei-Spalten-Layout wieder her (auch nötig, falls sichtbare Untergruppen navigierbar sein müssen). Rollback-Tag: `pre-single-sidebar`.
 
+## Review-Notizen (2026-08-17, externes Review)
+
+Bewusst offen gelassen: Backup-Namenskollision bei gleichnamigen kdbx in verschiedenen Ordnern (eine Datei ist der Normalfall); Cmd+K schließt bei 0 Treffern still und kann kein Paste (kein echtes Input); YubiKey-Block in den Settings sichtbar aber disabled; compactLayout=false nur per Settings-Blob umschaltbar. Gefixt: settings-key.bin-Guard+0600, Palette-Copy im Browser + lockOnCopy, erstes Backup direkt nach Open (pending), aria-hidden auf dem Edit-Overlay, fr-FR-Keys, $medium-padding-Shorthands in _details.
+
 ## Offen / Ideen (grob priorisiert)
 
 1. **Cmd+K Schnellsuche** (Command-Palette: tippen → Enter → kopiert)

@@ -21,6 +21,7 @@ class FieldView extends View {
         'click .details__field-label': 'fieldLabelClick',
         'dblclick .details__field-label': 'fieldLabelDblClick',
         'click .details__field-value': 'fieldValueClick',
+        'click .details__field-copy': 'copyBtnClick',
         'dragstart .details__field-label': 'fieldLabelDrag',
         'click .details__field-options': 'fieldOptionsClick'
     };
@@ -48,6 +49,7 @@ class FieldView extends View {
             canEditTitle: this.model.newField,
             canGen: this.model.canGen,
             protect: this.value && this.value.isProtected,
+            canCopy: !Features.isMobile && !!renderedValue,
             hasOptions: !Features.isMobile && renderedValue && this.hasOptions
         });
         this.valueEl = this.$el.find('.details__field-value');
@@ -97,6 +99,13 @@ class FieldView extends View {
         } else {
             this.copyValue();
         }
+    }
+
+    copyBtnClick(e) {
+        e.stopPropagation();
+        this.copyAnchorEl = e.target.closest('.details__field-copy');
+        this.copyValue();
+        this.copyAnchorEl = null;
     }
 
     copyValue() {

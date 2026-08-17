@@ -480,6 +480,30 @@
             padding-bottom: 0.5em;
         }
 
+        &-copy {
+            color: var(--muted-color);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity $slow-transition-out, color $base-duration $base-timing;
+            align-self: flex-start;
+            width: 2em;
+            text-align: center;
+            padding-top: 0.1em;
+            .details__field:hover & {
+                opacity: 1;
+                transition: opacity $slow-transition-in;
+            }
+            &:hover {
+                color: var(--action-color);
+            }
+            .details__field--edit & {
+                display: none;
+            }
+            @include mobile {
+                display: none;
+            }
+        }
+
         &-options {
             color: var(--muted-color);
             cursor: pointer;

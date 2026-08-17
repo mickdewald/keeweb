@@ -14,16 +14,17 @@ const Copyable = {
 
     fieldCopied(e) {
         this.hideFieldCopyTip();
-        const fieldLabel = e.source.labelEl;
+        const copyAnchor = e.source.copyAnchorEl;
+        const anchorEl = copyAnchor || e.source.labelEl[0];
         const clipboardTime = e.copyRes.seconds;
         const msg = clipboardTime
             ? Locale.detFieldCopiedTime.replace('{}', clipboardTime)
             : Locale.detFieldCopied;
         let tip;
         if (!this.isHidden()) {
-            tip = Tip.createTip(fieldLabel[0], {
+            tip = Tip.createTip(anchorEl, {
                 title: msg,
-                placement: 'right',
+                placement: copyAnchor ? 'left' : 'right',
                 fast: true,
                 force: true,
                 noInit: true

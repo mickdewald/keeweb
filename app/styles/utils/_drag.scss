@@ -20,6 +20,7 @@
 
 .drag-handle__inner {
     position: absolute;
+    -webkit-app-region: no-drag;
     &--x {
         top: 0;
         left: -2px;

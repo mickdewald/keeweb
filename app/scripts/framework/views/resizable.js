@@ -4,6 +4,7 @@ const Resizable = {
     listenDrag(dragView) {
         this.listenTo(dragView, 'dragstart', this.dragStart);
         this.listenTo(dragView, 'drag', this.drag);
+        this.listenTo(dragView, 'dragend', this.dragEnd);
         this.listenTo(dragView, 'autosize', this.autoSize);
     },
 
@@ -17,6 +18,20 @@ const Resizable = {
         size = Math.max(dragInfo.min, Math.min(dragInfo.max, size));
         this.$el[dragInfo.prop](size);
         this.emit('view-resize', size);
+        // scrollbar geometry is expensive to recalc, so keep it off the drag hot path
+        if (!this._pageGeometryTimer) {
+            this._pageGeometryTimer = setTimeout(() => {
+                this._pageGeometryTimer = null;
+                Events.emit('page-geometry', { source: 'resizable' });
+            }, 100);
+        }
+    },
+
+    dragEnd() {
+        if (this._pageGeometryTimer) {
+            clearTimeout(this._pageGeometryTimer);
+            this._pageGeometryTimer = null;
+        }
         Events.emit('page-geometry', { source: 'resizable' });
     },
 

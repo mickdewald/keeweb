@@ -108,6 +108,16 @@
     }
     &__item {
         @include area-selectable();
+        &-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+            vertical-align: middle;
+            &--custom {
+                object-fit: contain;
+            }
+        }
         &--active,
         &--active:hover {
             @include area-selected();

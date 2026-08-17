@@ -339,6 +339,7 @@
   "autoTypeErrorNotInstalled": "{} ist nicht installiert",
   "autoTypeHeader": "Auto-Type: Auswählen",
   "autoTypeMsgNoWindow": "Wir konnten den Titel des aktiven Fensters leider nicht auslesen. Fangen Sie einfach an zu tippen, um nach dem richtigen Eintrag zu suchen.",
+  "cmdPaletteTopMessage": "Tippen zum Suchen — Enter kopiert das Passwort",
   "autoTypeMsgMatchedByWindow": "Passwort auswählen für {}",
   "autoTypeNoMatches": "keine passenden Einträge",
   "autoTypeSelectionHint": "Die Auto-Type-Sequenz eintippen",

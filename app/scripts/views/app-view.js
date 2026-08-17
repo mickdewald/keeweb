@@ -26,6 +26,9 @@ import { SettingsView } from 'views/settings/settings-view';
 import { TagView } from 'views/tag-view';
 import { ImportCsvView } from 'views/import-csv-view';
 import { TitlebarView } from 'views/titlebar-view';
+import { SelectEntryView } from 'views/select/select-entry-view';
+import { SelectEntryFilter } from 'comp/app/select-entry-filter';
+import { CopyPaste } from 'comp/browser/copy-paste';
 import template from 'templates/app.hbs';
 
 class AppView extends View {
@@ -112,6 +115,7 @@ class AppView extends View {
 
         this.onKey(Keys.DOM_VK_ESCAPE, this.escPressed);
         this.onKey(Keys.DOM_VK_BACK_SPACE, this.backspacePressed);
+        this.onKey(Keys.DOM_VK_K, this.showCmdPalette, KeyHandler.SHORTCUT_ACTION);
         if (Launcher && Launcher.devTools) {
             this.onKey(
                 Keys.DOM_VK_I,
@@ -290,6 +294,34 @@ class AppView extends View {
         }
         this.model.menu.select({ item: selectedMenuItem });
         this.views.menu.switchVisibility(false);
+    }
+
+    showCmdPalette() {
+        if (!this.model.files.hasOpenFiles() || this.views.cmdPalette) {
+            return;
+        }
+        const filter = new SelectEntryFilter({}, this.model, this.model.files);
+        const view = new SelectEntryView({
+            isAutoType: false,
+            filter,
+            topMessage: Locale.cmdPaletteTopMessage
+        });
+        view.on('result', (result) => {
+            view.off('result');
+            view.remove();
+            this.views.cmdPalette = null;
+            const entry = result && result.entry;
+            if (!entry) {
+                return;
+            }
+            const password = entry.password;
+            const text = password && password.isProtected ? password.getText() : password;
+            if (text) {
+                CopyPaste.copy(text);
+            }
+        });
+        view.render();
+        this.views.cmdPalette = view;
     }
 
     showEditGroup(group) {

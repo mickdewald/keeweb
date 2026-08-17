@@ -203,7 +203,9 @@ const Launcher = {
         return process.platform !== 'linux';
     },
     updaterEnabled() {
-        return process.platform !== 'linux';
+        // this fork is deployed via scripts/dev/build-macos-touchid-agent.sh; an upstream
+        // auto-update would replace the customized app with vanilla KeeWeb
+        return false;
     },
     getMainWindow() {
         return this.remoteApp().getMainWindow();

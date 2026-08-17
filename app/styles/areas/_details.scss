@@ -480,13 +480,27 @@
             padding-bottom: 0.5em;
         }
 
-        &-value--revealed {
+        &-value--revealed,
+        &-colored-edit {
             .password-char--digit {
                 color: var(--action-color);
             }
             .password-char--special {
                 color: var(--error-color);
             }
+        }
+
+        &-colored-edit {
+            position: absolute;
+            pointer-events: none;
+            overflow: hidden;
+            white-space: pre;
+            color: var(--text-color);
+        }
+
+        input.input--colored-edit {
+            -webkit-text-fill-color: transparent;
+            caret-color: var(--text-color);
         }
 
         &-copy {

@@ -86,4 +86,4 @@ const PasswordPresenter = {
     }
 };
 
-export { PasswordPresenter };
+export { PasswordPresenter, charClass };

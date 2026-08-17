@@ -4,7 +4,7 @@ import { KeyHandler } from 'comp/browser/key-handler';
 import { Keys } from 'const/keys';
 import { Features } from 'util/features';
 import { MdToHtml } from 'util/formatting/md-to-html';
-import { PasswordPresenter } from 'util/formatting/password-presenter';
+import { PasswordPresenter, charClass } from 'util/formatting/password-presenter';
 import { Tip } from 'util/ui/tip';
 import { FieldView } from 'views/fields/field-view';
 import { GeneratorView } from 'views/generator-view';
@@ -78,6 +78,63 @@ class FieldViewText extends FieldView {
         }
         Tip.hideTip(this.valueEl[0]);
         Tip.hideTip(this.labelEl[0]);
+        if (isProtected && !this.model.multiline) {
+            this.setupColoredEdit();
+        }
+    }
+
+    setupColoredEdit() {
+        const input = this.input[0];
+        const overlay = document.createElement('div');
+        overlay.className = 'details__field-colored-edit';
+        const styles = getComputedStyle(input);
+        for (const prop of [
+            'fontFamily',
+            'fontSize',
+            'fontWeight',
+            'letterSpacing',
+            'lineHeight',
+            'paddingLeft',
+            'paddingRight',
+            'paddingTop',
+            'paddingBottom',
+            'borderLeftWidth',
+            'borderRightWidth',
+            'borderTopWidth',
+            'borderBottomWidth',
+            'borderStyle',
+            'boxSizing',
+            'textAlign'
+        ]) {
+            overlay.style[prop] = styles[prop];
+        }
+        overlay.style.borderColor = 'transparent';
+        this.valueEl.append(overlay);
+        input.classList.add('input--colored-edit');
+        const update = () => {
+            overlay.textContent = '';
+            for (const ch of input.value) {
+                const span = document.createElement('span');
+                span.textContent = ch;
+                const cls = charClass(ch.charCodeAt(0));
+                if (cls) {
+                    span.className = cls;
+                }
+                overlay.appendChild(span);
+            }
+            this.syncColoredEdit(overlay, input);
+        };
+        input.addEventListener('input', update);
+        input.addEventListener('scroll', () => this.syncColoredEdit(overlay, input));
+        update();
+    }
+
+    syncColoredEdit(overlay, input) {
+        overlay.style.left = input.offsetLeft + 'px';
+        overlay.style.top = input.offsetTop + 'px';
+        overlay.style.width = input.offsetWidth + 'px';
+        overlay.style.height = input.offsetHeight + 'px';
+        overlay.scrollLeft = input.scrollLeft;
     }
 
     createMobileControls() {

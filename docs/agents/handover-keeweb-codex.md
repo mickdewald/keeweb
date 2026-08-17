@@ -1,6 +1,6 @@
 # Übergabe KeeWeb-Codex
 
-Stand: 2026-08-17. Fork von KeeWeb (Electron 22, kein Rewrite): `mickdewald/keeweb` (origin), Upstream `keeweb/keeweb` (nur lesen). Ziel: schrittweise UX-Politur.
+Stand: 2026-08-17. Fork von KeeWeb (Electron 43, kein Rewrite): `mickdewald/keeweb` (origin), Upstream `keeweb/keeweb` (nur lesen). Ziel: schrittweise UX-Politur.
 
 ## Wo gearbeitet wird
 
@@ -80,4 +80,4 @@ Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Dat
 4. Passwort-Health-Übersicht (schwach/wiederverwendet/alt)
 5. Vibrancy-Feinschliff (gut, aber noch nicht ChatGPT-Niveau)
 6. Sidebar-Dichte; Passwort-Anzeige mit eingefärbten Ziffern/Sonderzeichen
-7. Electron: Stufe 1 (13 → 22, @electron/remote) ERLEDIGT. Optional Stufe 2: 22 → aktuell (keytar → safeStorage, osx-sign/notarize modernisieren, contextIsolation). Native Module sind N-API/ABI-stabil — kein Rebuild nötig. Nach Electron-Sprüngen fragt macOS die Keychain-Freigaben einmalig neu ab (Signatur-Änderung).
+7. Electron: 13 → 22 → 43 ERLEDIGT (@electron/remote; USB/YubiKey hart deaktiviert — usb-detection ist nicht N-API). Native Module (secure-enclave/Touch ID, keytar, argon2) sind N-API/ABI-stabil — kein Rebuild bei Sprüngen. Nach Electron-Sprüngen fragt macOS Keychain-Freigaben einmalig neu ab. Optional später: keytar → safeStorage, contextIsolation/IPC. WICHTIG: Nach node_modules-Wechsel den Dev-Server neu starten, sonst mischt Webpack alte/neue Modulpfade (doppelte Handlebars-Instanz, Helper fehlen).

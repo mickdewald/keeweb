@@ -10,6 +10,7 @@ import { Locale } from 'util/locale';
 import { Resizable } from 'framework/views/resizable';
 import { Scrollable } from 'framework/views/scrollable';
 import { DropdownView } from 'views/dropdown-view';
+import { MenuWorkspaceView } from 'views/menu/menu-workspace-view';
 import { ListSearchView } from 'views/list-search-view';
 import throttle from 'lodash/throttle';
 import template from 'templates/list.hbs';
@@ -84,6 +85,13 @@ class ListView extends View {
             this.itemsEl.on('scroll', () => this.renderVisibleItems());
             this.views.search.render();
             this.setTableView();
+
+            if (AppSettingsModel.compactLayout && !this.views.workspace) {
+                this.views.workspace = new MenuWorkspaceView(this.model, {
+                    parent: this.$el.find('.list__workspace')[0]
+                });
+                this.views.workspace.render();
+            }
 
             this.createScroll({
                 root: this.$el.find('.list__items')[0],

@@ -19,6 +19,26 @@ mark.search-hl {
     overflow: hidden;
 
     &__header {
+        body.layout-compact.titlebar-hidden-inset & {
+            flex: 0 0 auto;
+            padding-top: 38px;
+            -webkit-app-region: drag;
+        }
+    }
+
+    &__search {
+        body.layout-compact.titlebar-hidden-inset & {
+            -webkit-app-region: no-drag;
+        }
+    }
+
+    &__workspace {
+        flex: 0 0 auto;
+        padding: 8px;
+        -webkit-app-region: no-drag;
+        &:empty {
+            display: none;
+        }
     }
 
     &__items {
@@ -105,19 +125,30 @@ mark.search-hl {
                 display: block;
             }
         }
+        &-btn-tags,
         &-btn-new,
         &-btn-sort {
             @include icon-btn;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5em;
             height: 2.5em;
-            line-height: 2.5em;
-            padding: 0 $base-padding-h;
+            padding: 0;
             border-radius: 10px;
+            > i {
+                line-height: 1;
+            }
             &:hover {
                 background-color: var(--secondary-background-color);
             }
         }
+        &-btn-tags,
         &-btn-new {
             margin-right: 2px;
+        }
+        &-btn-tags--filtered > i {
+            color: var(--action-color);
         }
         &-btn-menu {
             display: none;

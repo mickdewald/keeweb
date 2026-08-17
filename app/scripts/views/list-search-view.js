@@ -6,6 +6,7 @@ import { Keys } from 'const/keys';
 import { Comparators } from 'util/data/comparators';
 import { Features } from 'util/features';
 import { StringFormat } from 'util/formatting/string-format';
+import { AppSettingsModel } from 'models/app-settings-model';
 import { Locale } from 'util/locale';
 import { DropdownView } from 'views/dropdown-view';
 import template from 'templates/list-search.hbs';
@@ -22,6 +23,7 @@ class ListSearchView extends View {
         'focus .list__search-field': 'inputFocus',
         'click .list__search-btn-new': 'createOptionsClick',
         'click .list__search-btn-sort': 'sortOptionsClick',
+        'click .list__search-btn-tags': 'tagOptionsClick',
         'click .list__search-icon-search': 'advancedSearchClick',
         'click .list__search-btn-menu': 'toggleMenu',
         'click .list__search-icon-clear': 'clickClear',
@@ -179,7 +181,8 @@ class ListSearchView extends View {
         super.render({
             adv: this.advancedSearch,
             advEnabled: this.advancedSearchEnabled,
-            canCreate: this.model.canCreateEntries()
+            canCreate: this.model.canCreateEntries(),
+            showTags: AppSettingsModel.compactLayout
         });
         this.inputEl = this.$el.find('.list__search-field');
         if (searchVal) {
@@ -270,6 +273,11 @@ class ListSearchView extends View {
         if (filter.filter.text !== this.inputEl.val()) {
             this.inputEl.val(filter.text || '');
         }
+        const tagBtn = this.$el.find('.list__search-btn-tags');
+        if (tagBtn.length) {
+            tagBtn.toggleClass('list__search-btn-tags--filtered', !!filter.filter.tag);
+            tagBtn.attr('title', filter.filter.tag || StringFormat.capFirst(Locale.tags));
+        }
         const sortIconCls = this.sortIcons[filter.sort] || 'sort';
         this.$el.find('.list__search-btn-sort>i').attr('class', 'fa fa-' + sortIconCls);
         let adv = !!filter.filter.advanced;
@@ -324,7 +332,7 @@ class ListSearchView extends View {
             this.views.searchDropdown.remove();
             this.views.searchDropdown = null;
             this.$el
-                .find('.list__search-btn-sort,.list__search-btn-new')
+                .find('.list__search-btn-sort,.list__search-btn-new,.list__search-btn-tags')
                 .removeClass('sel--active');
         }
     }
@@ -403,6 +411,50 @@ class ListSearchView extends View {
     sortDropdownSelect(e) {
         this.hideSearchOptions();
         Events.emit('set-sort', e.item);
+    }
+
+    tagOptionsClick(e) {
+        this.toggleTagOptions();
+        e.stopImmediatePropagation();
+    }
+
+    toggleTagOptions() {
+        if (this.views.searchDropdown && this.views.searchDropdown.isTags) {
+            this.hideSearchOptions();
+            return;
+        }
+        this.hideSearchOptions();
+        const btn = this.$el.find('.list__search-btn-tags');
+        btn.addClass('sel--active');
+        const view = new DropdownView();
+        view.isTags = true;
+        this.listenTo(view, 'cancel', this.hideSearchOptions);
+        this.listenTo(view, 'select', this.tagDropdownSelect);
+        const activeTag = this.model.filter.tag;
+        const options = [
+            {
+                value: '',
+                icon: 'th-large',
+                text: StringFormat.capFirst(Locale.menuAllItems),
+                active: !activeTag
+            }
+        ];
+        for (const tag of this.model.tags) {
+            options.push({ value: tag, icon: 'tag', text: tag, active: activeTag === tag });
+        }
+        view.render({
+            position: {
+                top: btn[0].getBoundingClientRect().bottom,
+                right: this.$el[0].getBoundingClientRect().right + 1
+            },
+            options
+        });
+        this.views.searchDropdown = view;
+    }
+
+    tagDropdownSelect(e) {
+        this.hideSearchOptions();
+        Events.emit('set-filter', e.item ? { tag: e.item } : {});
     }
 
     createDropdownSelect(e) {

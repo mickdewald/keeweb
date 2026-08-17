@@ -64,7 +64,7 @@ class MenuView extends View {
             }
             this.sectionViews.push(sectionView);
         }, this);
-        if (isWorkspace && this.options.appModel) {
+        if (isWorkspace && this.options.appModel && !AppSettingsModel.compactLayout) {
             this.workspaceView = new MenuWorkspaceView(this.options.appModel, {
                 parent: this.$el.find('.menu__workspace')[0]
             });

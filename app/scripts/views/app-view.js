@@ -140,6 +140,9 @@ class AppView extends View {
                 document.body.classList.add('titlebar-custom');
             }
         }
+        if (this.model.settings.compactLayout) {
+            document.body.classList.add('layout-compact');
+        }
         if (Features.isDesktop && Features.isMac && this.titlebarStyle === 'hidden-inset') {
             document.body.classList.add('macos-vibrancy');
         }
@@ -211,8 +214,13 @@ class AppView extends View {
     }
 
     showEntries() {
-        this.views.menu.show();
-        this.views.menuDrag.$el.parent().show();
+        if (this.model.settings.compactLayout) {
+            this.views.menu.hide();
+            this.views.menuDrag.$el.parent().hide();
+        } else {
+            this.views.menu.show();
+            this.views.menuDrag.$el.parent().show();
+        }
         this.views.listWrap.show();
         this.views.listDrag.show();
         this.views.details.show();

@@ -854,18 +854,50 @@ function loadSettingsEncryptionKey() {
             return null;
         }
 
-        const keytar = reqNative('keytar');
-
-        return keytar.getPassword('KeeWeb', 'settings-key').then((key) => {
-            if (key) {
-                return Buffer.from(key, 'hex');
+        // safeStorage needs the app to be ready
+        return main.whenReady().then(() => {
+            const { safeStorage } = electron;
+            if (!safeStorage.isEncryptionAvailable()) {
+                logStartupMessage('safeStorage unavailable, falling back to keytar');
+                return loadSettingsEncryptionKeyFromKeytar();
             }
-            key = require('crypto').randomBytes(48);
-            return keytar.setPassword('KeeWeb', 'settings-key', key.toString('hex')).then(() => {
-                return migrateOldConfigs(key).then(() => key);
+
+            const keyFilePath = path.join(main.getPath('userData'), 'settings-key.bin');
+            if (fs.existsSync(keyFilePath)) {
+                const hex = safeStorage.decryptString(fs.readFileSync(keyFilePath));
+                return Buffer.from(hex, 'hex');
+            }
+
+            // migrate the key from keytar, or create a fresh one on first run
+            return loadSettingsEncryptionKeyFromKeytar().then((key) => {
+                let keyPromise;
+                if (key) {
+                    keyPromise = Promise.resolve(key);
+                } else {
+                    key = require('crypto').randomBytes(48);
+                    keyPromise = migrateOldConfigs(key).then(() => key);
+                }
+                return keyPromise.then((key) => {
+                    fs.writeFileSync(keyFilePath, safeStorage.encryptString(key.toString('hex')));
+                    return key;
+                });
             });
         });
     });
+}
+
+function loadSettingsEncryptionKeyFromKeytar() {
+    return Promise.resolve()
+        .then(() => {
+            const keytar = reqNative('keytar');
+            return keytar
+                .getPassword('KeeWeb', 'settings-key')
+                .then((key) => (key ? Buffer.from(key, 'hex') : null));
+        })
+        .catch((e) => {
+            logStartupMessage(`Error reading settings key from keytar: ${e}`);
+            return null;
+        });
 }
 
 function loadConfig(name) {

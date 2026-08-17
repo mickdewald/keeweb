@@ -6,7 +6,10 @@ if (process.send && process.argv.includes('--native-module-host')) {
 }
 
 const electron = require('electron');
+const remoteMain = require('@electron/remote/main');
 const path = require('path');
+
+remoteMain.initialize();
 const fs = require('fs');
 const url = require('url');
 
@@ -302,7 +305,6 @@ function createMainWindow() {
             backgroundThrottling: false,
             nodeIntegration: true,
             nodeIntegrationInWorker: true,
-            enableRemoteModule: true,
             spellcheck: false,
             v8CacheOptions: 'none'
         }
@@ -314,6 +316,7 @@ function createMainWindow() {
         windowOptions.vibrancy = 'sidebar';
     }
     mainWindow = new electron.BrowserWindow(windowOptions);
+    remoteMain.enable(mainWindow.webContents);
     logProgress('creating main window');
 
     mainWindow.loadURL(htmlPath);

@@ -153,6 +153,13 @@ module.exports = function (grunt) {
                 expand: true,
                 nonull: true
             },
+            'desktop-remote-module': {
+                cwd: 'node_modules/@electron/remote/',
+                src: '**',
+                dest: 'tmp/desktop/app/node_modules/@electron/remote/',
+                expand: true,
+                nonull: true
+            },
             'desktop-darwin-installer-helper-x64': {
                 cwd: 'tmp/desktop/KeeWeb Installer.app',
                 src: '**',

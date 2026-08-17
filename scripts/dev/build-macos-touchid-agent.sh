@@ -205,7 +205,6 @@ if [[ "$DO_BUILD" -eq 1 ]]; then
         default \
         build-desktop-app-content \
         electron:darwin-arm64 \
-        electron-patch:darwin-arm64 \
         build-darwin-installer \
         copy:desktop-darwin-installer-helper-arm64 \
         copy:native-modules-darwin-arm64 \

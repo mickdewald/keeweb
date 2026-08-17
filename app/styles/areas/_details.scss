@@ -480,6 +480,15 @@
             padding-bottom: 0.5em;
         }
 
+        &-value--revealed {
+            .password-char--digit {
+                color: var(--action-color);
+            }
+            .password-char--special {
+                color: var(--error-color);
+            }
+        }
+
         &-copy {
             color: var(--muted-color);
             cursor: pointer;

@@ -71,6 +71,11 @@ const Launcher = {
     getDocumentsPath(fileName) {
         return this.joinPath(this.remoteApp().getPath('documents'), fileName || '');
     },
+    expandHomePath(path) {
+        return path && path.startsWith('~/')
+            ? this.joinPath(this.remoteApp().getPath('home'), path.substring(2))
+            : path;
+    },
     getAppPath(fileName) {
         const dirname = this.req('path').dirname;
         const appPath = __dirname.endsWith('app.asar') ? __dirname : this.remoteApp().getAppPath();
@@ -101,6 +106,9 @@ const Launcher = {
     },
     deleteFile(path, callback) {
         this.req('fs').unlink(path, callback || noop);
+    },
+    listDir(path, callback) {
+        this.req('fs').readdir(path, callback || noop);
     },
     statFile(path, callback) {
         this.req('fs').stat(path, (err, stats) => callback(stats, err));

@@ -10,6 +10,8 @@ const DefaultAppSettings = {
     autoUpdate: 'install', // auto-update options: "install", "check", ""
     clipboardSeconds: 0, // number of seconds after which the clipboard will be cleared
     autoSave: true, // auto-save open files
+    backupDefaultPath: '~/My Drive/Backup', // folder for automatic kdbx backups of local files
+    backupMaxCount: 30, // rolling number of backups to keep per file
     autoSaveInterval: 0, // interval between performing automatic sync, minutes, -1: on every change
     rememberKeyFiles: 'path', // remember keyfiles selected on the Open screen
     idleMinutes: 15, // app lock timeout after inactivity, minutes

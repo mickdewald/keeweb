@@ -167,6 +167,7 @@ class AppModel {
         if (this.files.get(file.id)) {
             return false;
         }
+        this._ensureDefaultBackup(file);
         this.files.push(file);
         for (const group of file.groups) {
             this.menu.groupsSection.addItem(group);
@@ -1252,6 +1253,55 @@ class AppModel {
         this.fileInfos.save();
     }
 
+    _ensureDefaultBackup(file) {
+        let defaultPath = this.settings.backupDefaultPath;
+        if (!Launcher || !defaultPath || file.backup || file.storage !== 'file') {
+            return;
+        }
+        defaultPath = Launcher.expandHomePath(defaultPath);
+        const backup = {
+            enabled: true,
+            storage: 'file',
+            path: defaultPath + '/' + file.name + '.kdbx.{date}.bak',
+            schedule: '1d'
+        };
+        file.backup = backup;
+        this.setFileBackup(file.id, backup);
+    }
+
+    pruneBackups(backup, logger) {
+        const maxCount = this.settings.backupMaxCount;
+        if (!Launcher || !maxCount || backup.storage !== 'file') {
+            return;
+        }
+        const sep = backup.path.lastIndexOf('/');
+        const folder = backup.path.substring(0, sep);
+        const namePattern = backup.path.substring(sep + 1);
+        const dateIx = namePattern.indexOf('{date}');
+        if (dateIx < 0) {
+            return;
+        }
+        const prefix = namePattern.substring(0, dateIx);
+        const suffix = namePattern.substring(dateIx + '{date}'.length);
+        Launcher.listDir(folder, (err, entries) => {
+            if (err || !entries) {
+                return;
+            }
+            const backups = entries
+                .filter(
+                    (name) =>
+                        name.length > prefix.length + suffix.length &&
+                        name.startsWith(prefix) &&
+                        name.endsWith(suffix)
+                )
+                .sort();
+            for (const name of backups.slice(0, -maxCount)) {
+                logger.info('Pruning old backup', name);
+                Launcher.deleteFile(folder + '/' + name);
+            }
+        });
+    }
+
     backupFile(file, data, callback) {
         const opts = file.opts;
         let backup = file.backup;
@@ -1275,6 +1325,7 @@ class AppModel {
                     delete backup.pending;
                     file.backup = backup;
                     this.setFileBackup(file.id, backup);
+                    this.pruneBackups(backup, logger);
                 }
                 callback(err);
             });

@@ -72,6 +72,10 @@ Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Dat
 - Auto-Updater bleibt aus. Backups: `~/My Drive/Backup`, täglich, 30 rollierend (Settings `backupDefaultPath`/`backupMaxCount`).
 - Mick gibt Feedback per Screenshot, erwartet Umsetzung ohne lange Planrunden. Interaktionen vor dem „fertig“-Satz selbst durchklicken (Dev-Server + Demo!).
 
+## Layout (seit 75e249b7)
+
+Ein-Sidebar-Layout (`compactLayout: true`): Die Eintragsliste ist die linke Spalte; Nav-Sidebar nur noch in den Settings. Tags über Dropdown in der Suchleiste, Workspace-Button unten in der Listen-Spalte, Drag-Streifen (38px) über der Suchleiste für die Traffic Lights, Liste ist die transluzente Vibrancy-Fläche. `compactLayout: false` stellt das klassische Drei-Spalten-Layout wieder her (auch nötig, falls sichtbare Untergruppen navigierbar sein müssen). Rollback-Tag: `pre-single-sidebar`.
+
 ## Offen / Ideen (grob priorisiert)
 
 1. **Cmd+K Schnellsuche** (Command-Palette: tippen → Enter → kopiert)
@@ -79,5 +83,5 @@ Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Dat
 3. **Generator-Popover** modernisieren (heißt im Workspace-Menü „Generate“)
 4. Passwort-Health-Übersicht (schwach/wiederverwendet/alt)
 5. Vibrancy-Feinschliff (gut, aber noch nicht ChatGPT-Niveau)
-6. Sidebar-Dichte; Passwort-Anzeige mit eingefärbten Ziffern/Sonderzeichen
+6. ERLEDIGT: Ein-Sidebar-Layout, eingefärbte Passwort-Zeichen (auch im Edit-Feld)
 7. Electron: 13 → 22 → 43 ERLEDIGT (@electron/remote; USB/YubiKey hart deaktiviert — usb-detection ist nicht N-API). Native Module (secure-enclave/Touch ID, keytar, argon2) sind N-API/ABI-stabil — kein Rebuild bei Sprüngen. Nach Electron-Sprüngen fragt macOS Keychain-Freigaben einmalig neu ab. Settings-Key läuft seit 656e30da über safeStorage (settings-key.bin, keytar nur noch Fallback). Bumps via scripts/dev/update-electron.sh. contextIsolation-Refactor bewusst GESTRICHEN (Aufwand 3-5 Sessions, kein praktischer Gewinn für private Einzelplatz-App — Entscheidung mit Mick am 2026-08-17). WICHTIG: Nach node_modules-Wechsel den Dev-Server neu starten, sonst mischt Webpack alte/neue Modulpfade (doppelte Handlebars-Instanz, Helper fehlen).

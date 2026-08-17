@@ -473,6 +473,19 @@ const SettingsSearchCatalog = [
         ['yubikey', 'otp'],
         () => !!Launcher
     ),
+    item('file-backup', 'file', null, '#settings__file-backup-enabled', 'setFileBackups', 'file', [
+        'backup',
+        'backups',
+        'sicherung',
+        'bak',
+        'kopie'
+    ]),
+    item('file-master-pass', 'file', null, '#settings__file-master-pass', 'setFilePass', 'file', [
+        'master',
+        'password',
+        'passwort',
+        'key'
+    ]),
     item('about', 'about', null, null, 'menuSetAbout', 'setAboutTitle', [
         'about',
         'version',

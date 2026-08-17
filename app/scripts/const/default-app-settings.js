@@ -8,6 +8,7 @@ const DefaultAppSettings = {
     tagsViewHeight: null, // tags menu section height
     tagsMenuExpanded: false, // keep the sidebar tags list expanded
     compactLayout: true, // single-sidebar layout: the entry list is the leftmost column
+    cmdPaletteWidth: 820, // width of the Cmd+K palette panel
     autoUpdate: 'install', // auto-update options: "install", "check", ""
     clipboardSeconds: 0, // number of seconds after which the clipboard will be cleared
     autoSave: true, // auto-save open files

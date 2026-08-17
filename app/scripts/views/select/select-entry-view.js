@@ -27,7 +27,9 @@ class SelectEntryView extends View {
         'click .select-entry__item': 'itemClicked',
         'contextmenu .select-entry__item': 'itemRightClicked',
         'click .select-entry__filter': 'filterClicked',
-        'click .select-entry__cancel-btn': 'cancelClicked'
+        'click .select-entry__cancel-btn': 'cancelClicked',
+        'mousedown .select-entry__panel-resize': 'resizeMouseDown',
+        'click': 'backgroundClick'
     };
 
     result = null;
@@ -128,6 +130,7 @@ class SelectEntryView extends View {
 
         super.render({
             isAutoType: this.model.isAutoType,
+            searchText: this.model.filter.text,
             topMessage: this.model.topMessage,
             filters,
             itemsHtml,
@@ -140,11 +143,50 @@ class SelectEntryView extends View {
 
         document.activeElement.blur();
 
+        if (!this.model.isAutoType) {
+            const panel = this.$el.find('.select-entry__panel')[0];
+            if (panel && AppSettingsModel.cmdPaletteWidth) {
+                panel.style.width = AppSettingsModel.cmdPaletteWidth + 'px';
+            }
+        }
+
         this.createScroll({
             root: this.$el.find('.select-entry__items')[0],
             scroller: this.$el.find('.scroller')[0],
             bar: this.$el.find('.scroller__bar')[0]
         });
+    }
+
+    resizeMouseDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const panel = this.$el.find('.select-entry__panel')[0];
+        if (!panel) {
+            return;
+        }
+        const rect = panel.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const onMove = (moveEvent) => {
+            const width = Math.min(
+                Math.max(2 * Math.abs(moveEvent.clientX - centerX), 480),
+                window.innerWidth - 48
+            );
+            panel.style.width = width + 'px';
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            AppSettingsModel.cmdPaletteWidth = Math.round(panel.getBoundingClientRect().width);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    }
+
+    backgroundClick(e) {
+        const hasPanel = this.$el.find('.select-entry__panel').length;
+        if (hasPanel && !e.target.closest('.select-entry__panel')) {
+            this.cancelAndClose();
+        }
     }
 
     cancelAndClose() {

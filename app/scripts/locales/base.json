@@ -348,6 +348,7 @@
   "autoTypeHeader": "Auto-Type: Select",
   "autoTypeMsgNoWindow": "We were unable to get active window title, start typing to search",
   "cmdPaletteTopMessage": "Start typing to search, enter copies the password",
+  "cmdPaletteSearch": "Search entries",
   "autoTypeMsgMatchedByWindow": "Select a password for {}",
   "autoTypeNoMatches": "no matches",
   "autoTypeSelectionHint": "Type the autotype sequence",

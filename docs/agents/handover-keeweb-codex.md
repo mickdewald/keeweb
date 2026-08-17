@@ -1,6 +1,6 @@
 # Übergabe KeeWeb-Codex
 
-Stand: 2026-08-17. Fork von KeeWeb (Electron 13, kein Rewrite): `mickdewald/keeweb` (origin), Upstream `keeweb/keeweb` (nur lesen). Ziel: schrittweise UX-Politur.
+Stand: 2026-08-17. Fork von KeeWeb (Electron 22, kein Rewrite): `mickdewald/keeweb` (origin), Upstream `keeweb/keeweb` (nur lesen). Ziel: schrittweise UX-Politur.
 
 ## Wo gearbeitet wird
 
@@ -9,7 +9,7 @@ Stand: 2026-08-17. Fork von KeeWeb (Electron 13, kein Rewrite): `mickdewald/keew
 | `~/projects/external-repos/keeweb` | master | Nur lesen / `git pull --ff-only`. |
 | `~/projects/wt/keeweb-colorful-list-icons` | `grok/keeweb-colorful-list-icons` | Einzige Arbeitskopie; trackt eigene Remote-Branch. |
 
-`node_modules` ist ein Symlink auf den Canonical-Checkout (lokal git-excluded). `keys/` ebenso. **Nicht anfassen: mick.kdbx.**
+`node_modules` ist eine EIGENE Installation im Worktree (kein Symlink mehr — Electron 22 vs. master mit 13!). `keys/` bleibt lokal. **Nicht anfassen: mick.kdbx.**
 
 ## Bauen / Testen / Deploy
 
@@ -80,4 +80,4 @@ Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Dat
 4. Passwort-Health-Übersicht (schwach/wiederverwendet/alt)
 5. Vibrancy-Feinschliff (gut, aber noch nicht ChatGPT-Niveau)
 6. Sidebar-Dichte; Passwort-Anzeige mit eingefärbten Ziffern/Sonderzeichen
-7. Mittelfristig: Electron-Upgrade (13 ist EOL; kein Rewrite, aber fällig)
+7. Electron: Stufe 1 (13 → 22, @electron/remote) ERLEDIGT. Optional Stufe 2: 22 → aktuell (keytar → safeStorage, osx-sign/notarize modernisieren, contextIsolation). Native Module sind N-API/ABI-stabil — kein Rebuild nötig. Nach Electron-Sprüngen fragt macOS die Keychain-Freigaben einmalig neu ab (Signatur-Änderung).

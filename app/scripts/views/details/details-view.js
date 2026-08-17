@@ -362,6 +362,9 @@ class DetailsView extends View {
             .find('.details__colors-popup > .details__colors-popup-item')
             .removeClass('details__colors-popup-item--active');
         const colorEl = this.$el.find('.details__header-color')[0];
+        if (!colorEl) {
+            return;
+        }
         for (const cls of colorEl.classList) {
             if (cls.indexOf('color') > 0 && cls.lastIndexOf('details', 0) !== 0) {
                 colorEl.classList.remove(cls);

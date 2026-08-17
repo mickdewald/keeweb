@@ -3,22 +3,6 @@
         <i class="fa fa-chevron-left"></i>{{res 'detBackToList'}}
     </div>
     <div class="details__header">
-        <i class="details__header-color fa fa-bookmark-o"
-            {{#if canEditColor}}
-                title="{{res 'detSetIconColor'}}" tip-placement="left"
-            {{/if}}
-        >
-            {{#if canEditColor}}
-                <span class="details__colors-popup">
-                    <span class="details__colors-popup-item yellow-color fa fa-bookmark-o" data-color="yellow"></span>
-                    <span class="details__colors-popup-item green-color fa fa-bookmark-o" data-color="green"></span>
-                    <span class="details__colors-popup-item red-color fa fa-bookmark-o" data-color="red"></span>
-                    <span class="details__colors-popup-item orange-color fa fa-bookmark-o" data-color="orange"></span>
-                    <span class="details__colors-popup-item blue-color fa fa-bookmark-o" data-color="blue"></span>
-                    <span class="details__colors-popup-item violet-color fa fa-bookmark-o" data-color="violet"></span>
-                </span>
-            {{/if}}
-        </i>
         <h1 class="details__header-title">{{#if title}}{{title}}{{else}}(no title){{/if}}</h1>
         <div class="details__header-drag"></div>
         {{#if customIcon}}

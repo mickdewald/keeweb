@@ -33,11 +33,15 @@
     &__content--file {
         width: 100%;
         max-width: $settings-column-width;
-        margin: $small-spacing auto $medium-padding-v;
+        margin: $medium-padding-v auto;
         padding-left: $small-spacing;
         padding-right: $small-spacing;
         padding-bottom: $medium-padding-v;
         box-sizing: border-box;
+
+        &.settings__content--general > .settings__section:first-child {
+            margin-top: 0;
+        }
 
         input.settings__input[type='text'],
         input.settings__input[type='password'],

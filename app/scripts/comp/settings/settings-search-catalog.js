@@ -11,7 +11,7 @@ function item(id, page, section, target, titleKey, categoryKey, keywords = [], v
 }
 
 const SettingsSearchCatalog = [
-    item('general', 'general', 'top', '#top', 'setGenTitle', 'menuSetGeneral', [
+    item('general', 'general', 'top', null, 'setGenTitle', 'menuSetGeneral', [
         'settings',
         'general',
         'allgemein'

@@ -3,7 +3,8 @@ mark.search-hl {
     color: var(--action-color);
     font-weight: 600;
 
-    .list__item--active & {
+    .list__item--active &,
+    .select-entry__item--active & {
         color: inherit;
         text-decoration: underline;
         text-underline-offset: 2px;

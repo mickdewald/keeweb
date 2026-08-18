@@ -73,6 +73,40 @@ describe('password audit', () => {
         expect(report.oldYears).to.eql(2);
     });
 
+    it('does not flag old passwords when age warnings are disabled', () => {
+        const oldDate = new Date();
+        oldDate.setFullYear(oldDate.getFullYear() - 10);
+        const report = auditPasswords(
+            [
+                file([
+                    entry('old', 'Legacy', 'correct-horse-battery-staple-92!', {
+                        updated: oldDate
+                    })
+                ])
+            ],
+            { auditPasswordAge: 0 }
+        );
+
+        expect(report.old).to.eql([]);
+        expect(report.oldYears).to.eql(0);
+    });
+
+    it('returns no issues when password auditing is disabled', () => {
+        const oldDate = new Date();
+        oldDate.setFullYear(oldDate.getFullYear() - 10);
+        const weak = entry('weak', 'Weak', 'ab', { updated: oldDate });
+        const reused = entry('reused', 'Reused', 'ab', { updated: oldDate });
+        const files = [file([weak, reused])];
+        const settings = { auditPasswords: false, auditPasswordAge: 1 };
+
+        expect(auditPasswords(files, settings)).to.include({ checked: 0 });
+        expect(auditPasswords(files, settings).weak).to.eql([]);
+        expect(auditPasswords(files, settings).reused).to.eql([]);
+        expect(auditPasswords(files, settings).old).to.eql([]);
+        expect(describePasswordIssues(weak, files, settings)).to.eql([]);
+        expect(collectPasswordIssueIds(files, settings).size).to.eql(0);
+    });
+
     it('skips ignored entries and PIN-like codes', () => {
         const report = auditPasswords(
             [

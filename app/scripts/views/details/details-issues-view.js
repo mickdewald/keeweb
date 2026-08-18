@@ -78,7 +78,7 @@ class DetailsIssuesView extends View {
 
     checkOnHIBP() {
         const generation = ++this.hibpCheckGeneration;
-        if (!AppSettingsModel.checkPasswordsOnHIBP) {
+        if (!AppSettingsModel.auditPasswords || !AppSettingsModel.checkPasswordsOnHIBP) {
             return;
         }
         const password = this.model.password;

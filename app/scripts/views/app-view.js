@@ -9,27 +9,21 @@ import { Keys } from 'const/keys';
 import { UpdateModel } from 'models/update-model';
 import { Features } from 'util/features';
 import { Locale } from 'util/locale';
-import { Logger } from 'util/logger';
-import { CsvParser } from 'util/data/csv-parser';
 import { DetailsView } from 'views/details/details-view';
 import { DragView } from 'views/drag-view';
-import { DropdownView } from 'views/dropdown-view';
 import { FooterView } from 'views/footer-view';
 import { GeneratorPresetsView } from 'views/generator-presets-view';
 import { GrpView } from 'views/grp-view';
-import { KeyChangeView } from 'views/key-change-view';
 import { ListView } from 'views/list-view';
 import { ListWrapView } from 'views/list-wrap-view';
 import { MenuView } from 'views/menu/menu-view';
-import { OpenView } from 'views/open-view';
-import { SettingsView } from 'views/settings/settings-view';
 import { TagView } from 'views/tag-view';
-import { ImportCsvView } from 'views/import-csv-view';
 import { TitlebarView } from 'views/titlebar-view';
 import { SelectEntryView } from 'views/select/select-entry-view';
 import { SelectEntryFilter } from 'comp/app/select-entry-filter';
-import { PasswordHealthView } from 'views/password-health-view';
 import { CopyPaste } from 'comp/browser/copy-paste';
+import { AppViewPanelsMixin } from 'views/app-view-panels';
+import { AppViewLockMixin } from 'views/app-view-lock';
 import { Timeouts } from 'const/timeouts';
 import template from 'templates/app.hbs';
 
@@ -173,138 +167,10 @@ class AppView extends View {
         this.showLastOpenFile();
     }
 
-    showOpenFile() {
-        this.hideContextMenu();
-        this.views.menu.hide();
-        this.views.menuDrag.$el.parent().hide();
-        this.views.listWrap.hide();
-        this.views.list.hide();
-        this.views.listDrag.hide();
-        this.views.details.hide();
-        this.views.footer.hide();
-        this.hidePanelView();
-        this.hideSettings();
-        this.hideOpenFile();
-        this.hideKeyChange();
-        this.hideImportCsv();
-        this.views.open = new OpenView(this.model);
-        this.views.open.render();
-        this.views.open.on('close', () => {
-            this.showEntries();
-        });
-    }
-
-    showLastOpenFile() {
-        this.showOpenFile();
-        const lastOpenFile = this.model.fileInfos[0];
-        if (lastOpenFile) {
-            this.views.open.currentSelectedIndex = 0;
-            this.views.open.showOpenFileInfo(lastOpenFile);
-        }
-    }
-
-    launcherOpenFile(file) {
-        if (file && file.data && /\.kdbx$/i.test(file.data)) {
-            this.showOpenFile();
-            this.views.open.showOpenLocalFile(file.data, file.key);
-        }
-    }
-
     updateApp() {
         if (UpdateModel.updateStatus === 'ready' && !Launcher && !this.model.files.hasOpenFiles()) {
             window.location.reload();
         }
-    }
-
-    showEntries() {
-        if (this.model.settings.compactLayout) {
-            this.views.menu.hide();
-            this.views.menuDrag.$el.parent().hide();
-        } else {
-            this.views.menu.show();
-            this.views.menuDrag.$el.parent().show();
-        }
-        this.views.listWrap.show();
-        this.views.listDrag.show();
-        this.views.details.show();
-        this.views.footer.hide();
-        this.hidePanelView();
-        this.hideOpenFile();
-        this.hideSettings();
-        this.hideKeyChange();
-        this.hideImportCsv();
-
-        this.views.list.show();
-    }
-
-    hideOpenFile() {
-        if (this.views.open) {
-            this.views.open.remove();
-            this.views.open = null;
-        }
-    }
-
-    hidePanelView() {
-        if (this.views.panel) {
-            this.views.panel.remove();
-            this.views.panel = null;
-            this.panelEl.addClass('hide');
-        }
-    }
-
-    showPanelView(view) {
-        this.views.listWrap.hide();
-        this.views.list.hide();
-        this.views.listDrag.hide();
-        this.views.details.hide();
-        this.hidePanelView();
-        view.render();
-        this.views.panel = view;
-        this.panelEl.removeClass('hide');
-    }
-
-    hideSettings() {
-        if (this.views.settings) {
-            this.model.menu.setMenu('app');
-            this.views.settings.remove();
-            this.views.settings = null;
-        }
-    }
-
-    hideKeyChange() {
-        if (this.views.keyChange) {
-            this.views.keyChange.hide();
-            this.views.keyChange = null;
-        }
-    }
-
-    hideImportCsv() {
-        if (this.views.importCsv) {
-            this.views.importCsv.remove();
-            this.views.importCsv = null;
-        }
-    }
-
-    showSettings(selectedMenuItem) {
-        this.model.menu.setMenu('settings');
-        this.views.menu.show();
-        this.views.menuDrag.$el.parent().show();
-        this.views.listWrap.hide();
-        this.views.list.hide();
-        this.views.listDrag.hide();
-        this.views.details.hide();
-        this.hidePanelView();
-        this.hideOpenFile();
-        this.hideKeyChange();
-        this.hideImportCsv();
-        this.views.footer.hide();
-        this.views.settings = new SettingsView(this.model);
-        this.views.settings.render();
-        if (!selectedMenuItem) {
-            selectedMenuItem = this.model.menu.generalSection.items[0];
-        }
-        this.model.menu.select({ item: selectedMenuItem });
-        this.views.menu.switchVisibility(false);
     }
 
     showCmdPalette() {
@@ -325,6 +191,10 @@ class AppView extends View {
             if (!entry) {
                 return;
             }
+            if (result.select) {
+                this.selectCmdPaletteEntry(entry);
+                return;
+            }
             const password = entry.password;
             const text = password && password.isProtected ? password.getText() : password;
             if (text) {
@@ -343,52 +213,13 @@ class AppView extends View {
         this.views.cmdPalette = view;
     }
 
-    showPasswordHealth() {
-        if (!this.model.files.hasOpenFiles()) {
-            return;
+    selectCmdPaletteEntry(entry) {
+        const visible = this.model.getEntries();
+        if (!visible.get(entry.id)) {
+            // attachments must be reset explicitly: setFilter keeps it when undefined
+            this.model.setFilter({ attachments: false });
         }
-        this.hideOpenFile();
-        this.hideSettings();
-        this.hideKeyChange();
-        const view = new PasswordHealthView(this.model);
-        view.on('close', () => this.showEntries());
-        view.on('select', (entry) => {
-            Events.emit('select-entry', entry);
-            this.showEntries();
-        });
-        this.showPanelView(view);
-    }
-
-    showEditGroup(group) {
-        this.showPanelView(new GrpView(group));
-    }
-
-    showEditTag() {
-        this.showPanelView(new TagView(this.model));
-    }
-
-    showKeyChange(file, viewConfig) {
-        if (Alerts.alertDisplayed) {
-            return;
-        }
-        if (this.views.keyChange && this.views.keyChange.model.remote) {
-            return;
-        }
-        this.hideSettings();
-        this.hidePanelView();
-        this.views.menu.hide();
-        this.views.listWrap.hide();
-        this.views.list.hide();
-        this.views.listDrag.hide();
-        this.views.details.hide();
-        this.views.keyChange = new KeyChangeView({
-            file,
-            expired: viewConfig.expired,
-            remote: viewConfig.remote
-        });
-        this.views.keyChange.render();
-        this.views.keyChange.on('accept', this.keyChangeAccept.bind(this));
-        this.views.keyChange.on('cancel', this.showEntries.bind(this));
+        this.views.list.selectItem(entry);
     }
 
     fileListUpdated() {
@@ -422,103 +253,6 @@ class AppView extends View {
             }
         } else {
             this.showOpenFile();
-        }
-    }
-
-    launcherBeforeQuit() {
-        // this is currently called only on macos
-        const event = {
-            preventDefault() {}
-        };
-        const result = this.beforeUnload(event);
-        if (result !== false) {
-            Launcher.exit();
-        }
-    }
-
-    beforeUnload(e) {
-        const exitEvent = {
-            preventDefault() {
-                this.prevented = true;
-            }
-        };
-        Events.emit('main-window-will-close', exitEvent);
-        if (exitEvent.prevented) {
-            return Launcher ? Launcher.preventExit(e) : false;
-        }
-
-        let minimizeInsteadOfClose = this.model.settings.minimizeOnClose;
-        if (Launcher?.quitOnRealQuitEventIfMinimizeOnQuitIsEnabled()) {
-            minimizeInsteadOfClose = false;
-        }
-
-        if (this.model.files.hasDirtyFiles()) {
-            if (Launcher) {
-                const exit = () => {
-                    if (minimizeInsteadOfClose) {
-                        Launcher.minimizeApp();
-                    } else {
-                        Launcher.exit();
-                    }
-                };
-                if (Launcher.exitRequested) {
-                    return;
-                }
-                if (!this.exitAlertShown) {
-                    if (this.model.settings.autoSave) {
-                        this.saveAndLock(
-                            (result) => {
-                                if (result) {
-                                    exit();
-                                }
-                            },
-                            { appClosing: true }
-                        );
-                        return Launcher.preventExit(e);
-                    }
-                    this.exitAlertShown = true;
-                    Alerts.yesno({
-                        header: Locale.appUnsavedWarn,
-                        body: Locale.appUnsavedWarnBody,
-                        buttons: [
-                            { result: 'save', title: Locale.saveChanges },
-                            { result: 'exit', title: Locale.discardChanges, error: true },
-                            { result: '', title: Locale.appDontExitBtn }
-                        ],
-                        success: (result) => {
-                            if (result === 'save') {
-                                this.saveAndLock(
-                                    (result) => {
-                                        if (result) {
-                                            exit();
-                                        }
-                                    },
-                                    { appClosing: true }
-                                );
-                            } else {
-                                exit();
-                            }
-                        },
-                        cancel: () => {
-                            Launcher.cancelRestart(false);
-                        },
-                        complete: () => {
-                            this.exitAlertShown = false;
-                        }
-                    });
-                }
-                return Launcher.preventExit(e);
-            }
-            return Locale.appUnsavedWarnBody;
-        } else if (
-            Launcher &&
-            !Launcher.exitRequested &&
-            !Launcher.restartPending &&
-            minimizeInsteadOfClose
-        ) {
-            Launcher.minimizeApp();
-            this.appMinimized();
-            return Launcher.preventExit(e);
         }
     }
 
@@ -568,147 +302,6 @@ class AppView extends View {
             this.showEntries();
         } else if (this.views.panel && !this.views.panel.isHidden()) {
             this.showEntries();
-        }
-    }
-
-    userIdle() {
-        this.lockWorkspace(true);
-    }
-
-    osLocked() {
-        if (this.model.settings.lockOnOsLock) {
-            this.lockWorkspace(true);
-        }
-    }
-
-    appMinimized() {
-        if (this.model.settings.lockOnMinimize) {
-            this.lockWorkspace(true);
-        }
-    }
-
-    lockWorkspace(autoInit) {
-        if (Alerts.alertDisplayed) {
-            return;
-        }
-        if (this.model.files.hasUnsavedFiles()) {
-            if (this.model.settings.autoSave) {
-                this.saveAndLock();
-            } else {
-                const message = autoInit ? Locale.appCannotLockAutoInit : Locale.appCannotLock;
-                Alerts.alert({
-                    icon: 'lock',
-                    header: 'Lock',
-                    body: message,
-                    buttons: [
-                        { result: 'save', title: Locale.saveChanges },
-                        { result: 'discard', title: Locale.discardChanges, error: true },
-                        { result: '', title: Locale.alertCancel }
-                    ],
-                    checkbox: Locale.appAutoSave,
-                    success: (result, autoSaveChecked) => {
-                        if (result === 'save') {
-                            if (autoSaveChecked) {
-                                this.model.settings.autoSave = autoSaveChecked;
-                            }
-                            this.saveAndLock();
-                        } else if (result === 'discard') {
-                            this.model.closeAllFiles();
-                        }
-                    }
-                });
-            }
-        } else {
-            this.closeAllFilesAndShowFirst();
-        }
-    }
-
-    saveAndLock(complete, options) {
-        let pendingCallbacks = 0;
-        const errorFiles = [];
-        this.model.files.forEach(function (file) {
-            if (!file.dirty) {
-                return;
-            }
-            this.model.syncFile(file, null, fileSaved.bind(this, file));
-            pendingCallbacks++;
-        }, this);
-        if (!pendingCallbacks) {
-            this.closeAllFilesAndShowFirst();
-        }
-        function fileSaved(file, err) {
-            if (err) {
-                errorFiles.push(file.name);
-            }
-            if (--pendingCallbacks === 0) {
-                if (errorFiles.length && this.model.files.hasDirtyFiles()) {
-                    if (!Alerts.alertDisplayed) {
-                        const buttons = [Alerts.buttons.ok];
-                        const errorStr =
-                            errorFiles.length > 1
-                                ? Locale.appSaveErrorBodyMul
-                                : Locale.appSaveErrorBody;
-                        let body = errorStr + ' ' + errorFiles.join(', ') + '.';
-                        if (options?.appClosing) {
-                            buttons.unshift({
-                                result: 'ignore',
-                                title: Locale.appSaveErrorExitLoseChanges,
-                                error: true
-                            });
-                            body += '\n' + Locale.appSaveErrorExitLoseChangesBody;
-                        }
-                        Alerts.error({
-                            header: Locale.appSaveError,
-                            body,
-                            buttons,
-                            complete: (res) => {
-                                if (res === 'ignore') {
-                                    this.model.closeAllFiles();
-                                    if (complete) {
-                                        complete(true);
-                                    }
-                                } else {
-                                    if (complete) {
-                                        complete(false);
-                                    }
-                                }
-                            }
-                        });
-                    } else {
-                        if (complete) {
-                            complete(false);
-                        }
-                    }
-                } else {
-                    this.closeAllFilesAndShowFirst();
-                    if (complete) {
-                        complete(true);
-                    }
-                }
-            }
-        }
-    }
-
-    closeAllFilesAndShowFirst() {
-        if (!this.model.files.hasOpenFiles()) {
-            return;
-        }
-        let fileToShow = this.model.files.find(
-            (file) => !file.demo && !file.created && !file.skipOpenList
-        );
-        this.model.closeAllFiles();
-        if (!fileToShow) {
-            fileToShow = this.model.fileInfos[0];
-        }
-        if (fileToShow) {
-            const fileInfo = this.model.fileInfos.getMatch(
-                fileToShow.storage,
-                fileToShow.name,
-                fileToShow.path
-            );
-            if (fileInfo) {
-                this.views.open.showOpenFileInfo(fileInfo);
-            }
         }
     }
 
@@ -836,46 +429,6 @@ class AppView extends View {
         }
     }
 
-    isContextMenuAllowed(e) {
-        return ['input', 'textarea'].indexOf(e.target.tagName.toLowerCase()) < 0;
-    }
-
-    contextMenu(e) {
-        if (this.isContextMenuAllowed(e)) {
-            e.preventDefault();
-        }
-    }
-
-    showContextMenu(e) {
-        if (e.options && this.isContextMenuAllowed(e)) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            if (this.views.contextMenu) {
-                this.views.contextMenu.remove();
-            }
-            const menu = new DropdownView(e);
-            menu.render({
-                position: { left: e.pageX, top: e.pageY },
-                options: e.options
-            });
-            menu.on('cancel', (e) => this.hideContextMenu());
-            menu.on('select', (e) => this.contextMenuSelect(e));
-            this.views.contextMenu = menu;
-        }
-    }
-
-    hideContextMenu() {
-        if (this.views.contextMenu) {
-            this.views.contextMenu.remove();
-            delete this.views.contextMenu;
-        }
-    }
-
-    contextMenuSelect(e) {
-        this.hideContextMenu();
-        Events.emit('context-menu-select', e);
-    }
-
     showSingleInstanceAlert() {
         this.hideOpenFile();
         Alerts.error({
@@ -928,58 +481,9 @@ class AppView extends View {
         IdleTracker.regUserAction();
         Events.emit('click', e);
     }
-
-    showImportCsv(file) {
-        const reader = new FileReader();
-        const logger = new Logger('import-csv');
-        logger.info('Reading CSV...');
-        reader.onload = (e) => {
-            logger.info('Parsing CSV...');
-            const ts = logger.ts();
-            const parser = new CsvParser();
-            let data;
-            try {
-                data = parser.parse(e.target.result);
-            } catch (e) {
-                logger.error('Error parsing CSV', e);
-                Alerts.error({ header: Locale.openFailedRead, body: e.toString() });
-                return;
-            }
-            logger.info(`Parsed CSV: ${data.rows.length} records, ${logger.ts(ts)}`);
-
-            // TODO: refactor this
-            this.hideSettings();
-            this.hidePanelView();
-            this.hideOpenFile();
-            this.hideKeyChange();
-            this.views.menu.hide();
-            this.views.listWrap.hide();
-            this.views.list.hide();
-            this.views.listDrag.hide();
-            this.views.details.hide();
-
-            this.views.importCsv = new ImportCsvView(data, {
-                appModel: this.model,
-                fileName: file.name
-            });
-            this.views.importCsv.render();
-            this.views.importCsv.on('cancel', () => {
-                if (this.model.files.hasOpenFiles()) {
-                    this.showEntries();
-                } else {
-                    this.showOpenFile();
-                }
-            });
-            this.views.importCsv.on('done', () => {
-                this.model.refresh();
-                this.showEntries();
-            });
-        };
-        reader.onerror = () => {
-            Alerts.error({ header: Locale.openFailedRead });
-        };
-        reader.readAsText(file);
-    }
 }
+
+Object.assign(AppView.prototype, AppViewPanelsMixin);
+Object.assign(AppView.prototype, AppViewLockMixin);
 
 export { AppView };

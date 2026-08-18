@@ -8,10 +8,10 @@ Usage: scripts/dev/build-macos-touchid-agent.sh [options]
 Builds a signed arm64 KeeWeb macOS dev app with Touch ID support and deploys it.
 
 Options:
-  --deploy-path <path>   Target app path (default: /Applications/KeeWeb.app)
+  --deploy-path <path>   Target app path (default: /Applications/KeeWeb-Codex.app)
   --skip-build           Skip build/sign, only deploy from existing tmp build app
   --skip-deploy          Build/sign only, do not copy to /Applications
-  --no-backup            Replace the target app without creating a backup
+  --backup               Back up the installed app before replacing it
   --no-open              Do not open app after deploy
   -h, --help             Show this help
 EOF
@@ -24,10 +24,10 @@ require_cmd() {
     fi
 }
 
-DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb.app}"
+DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb-Codex.app}"
 DO_BUILD=1
 DO_DEPLOY=1
-BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-1}"
+BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-0}"
 OPEN_AFTER_DEPLOY=1
 
 while [[ $# -gt 0 ]]; do
@@ -44,8 +44,8 @@ while [[ $# -gt 0 ]]; do
             DO_DEPLOY=0
             shift
             ;;
-        --no-backup)
-            BACKUP_ON_DEPLOY=0
+        --backup)
+            BACKUP_ON_DEPLOY=1
             shift
             ;;
         --no-open)
@@ -190,11 +190,12 @@ EOF
 fi
 
 if [[ ! -f "$PROVISIONING_PROFILE" ]]; then
-    if [[ -f /Applications/KeeWeb.app/Contents/embedded.provisionprofile ]]; then
-        cp /Applications/KeeWeb.app/Contents/embedded.provisionprofile "$PROVISIONING_PROFILE"
+    FALLBACK_PROVISIONING_PROFILE="$DEPLOY_PATH/Contents/embedded.provisionprofile"
+    if [[ -f "$FALLBACK_PROVISIONING_PROFILE" ]]; then
+        cp "$FALLBACK_PROVISIONING_PROFILE" "$PROVISIONING_PROFILE"
         echo "Copied provisioning profile to $PROVISIONING_PROFILE"
     else
-        echo "Missing $PROVISIONING_PROFILE and no fallback profile at /Applications/KeeWeb.app/Contents/embedded.provisionprofile" >&2
+        echo "Missing $PROVISIONING_PROFILE and no fallback profile at $FALLBACK_PROVISIONING_PROFILE" >&2
         exit 1
     fi
 fi

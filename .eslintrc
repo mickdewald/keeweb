@@ -27,6 +27,7 @@
         "no-array-constructor": "error",
         "array-callback-return": "error",
         "no-eval": "error",
+        "no-implied-eval": "error",
         "no-new-func": "error",
         "prefer-rest-params": "error",
         "prefer-spread": "error",

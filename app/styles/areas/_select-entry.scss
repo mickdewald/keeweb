@@ -72,24 +72,20 @@
             color: var(--muted-color);
             margin-right: 10px;
         }
-        &-text {
+        &-field {
             flex: 1;
-            overflow: hidden;
-            white-space: pre;
-            &--placeholder {
+            min-width: 0;
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: var(--text-color);
+            font: inherit;
+            outline: none;
+            box-shadow: none;
+            &::placeholder {
                 color: var(--muted-color);
             }
         }
-    }
-
-    &__caret {
-        display: inline-block;
-        width: 2px;
-        height: 1.05em;
-        margin-left: 1px;
-        vertical-align: text-bottom;
-        background-color: var(--action-color);
-        animation: select-entry-caret-blink 1.1s steps(1) infinite;
     }
 
     &__footer {
@@ -263,11 +259,5 @@
         display: flex;
         justify-content: flex-end;
         margin-top: $small-spacing;
-    }
-}
-
-@keyframes select-entry-caret-blink {
-    50% {
-        opacity: 0;
     }
 }

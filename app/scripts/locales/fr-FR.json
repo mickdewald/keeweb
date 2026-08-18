@@ -349,6 +349,8 @@
   "autoTypeMsgNoWindow": "Nous n'avons pas pu obtenir le titre de la fenêtre active, commencez à taper pour rechercher",
   "cmdPaletteTopMessage": "Tapez pour rechercher, entrée copie le mot de passe",
   "cmdPaletteSearch": "Rechercher des entrées",
+  "cmdPaletteNoMatch": "Aucune entrée correspondante",
+  "cmdPaletteNoPassword": "Cette entrée n'a pas de mot de passe à copier",
   "autoTypeMsgMatchedByWindow": "Sélectionner un mot de passe pour {}",
   "autoTypeNoMatches": "aucun",
   "autoTypeSelectionHint": "Saisissez la séquence automatique",

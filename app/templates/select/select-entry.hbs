@@ -43,8 +43,8 @@
         <div class="select-entry__panel-resize select-entry__panel-resize--right"></div>
         <div class="select-entry__search">
             <i class="fa fa-search"></i>
-            <div class="select-entry__search-text {{#unless searchText}}select-entry__search-text--placeholder{{/unless}}"
-                >{{#if searchText}}{{searchText}}{{else}}{{res 'cmdPaletteSearch'}}{{/if}}<span class="select-entry__caret"></span></div>
+            <input type="text" class="select-entry__search-field" autocomplete="off" spellcheck="false"
+                   placeholder="{{res 'cmdPaletteSearch'}}" value="{{searchText}}">
         </div>
         <div class="select-entry__items">
             <div class="scroller">

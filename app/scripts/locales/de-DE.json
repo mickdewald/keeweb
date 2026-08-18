@@ -342,6 +342,8 @@
   "autoTypeMsgNoWindow": "Wir konnten den Titel des aktiven Fensters leider nicht auslesen. Fangen Sie einfach an zu tippen, um nach dem richtigen Eintrag zu suchen.",
   "cmdPaletteTopMessage": "Tippen zum Suchen — Enter kopiert das Passwort",
   "cmdPaletteSearch": "Einträge durchsuchen",
+  "cmdPaletteNoMatch": "Keine passenden Einträge",
+  "cmdPaletteNoPassword": "Dieser Eintrag hat kein Passwort zum Kopieren",
   "autoTypeMsgMatchedByWindow": "Passwort auswählen für {}",
   "autoTypeNoMatches": "keine passenden Einträge",
   "autoTypeSelectionHint": "Die Auto-Type-Sequenz eintippen",

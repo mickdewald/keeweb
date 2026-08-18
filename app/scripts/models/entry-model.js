@@ -6,16 +6,15 @@ import { IconMap } from 'const/icon-map';
 import { BuiltInFields } from 'const/entry-fields';
 import { AttachmentModel } from 'models/attachment-model';
 import { Color } from 'util/data/color';
-import { Otp } from 'util/data/otp';
 import { Ranking } from 'util/data/ranking';
 import { IconUrlFormat } from 'util/formatting/icon-url-format';
 import { omit } from 'util/fn';
 import { EntrySearch } from 'util/entry-search';
+import { EntryModelFieldRefsMixin } from 'models/entry-model-field-refs';
+import { EntryModelOtpAutoTypeMixin } from 'models/entry-model-otp-auto-type';
+import { EntryModelTrashHistoryMixin } from 'models/entry-model-trash-history';
 
 const UrlRegex = /^https?:\/\//i;
-const FieldRefRegex = /^\{REF:([TNPAU])@I:(\w{32})}$/;
-const FieldRefFields = ['title', 'password', 'user', 'url', 'notes'];
-const FieldRefIds = { T: 'Title', U: 'UserName', P: 'Password', A: 'URL', N: 'Notes' };
 const ExtraUrlFieldName = 'KP2A_URL';
 
 class EntryModel extends Model {
@@ -232,68 +231,6 @@ class EntryModel extends Model {
         return this.entry.history;
     }
 
-    resolveFieldReferences() {
-        this.hasFieldRefs = false;
-        FieldRefFields.forEach((field) => {
-            const fieldValue = this[field];
-            const refValue = this._resolveFieldReference(fieldValue);
-            if (refValue !== undefined) {
-                this[field] = refValue;
-                this.hasFieldRefs = true;
-            }
-        });
-    }
-
-    getFieldValue(field) {
-        field = field.toLowerCase();
-        let resolvedField;
-        [...this.entry.fields.keys()].some((entryField) => {
-            if (entryField.toLowerCase() === field) {
-                resolvedField = entryField;
-                return true;
-            }
-            return false;
-        });
-        if (resolvedField) {
-            let fieldValue = this.entry.fields.get(resolvedField);
-            const refValue = this._resolveFieldReference(fieldValue);
-            if (refValue !== undefined) {
-                fieldValue = refValue;
-            }
-            return fieldValue;
-        }
-    }
-
-    _resolveFieldReference(fieldValue) {
-        if (!fieldValue) {
-            return;
-        }
-        if (fieldValue.isProtected && fieldValue.isFieldReference()) {
-            fieldValue = fieldValue.getText();
-        }
-        if (typeof fieldValue !== 'string') {
-            return;
-        }
-        const match = fieldValue.match(FieldRefRegex);
-        if (!match) {
-            return;
-        }
-        return this._getReferenceValue(match[1], match[2]);
-    }
-
-    _getReferenceValue(fieldRefId, idStr) {
-        const id = new Uint8Array(16);
-        for (let i = 0; i < 16; i++) {
-            id[i] = parseInt(idStr.substr(i * 2, 2), 16);
-        }
-        const uuid = new kdbxweb.KdbxUuid(id);
-        const entry = this.file.getEntry(this.file.subId(uuid.id));
-        if (!entry) {
-            return;
-        }
-        return entry.entry.fields.get(FieldRefIds[fieldRefId]);
-    }
-
     setColor(color) {
         this._entryModified();
         this.entry.bgColor = Color.getKnownBgColor(color);
@@ -386,204 +323,6 @@ class EntryModel extends Model {
         history.push(this);
         history.sort((x, y) => x.updated - y.updated);
         return history;
-    }
-
-    deleteHistory(historyEntry) {
-        const ix = this.entry.history.indexOf(historyEntry);
-        if (ix >= 0) {
-            this.entry.removeHistory(ix);
-            this.file.setModified();
-        }
-        this._fillByEntry();
-    }
-
-    revertToHistoryState(historyEntry) {
-        const ix = this.entry.history.indexOf(historyEntry);
-        if (ix < 0) {
-            return;
-        }
-        this.entry.pushHistory();
-        this.unsaved = true;
-        this.file.setModified();
-        this.entry.fields = new Map();
-        this.entry.binaries = new Map();
-        this.entry.copyFrom(historyEntry);
-        this._entryModified();
-        this._fillByEntry();
-    }
-
-    discardUnsaved() {
-        if (this.unsaved && this.entry.history.length) {
-            this.unsaved = false;
-            const historyEntry = this.entry.history[this.entry.history.length - 1];
-            this.entry.removeHistory(this.entry.history.length - 1);
-            this.entry.fields = new Map();
-            this.entry.binaries = new Map();
-            this.entry.copyFrom(historyEntry);
-            this._fillByEntry();
-        }
-    }
-
-    moveToTrash() {
-        this.file.setModified();
-        if (this.isJustCreated) {
-            this.isJustCreated = false;
-        }
-        this.file.db.remove(this.entry);
-        this.file.reload();
-    }
-
-    restoreFromTrash() {
-        this.file.setModified();
-        const db = this.file.db;
-        let group = this.entry.previousParentGroup
-            ? db.getGroup(this.entry.previousParentGroup)
-            : null;
-        if (!group || (db.meta.recycleBinUuid && group.uuid.equals(db.meta.recycleBinUuid))) {
-            group = db.getDefaultGroup();
-        }
-        db.move(this.entry, group);
-        this.file.reload();
-    }
-
-    deleteFromTrash() {
-        this.file.setModified();
-        this.file.db.move(this.entry, null);
-        this.file.reload();
-    }
-
-    removeWithoutHistory() {
-        if (this.canBeDeleted) {
-            const ix = this.group.group.entries.indexOf(this.entry);
-            if (ix >= 0) {
-                this.group.group.entries.splice(ix, 1);
-            }
-            this.file.reload();
-        }
-    }
-
-    detach() {
-        this.file.setModified();
-        this.file.db.move(this.entry, null);
-        this.file.reload();
-        return this.entry;
-    }
-
-    moveToFile(file) {
-        if (this.canBeDeleted) {
-            this.removeWithoutHistory();
-            this.group = file.groups[0];
-            this.file = file;
-            this._fillByEntry();
-            this.entry.times.update();
-            this.group.group.entries.push(this.entry);
-            this.group.addEntry(this);
-            this.isJustCreated = true;
-            this.unsaved = true;
-            this.file.setModified();
-        }
-    }
-
-    initOtpGenerator() {
-        let otpUrl;
-        if (this.fields.otp) {
-            otpUrl = this.fields.otp;
-            if (otpUrl.isProtected) {
-                otpUrl = otpUrl.getText();
-            }
-            // called only if secret provided, no formatted url
-            if (Otp.isSecret(otpUrl.replace(/\s/g, ''))) {
-                otpUrl = Otp.makeUrl(otpUrl.replace(/\s/g, '').toUpperCase());
-            } else if (otpUrl.toLowerCase().lastIndexOf('otpauth:', 0) !== 0) {
-                // KeeOTP plugin format
-                const args = {};
-                otpUrl.split('&').forEach((part) => {
-                    const parts = part.split('=', 2);
-                    args[parts[0]] = decodeURIComponent(parts[1]).replace(/=/g, '');
-                });
-                if (args.key) {
-                    otpUrl = Otp.makeUrl(args.key, args.step, args.size);
-                }
-            }
-        } else if (this.entry.fields.get('TOTP Seed')) {
-            // TrayTOTP plugin format
-            let secret = this.entry.fields.get('TOTP Seed');
-            if (secret.isProtected) {
-                secret = secret.getText();
-            }
-            if (secret) {
-                let settings = this.entry.fields.get('TOTP Settings');
-                if (settings && settings.isProtected) {
-                    settings = settings.getText();
-                }
-                let period, digits;
-                if (settings) {
-                    settings = settings.split(';');
-                    if (settings.length > 0 && settings[0] > 0) {
-                        period = settings[0];
-                    }
-                    if (settings.length > 1 && settings[1] > 0) {
-                        digits = settings[1];
-                    }
-                }
-                otpUrl = Otp.makeUrl(secret, period, digits);
-                this.fields.otp = kdbxweb.ProtectedValue.fromString(otpUrl);
-            }
-        }
-        if (otpUrl) {
-            if (this.otpGenerator && this.otpGenerator.url === otpUrl) {
-                return;
-            }
-            try {
-                this.otpGenerator = Otp.parseUrl(otpUrl);
-            } catch {
-                this.otpGenerator = null;
-            }
-        } else {
-            this.otpGenerator = null;
-        }
-    }
-
-    setOtp(otp) {
-        this.otpGenerator = otp;
-        this.setOtpUrl(otp.url);
-    }
-
-    setOtpUrl(url) {
-        this.setField('otp', url ? kdbxweb.ProtectedValue.fromString(url) : undefined);
-        this.entry.fields.delete('TOTP Seed');
-        this.entry.fields.delete('TOTP Settings');
-    }
-
-    getEffectiveEnableAutoType() {
-        if (typeof this.entry.autoType.enabled === 'boolean') {
-            return this.entry.autoType.enabled;
-        }
-        return this.group.getEffectiveEnableAutoType();
-    }
-
-    getEffectiveAutoTypeSeq() {
-        return this.entry.autoType.defaultSequence || this.group.getEffectiveAutoTypeSeq();
-    }
-
-    setEnableAutoType(enabled) {
-        this._entryModified();
-        this.entry.autoType.enabled = enabled;
-        this._buildAutoType();
-    }
-
-    setAutoTypeObfuscation(enabled) {
-        this._entryModified();
-        this.entry.autoType.obfuscation = enabled
-            ? kdbxweb.Consts.AutoTypeObfuscationOptions.UseClipboard
-            : kdbxweb.Consts.AutoTypeObfuscationOptions.None;
-        this._buildAutoType();
-    }
-
-    setAutoTypeSeq(seq) {
-        this._entryModified();
-        this.entry.autoType.defaultSequence = seq || undefined;
-        this._buildAutoType();
     }
 
     getGroupPath() {
@@ -726,5 +465,9 @@ class EntryModel extends Model {
 }
 
 EntryModel.defineModelProperties({}, { extensions: true });
+
+Object.assign(EntryModel.prototype, EntryModelFieldRefsMixin);
+Object.assign(EntryModel.prototype, EntryModelOtpAutoTypeMixin);
+Object.assign(EntryModel.prototype, EntryModelTrashHistoryMixin);
 
 export { EntryModel, ExtraUrlFieldName };

@@ -19,7 +19,7 @@
     }
 
     .titlebar-hidden-inset & {
-        padding-top: $titlebar-padding-tiny;
+        padding-top: $titlebar-padding-large;
     }
 
     &__content {
@@ -386,7 +386,7 @@
                 background: var(--intermediate-background-color);
             }
             .titlebar-hidden-inset & {
-                top: calc(#{$small-spacing} + #{$titlebar-padding-tiny});
+                top: calc(#{$small-spacing} + #{$titlebar-padding-large});
             }
             &-post {
                 display: inline;

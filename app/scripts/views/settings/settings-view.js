@@ -122,16 +122,13 @@ class SettingsView extends View {
     }
 
     scrollToSection(section) {
-        let scrollEl;
-        if (section) {
-            scrollEl = this.views.page.el.querySelector(`#${section}`);
-        }
-        if (!scrollEl) {
-            scrollEl = this.views.page.el.querySelector(`h1`);
-        }
+        const scrollEl =
+            section && this.views.page.el.querySelector(`#${section}`);
         if (scrollEl) {
-            scrollEl.scrollIntoView(true);
+            scrollEl.scrollIntoView({ block: 'start', inline: 'nearest' });
+            return;
         }
+        this.pageEl.scrollTop(0);
     }
 
     highlightTarget(selector) {

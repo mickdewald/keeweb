@@ -1,36 +1,28 @@
-import * as kdbxweb from 'kdbxweb';
 import { View } from 'framework/views/view';
 import { Events } from 'framework/events';
 import { AutoType } from 'auto-type';
-import { CopyPaste } from 'comp/browser/copy-paste';
 import { KeyHandler } from 'comp/browser/key-handler';
-import { OtpQrReader } from 'comp/format/otp-qr-reader';
-import { Alerts } from 'comp/ui/alerts';
 import { highlightDom } from 'hbs-helpers/highlight';
 import { Keys } from 'const/keys';
-import { Timeouts } from 'const/timeouts';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { GroupModel } from 'models/group-model';
-import { Features } from 'util/features';
 import { Locale } from 'util/locale';
-import { FileSaver } from 'util/ui/file-saver';
 import { Tip } from 'util/ui/tip';
 import { Copyable } from 'framework/views/copyable';
 import { Scrollable } from 'framework/views/scrollable';
 import { DetailsAddFieldView } from 'views/details/details-add-field-view';
-import { DetailsAttachmentView } from 'views/details/details-attachment-view';
-import { DetailsAutoTypeView } from 'views/details/details-auto-type-view';
-import { DetailsHistoryView } from 'views/details/details-history-view';
 import { DetailsIssuesView } from 'views/details/details-issues-view';
-import { DropdownView } from 'views/dropdown-view';
+import { DetailsViewAttachments } from 'views/details/details-view-attachments';
+import { DetailsViewCopyAutoType } from 'views/details/details-view-copy-auto-type';
+import { DetailsViewEntryActions } from 'views/details/details-view-entry-actions';
+import { DetailsViewIcons } from 'views/details/details-view-icons';
+import { DetailsViewMenus } from 'views/details/details-view-menus';
 import { createDetailsFields, createNewCustomField } from 'views/details/details-fields';
 import { FieldViewCustom } from 'views/fields/field-view-custom';
-import { IconSelectView } from 'views/icon-select-view';
 import { isEqual } from 'util/fn';
 import template from 'templates/details/details.hbs';
 import emptyTemplate from 'templates/details/details-empty.hbs';
 import groupTemplate from 'templates/details/details-group.hbs';
-import { Launcher } from 'comp/launcher';
 
 class DetailsView extends View {
     parent = '.app__details';
@@ -280,213 +272,8 @@ class DetailsView extends View {
         fieldView.edit();
     }
 
-    toggleMoreOptions() {
-        if (this.views.dropdownView) {
-            this.views.dropdownView.remove();
-            this.views.dropdownView = null;
-        } else {
-            setTimeout(() => {
-                const dropdownView = new DropdownView();
-                this.listenTo(dropdownView, 'cancel', this.toggleMoreOptions);
-                this.listenTo(dropdownView, 'select', this.moreOptionsSelect);
-                const hideEmptyFields = AppSettingsModel.hideEmptyFields;
-                const moreOptions = [];
-                if (hideEmptyFields) {
-                    this.fieldViews.forEach((fieldView) => {
-                        if (fieldView.isHidden()) {
-                            moreOptions.push({
-                                value: 'add:' + fieldView.model.name,
-                                icon: 'pencil-alt',
-                                text: Locale.detMenuAddField.replace('{}', fieldView.model.title)
-                            });
-                        }
-                    }, this);
-                    moreOptions.push({
-                        value: 'add-new',
-                        icon: 'plus',
-                        text: Locale.detMenuAddNewField
-                    });
-                    if (this.model.url) {
-                        moreOptions.push({
-                            value: 'add-website',
-                            icon: 'plus',
-                            text: Locale.detMenuAddNewWebsite
-                        });
-                    }
-                    moreOptions.push({
-                        value: 'toggle-empty',
-                        icon: 'eye',
-                        text: Locale.detMenuShowEmpty
-                    });
-                } else {
-                    moreOptions.push({
-                        value: 'add-new',
-                        icon: 'plus',
-                        text: Locale.detMenuAddNewField
-                    });
-                    if (this.model.url) {
-                        moreOptions.push({
-                            value: 'add-website',
-                            icon: 'plus',
-                            text: Locale.detMenuAddNewWebsite
-                        });
-                    }
-                    moreOptions.push({
-                        value: 'toggle-empty',
-                        icon: 'eye-slash',
-                        text: Locale.detMenuHideEmpty
-                    });
-                }
-                moreOptions.push({ value: 'otp', icon: 'clock', text: Locale.detSetupOtp });
-                if (AutoType.enabled) {
-                    moreOptions.push({
-                        value: 'auto-type',
-                        icon: 'keyboard',
-                        text: Locale.detAutoTypeSettings
-                    });
-                }
-                moreOptions.push({ value: 'clone', icon: 'clone', text: Locale.detClone });
-                moreOptions.push({
-                    value: 'copy-to-clipboard',
-                    icon: 'copy',
-                    text: Locale.detCopyEntryToClipboard
-                });
-                const rect = this.moreView.labelEl[0].getBoundingClientRect();
-                dropdownView.render({
-                    position: { top: rect.bottom, left: rect.left },
-                    options: moreOptions
-                });
-                this.views.dropdownView = dropdownView;
-            });
-        }
-    }
-
-    moreOptionsSelect(e) {
-        this.views.dropdownView.remove();
-        this.views.dropdownView = null;
-        switch (e.item) {
-            case 'add-new':
-                this.addNewField();
-                break;
-            case 'add-website':
-                this.addNewField(this.model.getNextUrlFieldName());
-                break;
-            case 'toggle-empty': {
-                const hideEmptyFields = AppSettingsModel.hideEmptyFields;
-                AppSettingsModel.hideEmptyFields = !hideEmptyFields;
-                this.render();
-                break;
-            }
-            case 'otp':
-                this.setupOtp();
-                break;
-            case 'auto-type':
-                this.toggleAutoType();
-                break;
-            case 'clone':
-                this.clone();
-                break;
-            case 'copy-to-clipboard':
-                this.copyToClipboard();
-                break;
-            default:
-                if (e.item.lastIndexOf('add:', 0) === 0) {
-                    const fieldName = e.item.substr(4);
-                    const fieldView = this.fieldViews.find((f) => f.model.name === fieldName);
-                    fieldView.show();
-                    this.scheduleSyncDetailsLabelWidth();
-                    fieldView.edit();
-                }
-        }
-    }
-
     getUserNameCompletions(part) {
         return this.appModel.completeUserNames(part);
-    }
-
-    setSelectedColor(color) {
-        this.$el
-            .find('.details__colors-popup > .details__colors-popup-item')
-            .removeClass('details__colors-popup-item--active');
-        const colorEl = this.$el.find('.details__header-color')[0];
-        if (!colorEl) {
-            return;
-        }
-        for (const cls of colorEl.classList) {
-            if (cls.indexOf('color') > 0 && cls.lastIndexOf('details', 0) !== 0) {
-                colorEl.classList.remove(cls);
-            }
-        }
-        if (color) {
-            this.$el
-                .find('.details__colors-popup > .' + color + '-color')
-                .addClass('details__colors-popup-item--active');
-            colorEl.classList.add(color + '-color');
-        }
-    }
-
-    selectColor(e) {
-        let color = $(e.target).closest('.details__colors-popup-item').data('color');
-        if (!color) {
-            return;
-        }
-        if (color === this.model.color) {
-            color = null;
-        }
-        this.model.setColor(color);
-        this.entryUpdated();
-    }
-
-    toggleIcons() {
-        if (this.model.backend) {
-            return;
-        }
-        if (this.views.sub && this.views.sub instanceof IconSelectView) {
-            this.render();
-            return;
-        }
-        this.removeSubView();
-        const subView = new IconSelectView(
-            {
-                iconId: this.model.customIconId || this.model.iconId,
-                url: this.model.url,
-                file: this.model.file
-            },
-            {
-                parent: this.scroller[0],
-                replace: true
-            }
-        );
-        this.listenTo(subView, 'select', this.iconSelected);
-        subView.render();
-        this.pageResized();
-        this.views.sub = subView;
-    }
-
-    toggleAttachment(e) {
-        const attBtn = $(e.target).closest('.details__attachment');
-        const id = attBtn.data('id');
-        const attachment = this.model.attachments[id];
-        if (e.altKey || e.shiftKey || e.ctrlKey || e.metaKey) {
-            this.downloadAttachment(attachment);
-            return;
-        }
-        if (this.views.sub && this.views.sub.attId === id) {
-            this.render();
-            return;
-        }
-        this.removeSubView();
-        const subView = new DetailsAttachmentView(attachment, {
-            parent: this.scroller[0],
-            replace: true
-        });
-        subView.attId = id;
-        subView.render(this.pageResized.bind(this));
-        subView.on('download', () => this.downloadAttachment(attachment));
-        subView.on('delete', () => this.confirmDeleteAttachment(attachment));
-        this.listenTo(subView, 'close', this.render.bind(this));
-        this.views.sub = subView;
-        attBtn.addClass('details__attachment--active');
     }
 
     removeSubView() {
@@ -494,32 +281,6 @@ class DetailsView extends View {
         if (this.views.sub) {
             this.views.sub.remove();
             delete this.views.sub;
-        }
-    }
-
-    downloadAttachment(attachment) {
-        const data = attachment.getBinary();
-        if (!data) {
-            return;
-        }
-        const mimeType = attachment.mimeType || 'application/octet-stream';
-        const blob = new Blob([data], { type: mimeType });
-        FileSaver.saveAs(blob, attachment.title);
-    }
-
-    iconSelected(sel) {
-        if (sel.custom) {
-            if (sel.id !== this.model.customIconId) {
-                this.model.setCustomIcon(sel.id);
-                this.entryUpdated();
-            } else {
-                this.render();
-            }
-        } else if (sel.id !== this.model.iconId) {
-            this.model.setIcon(+sel.id);
-            this.entryUpdated();
-        } else {
-            this.render();
         }
     }
 
@@ -546,83 +307,6 @@ class DetailsView extends View {
 
         this.matchingOtpEntry = this.appModel.getMatchingOtpEntry(this.model);
         this.matchingOtpEntry?.initOtpGenerator();
-    }
-
-    copyKeyPress(editView) {
-        if (!editView || this.isHidden()) {
-            return false;
-        }
-        if (!window.getSelection().toString()) {
-            const fieldText = editView.getTextValue();
-            if (!fieldText) {
-                return;
-            }
-            if (!CopyPaste.simpleCopy) {
-                CopyPaste.createHiddenInput(fieldText);
-            }
-            const copyRes = CopyPaste.copy(fieldText);
-            this.copyFieldValue({ source: editView, copyRes });
-
-            return true;
-        }
-        return false;
-    }
-
-    copyPasswordFromShortcut(e) {
-        if (!this.model) {
-            return;
-        }
-        if (this.model.backend === 'otp-device') {
-            this.copyOtp();
-            e.preventDefault();
-        }
-        const copied = this.copyKeyPress(this.getFieldView('$Password'));
-        if (copied) {
-            e.preventDefault();
-        }
-    }
-
-    copyPassword() {
-        this.copyKeyPress(this.getFieldView('$Password'));
-    }
-
-    copyUserName() {
-        this.copyKeyPress(this.getFieldView('$UserName'));
-    }
-
-    copyUrl() {
-        this.copyKeyPress(this.getFieldView('$URL'));
-    }
-
-    copyOtp() {
-        const otpField = this.getFieldView('$otp');
-        if (this.model.backend === 'otp-device') {
-            if (!otpField) {
-                return false;
-            }
-            otpField.copyValue();
-            return true;
-        }
-        this.copyKeyPress(otpField);
-    }
-
-    showCopyTip() {
-        if (this.helpTipCopyShown) {
-            return;
-        }
-        this.helpTipCopyShown = AppSettingsModel.helpTipCopyShown;
-        if (this.helpTipCopyShown) {
-            return;
-        }
-        AppSettingsModel.helpTipCopyShown = true;
-        this.helpTipCopyShown = true;
-        const label = this.moreView.labelEl;
-        const tip = new Tip(label, { title: Locale.detCopyHint, placement: 'right' });
-        tip.show();
-        this.fieldCopyTip = tip;
-        setTimeout(() => {
-            tip.hide();
-        }, Timeouts.AutoHideHint);
     }
 
     settingsToggled() {
@@ -716,164 +400,6 @@ class DetailsView extends View {
         return true;
     }
 
-    dragover(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const dt = e.dataTransfer;
-        if (
-            !dt.types ||
-            (dt.types.indexOf ? dt.types.indexOf('Files') === -1 : !dt.types.contains('Files'))
-        ) {
-            dt.dropEffect = 'none';
-            return;
-        }
-        dt.dropEffect = 'copy';
-        if (this.dragTimeout) {
-            clearTimeout(this.dragTimeout);
-        }
-        if (this.model && !this.dragging) {
-            this.dragging = true;
-            this.$el.find('.details').addClass('details--drag');
-        }
-    }
-
-    dragleave() {
-        if (this.dragTimeout) {
-            clearTimeout(this.dragTimeout);
-        }
-        this.dragTimeout = setTimeout(() => {
-            this.$el.find('.details').removeClass('details--drag');
-            this.dragging = false;
-        }, 100);
-    }
-
-    drop(e) {
-        e.preventDefault();
-        if (!this.model) {
-            return;
-        }
-        if (this.dragTimeout) {
-            clearTimeout(this.dragTimeout);
-        }
-        this.$el.find('.details').removeClass('details--drag');
-        this.dragging = false;
-        const files = e.target.files || e.dataTransfer.files;
-        this.addAttachedFiles(files);
-    }
-
-    attachmentBtnClick() {
-        this.$el.find('.details__attachment-input-file')[0].click();
-    }
-
-    attachmentFileChange(e) {
-        this.addAttachedFiles(e.target.files);
-    }
-
-    addAttachedFiles(files) {
-        for (const file of files) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                this.addAttachment(file.name, reader.result);
-            };
-            reader.readAsArrayBuffer(file);
-        }
-    }
-
-    addAttachment(name, data) {
-        this.model.addAttachment(name, data).then(() => {
-            this.entryUpdated();
-        });
-    }
-
-    deleteKeyPress(e) {
-        if (this.views.sub && this.views.sub.attId !== undefined) {
-            e.preventDefault();
-            const attachment = this.model.attachments[this.views.sub.attId];
-            this.confirmDeleteAttachment(attachment);
-        }
-    }
-
-    confirmDeleteAttachment(attachment) {
-        if (!attachment) {
-            return;
-        }
-        Alerts.yesno({
-            header: Locale.detAttDelete,
-            body: Locale.detAttDeleteBody.replace('{}', attachment.title),
-            icon: 'trash-alt',
-            success: () => {
-                this.model.removeAttachment(attachment.title);
-                this.entryUpdated();
-                if (this.appModel?.filter?.attachments && !this.model.attachments.length) {
-                    this.appModel.refresh();
-                }
-            }
-        });
-    }
-
-    editTitle() {
-        if (this.model.backend === 'otp-device') {
-            return;
-        }
-        const input = $('<input/>')
-            .addClass('details__header-title-input')
-            .attr({ autocomplete: 'off', spellcheck: 'false', placeholder: 'Title' })
-            .val(this.model.title);
-        input.bind({
-            blur: this.titleInputBlur.bind(this),
-            input: this.titleInputInput.bind(this),
-            keydown: this.titleInputKeydown.bind(this),
-            keypress: this.titleInputInput.bind(this)
-        });
-        $('.details__header-title').replaceWith(input);
-        input.focus()[0].setSelectionRange(this.model.title.length, this.model.title.length);
-    }
-
-    titleInputBlur(e) {
-        this.setTitle(e.target.value);
-    }
-
-    titleInputInput(e) {
-        e.stopPropagation();
-    }
-
-    titleInputKeydown(e) {
-        KeyHandler.reg();
-        e.stopPropagation();
-        const code = e.keyCode || e.which;
-        if (code === Keys.DOM_VK_RETURN) {
-            $(e.target).unbind('blur');
-            this.setTitle(e.target.value);
-        } else if (code === Keys.DOM_VK_ESCAPE) {
-            $(e.target).unbind('blur');
-            if (this.model.isJustCreated) {
-                this.model.removeWithoutHistory();
-                Events.emit('refresh');
-                return;
-            }
-            this.render();
-        } else if (code === Keys.DOM_VK_TAB) {
-            e.preventDefault();
-            $(e.target).unbind('blur');
-            this.setTitle(e.target.value);
-            if (!e.shiftKey) {
-                this.focusNextField({ field: '$Title' });
-            }
-        }
-    }
-
-    setTitle(title) {
-        if (this.model.title instanceof kdbxweb.ProtectedValue) {
-            title = kdbxweb.ProtectedValue.fromString(title);
-        }
-        if (title !== this.model.title) {
-            this.model.setField('Title', title);
-            this.entryUpdated(true);
-        }
-        const newTitle = $('<h1 class="details__header-title"></h1>').text(title || '(no title)');
-        this.$el.find('.details__header-title-input').replaceWith(newTitle);
-    }
-
     entryUpdated(skipRender) {
         Events.emit('entry-updated', { entry: this.model });
         this.initOtp();
@@ -905,223 +431,20 @@ class DetailsView extends View {
         }
     }
 
-    showHistory() {
-        this.removeSubView();
-        const subView = new DetailsHistoryView(this.model, {
-            parent: this.scroller[0],
-            replace: true
-        });
-        this.listenTo(subView, 'close', this.historyClosed.bind(this));
-        subView.render();
-        this.pageResized();
-        this.views.sub = subView;
-    }
-
-    historyClosed(e) {
-        if (e.updated) {
-            this.entryUpdated();
-        } else {
-            this.render();
-        }
-    }
-
-    moveToTrash() {
-        const doMove = () => {
-            this.model.moveToTrash();
-            Events.emit('refresh');
-        };
-        if (Features.isMobile) {
-            Alerts.yesno({
-                header: Locale.detDelToTrash,
-                body: Locale.detDelToTrashBody,
-                icon: 'trash-alt',
-                success: doMove
-            });
-        } else {
-            doMove();
-        }
-    }
-
-    clone() {
-        const newEntry = this.model.cloneEntry(' ' + Locale.detClonedName);
-        Events.emit('select-entry', newEntry);
-    }
-
-    copyToClipboard() {
-        CopyPaste.copyHtml(this.model.getHtml());
-    }
-
-    deleteFromTrash() {
-        Alerts.yesno({
-            header: Locale.detDelFromTrash,
-            body: Locale.detDelFromTrashBody,
-            hint: Locale.detDelFromTrashBodyHint,
-            icon: 'minus-circle',
-            success: () => {
-                this.model.deleteFromTrash();
-                Events.emit('refresh');
-            }
-        });
-    }
-
-    restoreFromTrash() {
-        this.model.restoreFromTrash();
-        Events.emit('refresh');
-    }
-
-    backClick() {
-        Events.emit('toggle-details', false);
-    }
-
-    contextMenu(e) {
-        const canCopy = document.queryCommandSupported('copy');
-        const options = [];
-        if (canCopy) {
-            if (this.model.backend === 'otp-device') {
-                options.push({
-                    value: 'det-copy-otp',
-                    icon: 'copy',
-                    text: Locale.detMenuCopyOtp
-                });
-            } else {
-                options.push({
-                    value: 'det-copy-password',
-                    icon: 'copy',
-                    text: Locale.detMenuCopyPassword
-                });
-            }
-            options.push({
-                value: 'det-copy-user',
-                icon: 'copy',
-                text: Locale.detMenuCopyUser
-            });
-        }
-        if (!this.model.backend) {
-            options.push({ value: 'det-add-new', icon: 'plus', text: Locale.detMenuAddNewField });
-            options.push({ value: 'det-clone', icon: 'clone', text: Locale.detClone });
-            if (canCopy) {
-                options.push({
-                    value: 'copy-to-clipboard',
-                    icon: 'clipboard',
-                    text: Locale.detCopyEntryToClipboard
-                });
-            }
-        }
-        if (AutoType.enabled) {
-            options.push({ value: 'det-auto-type', icon: 'keyboard', text: Locale.detAutoType });
-        }
-        Events.emit('show-context-menu', Object.assign(e, { options }));
-    }
-
-    contextMenuSelect(e) {
-        switch (e.item) {
-            case 'det-copy-password':
-                this.copyPassword();
-                break;
-            case 'det-copy-user':
-                this.copyUserName();
-                break;
-            case 'det-copy-otp':
-                this.copyOtp();
-                break;
-            case 'det-add-new':
-                this.addNewField();
-                break;
-            case 'det-clone':
-                this.clone();
-                break;
-            case 'det-auto-type':
-                this.autoType();
-                break;
-            case 'copy-to-clipboard':
-                this.copyToClipboard();
-                break;
-        }
-    }
-
-    setupOtp() {
-        OtpQrReader.read();
-    }
-
-    otpCodeRead(otp) {
-        this.model.setOtp(otp);
-        this.entryUpdated();
-    }
-
-    otpEnterManually() {
-        if (this.model.fields.otp) {
-            const otpField = this.fieldViews.find((f) => f.model.name === '$otp');
-            if (otpField) {
-                otpField.edit();
-            }
-        } else {
-            this.moreView.remove();
-            this.moreView = null;
-            const fieldView = new FieldViewCustom(
-                {
-                    name: '$otp',
-                    title: 'otp',
-                    newField: 'otp',
-                    value: kdbxweb.ProtectedValue.fromString('')
-                },
-                {
-                    parent: this.$el.find('.details__body-fields')[0]
-                }
-            );
-            fieldView.on('change', this.fieldChanged.bind(this));
-            fieldView.render();
-            this.fieldViews.push(fieldView);
-            this.scheduleSyncDetailsLabelWidth();
-            fieldView.edit();
-        }
-    }
-
-    toggleAutoType() {
-        if (this.views.autoType) {
-            this.views.autoType.remove();
-            delete this.views.autoType;
-            return;
-        }
-        this.views.autoType = new DetailsAutoTypeView(this.model);
-        this.views.autoType.render();
-    }
-
-    autoType(sequence) {
-        const entry = this.model;
-        const hasOtp =
-            sequence?.includes('{TOTP}') || (entry.backend === 'otp-device' && !sequence);
-        if (hasOtp) {
-            const otpField = this.getFieldView('$otp');
-            otpField.refreshOtp((err) => {
-                if (!err) {
-                    Events.emit('auto-type', {
-                        entry,
-                        sequence,
-                        context: { resolved: { totp: otpField.otpValue } }
-                    });
-                }
-            });
-        } else {
-            Events.emit('auto-type', { entry, sequence });
-        }
-    }
-
     checkPasswordIssues() {
         if (!this.model.readOnly) {
             this.views.issues = new DetailsIssuesView(this.model);
             this.views.issues.render();
         }
     }
-
-    copyFieldValue(e) {
-        this.fieldCopied(e);
-        if (AppSettingsModel.minimizeOnFieldCopy) {
-            Launcher.minimizeApp();
-        }
-    }
 }
 
 Object.assign(DetailsView.prototype, Scrollable);
 Object.assign(DetailsView.prototype, Copyable);
+Object.assign(DetailsView.prototype, DetailsViewAttachments);
+Object.assign(DetailsView.prototype, DetailsViewCopyAutoType);
+Object.assign(DetailsView.prototype, DetailsViewMenus);
+Object.assign(DetailsView.prototype, DetailsViewEntryActions);
+Object.assign(DetailsView.prototype, DetailsViewIcons);
 
 export { DetailsView };

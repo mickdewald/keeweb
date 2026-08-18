@@ -10,7 +10,7 @@ import { UrlFormat } from 'util/formatting/url-format';
 import { Locale } from 'util/locale';
 import { Scrollable } from 'framework/views/scrollable';
 import { DropdownView } from 'views/dropdown-view';
-import { ExtraUrlFieldName } from 'models/entry-model';
+import { buildItemOptions, itemOptionsPosition } from 'views/select/select-entry-item-options';
 import template from 'templates/select/select-entry.hbs';
 import itemTemplate from 'templates/select/select-entry-item.hbs';
 
@@ -404,57 +404,9 @@ class SelectEntryView extends View {
         this.listenTo(view, 'cancel', this.hideItemOptionsDropdown);
         this.listenTo(view, 'select', this.itemOptionsDropdownSelect);
 
-        const options = [];
-
-        if (entry.fields.otp) {
-            options.push({
-                value: '{TOTP}',
-                icon: 'clock',
-                text: Locale.autoTypeSelectionOtp
-            });
-        }
-        if (entry.user) {
-            options.push({
-                value: '{USERNAME}',
-                icon: 'user',
-                text: StringFormat.capFirst(Locale.user)
-            });
-        }
-        if (entry.password) {
-            options.push({
-                value: '{PASSWORD}',
-                icon: 'key',
-                text: StringFormat.capFirst(Locale.password)
-            });
-        }
-
-        for (const field of Object.keys(entry.fields)) {
-            if (field !== 'otp' && !field.startsWith(ExtraUrlFieldName)) {
-                options.push({
-                    value: `{S:${field}}`,
-                    icon: 'th-list',
-                    text: field
-                });
-            }
-        }
-
-        let position;
-        if (event && event.button === 2) {
-            position = {
-                top: event.pageY,
-                left: event.pageX
-            };
-        } else {
-            const targetElRect = itemEl[0].getBoundingClientRect();
-            position = {
-                top: targetElRect.bottom,
-                right: targetElRect.right
-            };
-        }
-
         view.render({
-            position,
-            options
+            position: itemOptionsPosition(itemEl, event),
+            options: buildItemOptions(entry)
         });
 
         this.views.optionsDropdown = view;

@@ -30,6 +30,7 @@ class DetailsIssuesView extends View {
     };
 
     passwordIssues = [];
+    hibpCheckGeneration = 0;
 
     constructor(model) {
         super(model);
@@ -76,6 +77,7 @@ class DetailsIssuesView extends View {
     }
 
     checkOnHIBP() {
+        const generation = ++this.hibpCheckGeneration;
         if (!AppSettingsModel.checkPasswordsOnHIBP) {
             return;
         }
@@ -88,14 +90,18 @@ class DetailsIssuesView extends View {
             this.setRemoteIssue(isExposed ? 'pwned' : null);
         } else {
             const iconEl = this.el?.querySelector('.details__issues-icon');
+            const checkWasVisible = !!iconEl;
             iconEl?.classList.add('details__issues-icon--loading');
             isExposed.then((exposed) => {
+                if (this.removed || generation !== this.hibpCheckGeneration) {
+                    return;
+                }
                 if (exposed) {
                     this.setRemoteIssue('pwned');
                 } else if (exposed === false) {
                     this.setRemoteIssue(null);
                 } else {
-                    this.setRemoteIssue(iconEl ? 'error' : null);
+                    this.setRemoteIssue(checkWasVisible ? 'error' : null);
                 }
                 this.render();
             });
@@ -159,7 +165,8 @@ class DetailsIssuesView extends View {
         }
         const visible = AppModel.instance.getEntries();
         if (!visible.get(id)) {
-            AppModel.instance.setFilter({});
+            // attachments must be reset explicitly: setFilter keeps it when undefined
+            AppModel.instance.setFilter({ attachments: false });
         }
         Events.emit('select-entry', entry);
     }

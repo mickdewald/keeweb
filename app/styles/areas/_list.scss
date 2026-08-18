@@ -291,10 +291,28 @@ mark.search-hl {
                 min-width: 0;
             }
 
-            .list__item-att {
+            .list__item-markers {
                 grid-column: 3;
                 grid-row: 1 / span 2;
                 align-self: center;
+            }
+        }
+
+        &-markers {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45em;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        &-issue {
+            color: var(--yellow-color);
+            font-size: 0.85em;
+            line-height: 1;
+            .list__item:hover &,
+            .list__item--active & {
+                color: var(--yellow-color);
             }
         }
 
@@ -302,7 +320,6 @@ mark.search-hl {
             color: var(--muted-color);
             font-size: 0.85em;
             line-height: 1;
-            margin-left: 0.2em;
         }
 
         &--expired {

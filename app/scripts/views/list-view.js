@@ -5,6 +5,7 @@ import { DragDropInfo } from 'comp/app/drag-drop-info';
 import { Alerts } from 'comp/ui/alerts';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { EntryPresenter } from 'presenters/entry-presenter';
+import { collectPasswordIssueIds } from 'util/data/password-audit';
 import { StringFormat } from 'util/formatting/string-format';
 import { Locale } from 'util/locale';
 import { Resizable } from 'framework/views/resizable';
@@ -115,6 +116,10 @@ class ListView extends View {
                 }
             });
             presenter.columns = columns;
+            presenter.passwordIssueIds = collectPasswordIssueIds(
+                this.model.files,
+                AppSettingsModel
+            );
             const filter = this.model.filter;
             presenter.searchTerms =
                 filter.textLowerParts || (filter.textLower ? [filter.textLower] : null);

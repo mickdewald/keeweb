@@ -153,6 +153,7 @@
   "listNoUser": "kein Benutzer",
   "listNoAttachments": "keine Anhänge",
   "listHasAttachments": "Hat Anhänge",
+  "listHasPasswordIssue": "Schwaches, wiederverwendetes oder altes Passwort",
   "listFilterAttachments": "Einträge mit Anhängen zeigen",
   "listAddTemplateHeader": "Vorlagen",
   "listAddTemplateBody1": "Vorlagen ermöglichen es, Einträge mit nur einem Klick zu erstellen. Fügen Sie etwas zum Vorlage-Eintrag hinzu und klicken Sie auf {}, um diese Vorlage zu verwenden.",

@@ -113,4 +113,21 @@ function auditPasswords(files, settings = {}) {
     };
 }
 
-export { auditPasswords, isOldPassword, DefaultOldYears };
+function collectPasswordIssueIds(files, settings) {
+    const report = auditPasswords(files, settings);
+    const ids = new Set();
+    for (const item of report.weak) {
+        ids.add(item.id);
+    }
+    for (const item of report.old) {
+        ids.add(item.id);
+    }
+    for (const group of report.reused) {
+        for (const item of group.entries) {
+            ids.add(item.id);
+        }
+    }
+    return ids;
+}
+
+export { auditPasswords, collectPasswordIssueIds, isOldPassword, DefaultOldYears };

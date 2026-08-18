@@ -71,6 +71,12 @@ EntryPresenter.prototype = {
     get hasAttachments() {
         return !!(this.entry && this.entry.attachments && this.entry.attachments.length);
     },
+    get hasPasswordIssue() {
+        return !!(this.entry && this.passwordIssueIds && this.passwordIssueIds.has(this.entry.id));
+    },
+    get hasListMarkers() {
+        return this.hasPasswordIssue || this.hasAttachments;
+    },
     get description() {
         if (!this.entry) {
             return '[' + Locale.listGroup + ']';

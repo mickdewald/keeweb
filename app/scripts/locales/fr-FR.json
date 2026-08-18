@@ -157,6 +157,7 @@
   "listNoUser": "aucun utilisateur",
   "listNoAttachments": "aucune pièce-jointe",
   "listHasAttachments": "Contient des pièces jointes",
+  "listHasPasswordIssue": "Mot de passe faible, réutilisé ou ancien",
   "listFilterAttachments": "Afficher les entrées avec pièces jointes",
   "listAddTemplateHeader": "Modèles",
   "listAddTemplateBody1": "Les modèles (templates) vous permettent de créer des nouvelles entrées en un clic. Ajouter quelque chose à l'entrée du modèle et ensuite cliquer de nouveau sur {} pour utiliser ce modèle.",

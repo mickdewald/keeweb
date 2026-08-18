@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { ProtectedValue } from 'kdbxweb';
 import 'util/kdbxweb/protected-value-ex';
-import { auditPasswords } from 'util/data/password-audit';
+import { auditPasswords, collectPasswordIssueIds } from 'util/data/password-audit';
 
 function entry(id, title, password, extra = {}) {
     return {
@@ -82,5 +82,27 @@ describe('password audit', () => {
         );
         expect(report.weak.map((item) => item.id)).to.eql(['keep']);
         expect(report.checked).to.eql(1);
+    });
+
+    it('collects unique ids for weak, reused, and old passwords', () => {
+        const oldDate = new Date();
+        oldDate.setFullYear(oldDate.getFullYear() - 3);
+        const ids = collectPasswordIssueIds(
+            [
+                file([
+                    entry('weak', 'Short', 'ab'),
+                    entry('reused-a', 'Mail', 'same-secret-99!'),
+                    entry('reused-b', 'Shop', 'same-secret-99!'),
+                    entry('old', 'Legacy', 'correct-horse-battery-staple-92!', {
+                        updated: oldDate
+                    }),
+                    entry('ok', 'Fine', 'correct-horse-battery-staple-93!', {
+                        updated: new Date()
+                    })
+                ])
+            ],
+            { auditPasswordAge: 2 }
+        );
+        expect([...ids].sort()).to.eql(['old', 'reused-a', 'reused-b', 'weak']);
     });
 });

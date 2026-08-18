@@ -158,6 +158,7 @@
   "listNoUser": "no user",
   "listNoAttachments": "no attachments",
   "listHasAttachments": "Has attachments",
+  "listHasPasswordIssue": "Weak, reused, or old password",
   "listFilterAttachments": "Show entries with attachments",
   "listAddTemplateHeader": "Templates",
   "listAddTemplateBody1": "Templates allow you to create entries with one click. Add something to template entry and then click {} again to use this template.",

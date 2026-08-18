@@ -64,6 +64,8 @@ class ListView extends View {
         this.listenTo(Events, 'filter', this.filterChanged);
         this.listenTo(Events, 'entry-updated', this.entryUpdated);
         this.listenTo(Events, 'set-locale', this.render);
+        this.listenTo(AppSettingsModel, 'change', this.invalidatePasswordIssueIds);
+        this.listenTo(Events, 'refresh', this.invalidatePasswordIssueIds);
 
         this.listenTo(this.model.settings, 'change:tableView', this.setTableView);
 
@@ -116,10 +118,7 @@ class ListView extends View {
                 }
             });
             presenter.columns = columns;
-            presenter.passwordIssueIds = collectPasswordIssueIds(
-                this.model.files,
-                AppSettingsModel
-            );
+            presenter.passwordIssueIds = this.getPasswordIssueIds();
             const filter = this.model.filter;
             presenter.searchTerms =
                 filter.textLowerParts || (filter.textLower ? [filter.textLower] : null);
@@ -386,7 +385,22 @@ class ListView extends View {
         this.render();
     }
 
+    getPasswordIssueIds() {
+        // the full audit is too expensive to re-run on every search keystroke
+        const filesKey = this.model.files.map((file) => file.id).join(',');
+        if (!this.passwordIssueIds || this.passwordIssueIdsFilesKey !== filesKey) {
+            this.passwordIssueIds = collectPasswordIssueIds(this.model.files, AppSettingsModel);
+            this.passwordIssueIdsFilesKey = filesKey;
+        }
+        return this.passwordIssueIds;
+    }
+
+    invalidatePasswordIssueIds() {
+        this.passwordIssueIds = null;
+    }
+
     entryUpdated() {
+        this.invalidatePasswordIssueIds();
         const scrollTop = this.itemsEl[0].scrollTop;
         this.render();
         this.itemsEl[0].scrollTop = scrollTop;

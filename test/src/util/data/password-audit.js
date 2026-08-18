@@ -110,6 +110,19 @@ describe('password audit', () => {
         expect([...ids].sort()).to.eql(['old', 'reused-a', 'reused-b', 'weak']);
     });
 
+    it('keeps PIN-like entries out of reuse in report and description alike', () => {
+        const pinA = entry('pin-a', 'Card PIN', '123456');
+        const pinB = entry('pin-b', 'Other PIN', '123456');
+        const files = [file([pinA, pinB])];
+        const settings = { excludePinsFromAudit: true };
+
+        const report = auditPasswords(files, settings);
+        expect(report.reused).to.have.length(0);
+
+        expect(describePasswordIssues(pinA, files, settings)).to.have.length(0);
+        expect(describePasswordIssues(pinB, files, settings)).to.have.length(0);
+    });
+
     it('describes all issues for a single entry', () => {
         const oldDate = new Date();
         oldDate.setFullYear(oldDate.getFullYear() - 3);

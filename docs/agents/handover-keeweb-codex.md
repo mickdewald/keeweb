@@ -1,6 +1,6 @@
 # Übergabe KeeWeb-Codex
 
-Stand: 2026-08-17. Fork von KeeWeb (Electron 43, kein Rewrite): `mickdewald/keeweb` (origin), Upstream `keeweb/keeweb` (nur lesen). Ziel: schrittweise UX-Politur.
+Stand: 2026-08-18. Fork von KeeWeb (Electron 43, kein Rewrite): `mickdewald/keeweb` (origin), Upstream `keeweb/keeweb` (nur lesen, Fetch nur `master`, keine Tags). Ziel: schrittweise UX-Politur.
 
 ## Wo gearbeitet wird
 
@@ -36,21 +36,18 @@ Nie nach `/Applications/KeeWeb.app`. Das Deploy-Skript lintet (Prettier) und bri
 
 Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Datei im Browser öffnen.
 
-## Commits auf der Branch (alle gepusht, Worktree clean)
+## Branch-Stand
 
-1. `5fe42d71` Settings-Suche, bunte Listen-Icons default
-2. `38e080fb` Listen-Icons größer, vertikal zentriert
-3. `42fa47de` Details vollbreit/dunkel, Attachments-Aktionen
-4. `95d6e13d` Gelöschte Einträge nur im Trash
-5. `b043f735` macOS-Chrome (hiddenInset + Vibrancy), Sidebar-Umbau (Tags unter All Items, Workspace-Menü unten links statt Fußleiste), Settings-Layout-Fixes
-6. `556f2694` Wiederherstellen-Button im Papierkorb (nutzt `previousParentGroup`, Fallback Root)
-7. `4b01e08c` Suchtreffer-Highlighting in Liste, Tabelle, Titel und allen Detail-Feldern
-8. `b8721228` Suchleiste modernisiert (runde Ecken), Farblabels entfernt
-9. `ab3289f3` Sidebar-Resize: no-drag auf Handle + rAF-Koaleszierung + gedrosselte Scrollbar-Recalcs
-10. `58c23f20` Upstream-Auto-Updater deaktiviert (hätte Vanilla-KeeWeb drüberinstalliert)
-11. `5105de05` Auto-Backups: täglich nach `~/My Drive/Backup`, `<name>.kdbx.<timestamp>.bak`, Retention 30
-12. `8eba8ce2` Settings-Suche findet Datei-Settings (Backups, Master-Passwort)
-13. `eaa9f3d0` Copy-Button beim Feld-Hover (Tooltip ankert am Button)
+Arbeitsbranch: `grok/keeweb-colorful-list-icons` (nicht nach `origin/master` mergen, solange Mick das nicht will). Die echte App lebt auf dieser Branch.
+
+Darauf: Settings-Suche, bunte Listen-Icons, Details/Attachments, Trash+Restore, macOS-Chrome + Vibrancy, Ein-Sidebar-Layout, Such-Highlight, Auto-Backups, Copy-Hover, Cmd+K-Palette, farbige Passwort-Zeichen, Generator-Redesign, Electron 13→43 + safeStorage, Review-Fixes.
+
+Abschluss 2026-08-18:
+
+- `06782863` Cmd+K: echtes Suchfeld, Palette bleibt bei 0 Treffern / leerem Passwort
+- `9782ad63` Devices/YubiKey aus Settings und Settings-Suche entfernt
+
+GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf origin liegen nur `master` und diese Feature-Branch; Release-Tags von Vanilla-KeeWeb sind runter. Lokal bleibt der Tag `pre-single-sidebar`. `upstream` zeigt nur noch `keeweb/keeweb` `master`.
 
 ## Code-Pitfalls (mehrfach gebissen — zuerst lesen!)
 
@@ -76,15 +73,17 @@ Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Dat
 
 Ein-Sidebar-Layout (`compactLayout: true`): Die Eintragsliste ist die linke Spalte; Nav-Sidebar nur noch in den Settings. Tags über Dropdown in der Suchleiste, Workspace-Button unten in der Listen-Spalte, Drag-Streifen (38px) über der Suchleiste für die Traffic Lights, Liste ist die transluzente Vibrancy-Fläche. `compactLayout: false` stellt das klassische Drei-Spalten-Layout wieder her (auch nötig, falls sichtbare Untergruppen navigierbar sein müssen). Rollback-Tag: `pre-single-sidebar`.
 
-## Review-Notizen (2026-08-17, externes Review)
+## Review-Notizen (2026-08-17, nachgezogen 2026-08-18)
 
-Bewusst offen gelassen: Backup-Namenskollision bei gleichnamigen kdbx in verschiedenen Ordnern (eine Datei ist der Normalfall); Cmd+K schließt bei 0 Treffern still und kann kein Paste (kein echtes Input); YubiKey-Block in den Settings sichtbar aber disabled; compactLayout=false nur per Settings-Blob umschaltbar. Gefixt: settings-key.bin-Guard+0600, Palette-Copy im Browser + lockOnCopy, erstes Backup direkt nach Open (pending), aria-hidden auf dem Edit-Overlay, fr-FR-Keys, $medium-padding-Shorthands in _details.
+Bewusst offen: Backup-Namenskollision bei gleichnamigen kdbx in verschiedenen Ordnern (eine Datei ist der Normalfall); `compactLayout: false` nur per Settings-Blob umschaltbar.
+
+Nachgezogen: Cmd+K hat ein echtes Suchfeld (Paste/IME), bleibt bei 0 Treffern oder leerem Passwort offen; Devices/YubiKey sind aus der Settings-Sidebar und der Settings-Suche. Zuvor schon gefixt: settings-key.bin-Guard+0600, Palette-Copy im Browser + lockOnCopy, erstes Backup direkt nach Open (pending), aria-hidden auf dem Edit-Overlay, fr-FR-Keys, `$medium-padding`-Shorthands in `_details`.
 
 ## Offen / Ideen (grob priorisiert)
 
-1. **Passwort-Health-Übersicht** (schwach/wiederverwendet/alt) — NÄCHSTER GROSSER PUNKT
-2. **Vibrancy-Feinschliff** (Screenshot-Runden mit Mick; „wunderschön" ist es laut Mick noch nicht)
-3. ERLEDIGT: Cmd+K Spotlight-Palette (resizable, cmdPaletteWidth), Generator-Popover (Chips, Stärke-Balken)
-4. TOTP prominenter — von Mick als nicht relevant markiert
-6. ERLEDIGT: Ein-Sidebar-Layout, eingefärbte Passwort-Zeichen (auch im Edit-Feld)
-7. Electron: 13 → 22 → 43 ERLEDIGT (@electron/remote; USB/YubiKey hart deaktiviert — usb-detection ist nicht N-API). Native Module (secure-enclave/Touch ID, keytar, argon2) sind N-API/ABI-stabil — kein Rebuild bei Sprüngen. Nach Electron-Sprüngen fragt macOS Keychain-Freigaben einmalig neu ab. Settings-Key läuft seit 656e30da über safeStorage (settings-key.bin, keytar nur noch Fallback). Bumps via scripts/dev/update-electron.sh. contextIsolation-Refactor bewusst GESTRICHEN (Aufwand 3-5 Sessions, kein praktischer Gewinn für private Einzelplatz-App — Entscheidung mit Mick am 2026-08-17). WICHTIG: Nach node_modules-Wechsel den Dev-Server neu starten, sonst mischt Webpack alte/neue Modulpfade (doppelte Handlebars-Instanz, Helper fehlen).
+1. **Passwort-Health-Übersicht** (schwach/wiederverwendet/alt) — nächster großer Punkt
+2. **Vibrancy-Feinschliff** (Screenshot-Runden mit Mick)
+
+Erledigt und nicht wieder aufrollen: Cmd+K-Palette, Generator-Popover, Ein-Sidebar-Layout, farbige Passwort-Zeichen, Electron 13→43 (`@electron/remote`; USB/YubiKey hart aus — `usb-detection` ist nicht N-API). Native Module (secure-enclave/Touch ID, keytar, argon2) sind N-API/ABI-stabil. Settings-Key über safeStorage (`settings-key.bin`, keytar nur Fallback). Bumps via `scripts/dev/update-electron.sh`. contextIsolation bewusst gestrichen (Entscheidung 2026-08-17). TOTP prominenter: von Mick als nicht relevant markiert.
+
+Nach `node_modules`-Wechsel den Dev-Server neu starten, sonst mischt Webpack alte/neue Modulpfade (doppelte Handlebars-Instanz, Helper fehlen).

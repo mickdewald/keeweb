@@ -21,6 +21,7 @@ module.exports = function (grunt) {
     grunt.registerTask('build-desktop-app-content', [
         'copy:desktop-html',
         'copy:desktop-app-content',
+        'copy:desktop-remote-module',
         'string-replace:desktop-public-key'
     ]);
 

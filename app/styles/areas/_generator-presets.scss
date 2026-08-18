@@ -10,6 +10,14 @@
     overflow: hidden;
     position: relative;
     @include padding-if-titlebar;
+    .titlebar-hidden-inset & {
+        padding-top: $titlebar-padding-large;
+    }
+    .back-button {
+        position: static;
+        align-self: flex-start;
+        margin: $small-spacing $medium-padding-h 0;
+    }
 
     > .scroller {
         flex: 1;

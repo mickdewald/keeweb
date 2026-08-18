@@ -26,6 +26,11 @@ import { SettingsView } from 'views/settings/settings-view';
 import { TagView } from 'views/tag-view';
 import { ImportCsvView } from 'views/import-csv-view';
 import { TitlebarView } from 'views/titlebar-view';
+import { SelectEntryView } from 'views/select/select-entry-view';
+import { SelectEntryFilter } from 'comp/app/select-entry-filter';
+import { PasswordHealthView } from 'views/password-health-view';
+import { CopyPaste } from 'comp/browser/copy-paste';
+import { Timeouts } from 'const/timeouts';
 import template from 'templates/app.hbs';
 
 class AppView extends View {
@@ -48,8 +53,14 @@ class AppView extends View {
         super(model);
 
         this.titlebarStyle = this.model.settings.titlebarStyle;
+        if (Features.isDesktop && Features.isMac && this.titlebarStyle === 'default') {
+            this.titlebarStyle = 'hidden-inset';
+        }
 
-        this.views.menu = new MenuView(this.model.menu, { ownParent: true });
+        this.views.menu = new MenuView(this.model.menu, {
+            ownParent: true,
+            appModel: this.model
+        });
         this.views.menuDrag = new DragView('x', { parent: '.app__menu-drag' });
         this.views.footer = new FooterView(this.model, { ownParent: true });
         this.views.listWrap = new ListWrapView(this.model, { ownParent: true });
@@ -86,6 +97,7 @@ class AppView extends View {
         this.listenTo(Events, 'edit-group', this.editGroup);
         this.listenTo(Events, 'edit-tag', this.editTag);
         this.listenTo(Events, 'edit-generator-presets', this.editGeneratorPresets);
+        this.listenTo(Events, 'show-password-health', this.showPasswordHealth);
         this.listenTo(Events, 'launcher-open-file', this.launcherOpenFile);
         this.listenTo(Events, 'user-idle', this.userIdle);
         this.listenTo(Events, 'os-lock', this.osLocked);
@@ -106,6 +118,7 @@ class AppView extends View {
 
         this.onKey(Keys.DOM_VK_ESCAPE, this.escPressed);
         this.onKey(Keys.DOM_VK_BACK_SPACE, this.backspacePressed);
+        this.onKey(Keys.DOM_VK_K, this.showCmdPalette, KeyHandler.SHORTCUT_ACTION);
         if (Launcher && Launcher.devTools) {
             this.onKey(
                 Keys.DOM_VK_I,
@@ -130,6 +143,12 @@ class AppView extends View {
                 document.body.classList.add('titlebar-custom');
             }
         }
+        if (this.model.settings.compactLayout) {
+            document.body.classList.add('layout-compact');
+        }
+        if (Features.isDesktop && Features.isMac && this.titlebarStyle === 'hidden-inset') {
+            document.body.classList.add('macos-vibrancy');
+        }
         if (Features.isMobile) {
             document.body.classList.add('mobile');
         }
@@ -146,6 +165,7 @@ class AppView extends View {
         this.views.menu.render();
         this.views.menuDrag.render();
         this.views.footer.render();
+        this.views.footer.hide();
         this.views.list.render();
         this.views.listDrag.render();
         this.views.details.render();
@@ -161,7 +181,7 @@ class AppView extends View {
         this.views.list.hide();
         this.views.listDrag.hide();
         this.views.details.hide();
-        this.views.footer.toggle(this.model.files.hasOpenFiles());
+        this.views.footer.hide();
         this.hidePanelView();
         this.hideSettings();
         this.hideOpenFile();
@@ -197,12 +217,17 @@ class AppView extends View {
     }
 
     showEntries() {
-        this.views.menu.show();
-        this.views.menuDrag.$el.parent().show();
+        if (this.model.settings.compactLayout) {
+            this.views.menu.hide();
+            this.views.menuDrag.$el.parent().hide();
+        } else {
+            this.views.menu.show();
+            this.views.menuDrag.$el.parent().show();
+        }
         this.views.listWrap.show();
         this.views.listDrag.show();
         this.views.details.show();
-        this.views.footer.show();
+        this.views.footer.hide();
         this.hidePanelView();
         this.hideOpenFile();
         this.hideSettings();
@@ -272,6 +297,7 @@ class AppView extends View {
         this.hideOpenFile();
         this.hideKeyChange();
         this.hideImportCsv();
+        this.views.footer.hide();
         this.views.settings = new SettingsView(this.model);
         this.views.settings.render();
         if (!selectedMenuItem) {
@@ -279,6 +305,58 @@ class AppView extends View {
         }
         this.model.menu.select({ item: selectedMenuItem });
         this.views.menu.switchVisibility(false);
+    }
+
+    showCmdPalette() {
+        if (!this.model.files.hasOpenFiles() || this.views.cmdPalette) {
+            return;
+        }
+        const filter = new SelectEntryFilter({}, this.model, this.model.files);
+        const view = new SelectEntryView({
+            isAutoType: false,
+            filter,
+            topMessage: Locale.cmdPaletteTopMessage
+        });
+        view.on('result', (result) => {
+            view.off('result');
+            view.remove();
+            this.views.cmdPalette = null;
+            const entry = result && result.entry;
+            if (!entry) {
+                return;
+            }
+            const password = entry.password;
+            const text = password && password.isProtected ? password.getText() : password;
+            if (text) {
+                if (!CopyPaste.simpleCopy) {
+                    CopyPaste.createHiddenInput(text);
+                }
+                const copyRes = CopyPaste.copy(text);
+                if (copyRes && this.model.settings.lockOnCopy) {
+                    setTimeout(() => {
+                        Events.emit('lock-workspace');
+                    }, Timeouts.BeforeAutoLock);
+                }
+            }
+        });
+        view.render();
+        this.views.cmdPalette = view;
+    }
+
+    showPasswordHealth() {
+        if (!this.model.files.hasOpenFiles()) {
+            return;
+        }
+        this.hideOpenFile();
+        this.hideSettings();
+        this.hideKeyChange();
+        const view = new PasswordHealthView(this.model);
+        view.on('close', () => this.showEntries());
+        view.on('select', (entry) => {
+            Events.emit('select-entry', entry);
+            this.showEntries();
+        });
+        this.showPanelView(view);
     }
 
     showEditGroup(group) {
@@ -486,7 +564,9 @@ class AppView extends View {
 
     menuSelect(opt) {
         this.model.menu.select(opt);
-        if (this.views.panel && !this.views.panel.isHidden()) {
+        if (opt.item && opt.item.filterKey && this.views.settings) {
+            this.showEntries();
+        } else if (this.views.panel && !this.views.panel.isHidden()) {
             this.showEntries();
         }
     }

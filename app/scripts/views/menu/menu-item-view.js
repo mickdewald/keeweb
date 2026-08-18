@@ -5,6 +5,7 @@ import { KeyHandler } from 'comp/browser/key-handler';
 import { Alerts } from 'comp/ui/alerts';
 import { Keys } from 'const/keys';
 import { Locale } from 'util/locale';
+import { AppSettingsModel } from 'models/app-settings-model';
 import template from 'templates/menu/menu-item.hbs';
 
 class MenuItemView extends View {
@@ -99,7 +100,12 @@ class MenuItemView extends View {
 
     changeExpanded(model, expanded) {
         this.$el.toggleClass('menu__item--collapsed', !expanded);
-        this.model.setExpanded(expanded);
+        if (typeof this.model.setExpanded === 'function') {
+            this.model.setExpanded(expanded);
+        }
+        if (this.model.persistExpandedKey) {
+            AppSettingsModel[this.model.persistExpandedKey] = expanded;
+        }
     }
 
     changeCls(model, cls, oldCls) {
@@ -134,6 +140,10 @@ class MenuItemView extends View {
     selectItem(e) {
         e.stopPropagation();
         e.preventDefault();
+        if (this.model.sectionHeader) {
+            this.expandItem(e);
+            return;
+        }
         if (this.model.active) {
             return;
         }

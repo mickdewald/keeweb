@@ -1,23 +1,29 @@
-{{#if passwordIssue}}
+{{#if hasPasswordIssues}}
     <div class="details__issues {{#if fadeIn}}fade-in{{/if}}">
         <div class="details__issues-icon">
             <i class="fa fa-exclamation-triangle details__issues-icon-warning"></i>
             <i class="fa fa-spinner spin details__issues-icon-spin"></i>
         </div>
         <div class="details__issues-body">
-            {{#ifeq passwordIssue 'weak'}}
-                {{~res 'detIssueWeakPassword'~}}
-            {{else ifeq passwordIssue 'poor'}}
-                {{~res 'detIssuePoorPassword'~}}
-            {{else ifeq passwordIssue 'pwned'}}
-                {{~#res 'detIssuePwnedPassword'~}}
-                    <a href="{{hibpLink}}" rel="noreferrer noopener" target="_blank">Have I Been Pwned</a>
-                {{~/res~}}
-            {{else ifeq passwordIssue 'old'}}
-                {{~res 'detIssueOldPassword'~}}
-            {{else ifeq passwordIssue 'error'}}
-                {{~res 'detIssuePasswordCheckError'~}}
-            {{/ifeq}}
+            {{#each passwordIssues as |issue|}}
+            <p class="details__issues-line">
+                {{#ifeq issue.type 'weak'}}{{res 'detIssueWeakPassword'}}{{/ifeq}}
+                {{#ifeq issue.type 'poor'}}{{res 'detIssuePoorPassword'}}{{/ifeq}}
+                {{#ifeq issue.type 'reused'}}
+                    {{res 'detIssueReusedPassword'}}
+                    {{#if issue.entries.length}}
+                        <span class="details__issues-entries">
+                            {{#each issue.entries as |entry|}}
+                                <button type="button" class="details__issues-entry" data-entry-id="{{entry.id}}">{{#if entry.title}}{{entry.title}}{{else}}({{res 'noTitle'}}){{/if}}{{#if entry.user}} · {{entry.user}}{{/if}}</button>{{#unless @last}}, {{/unless}}
+                            {{/each}}
+                        </span>
+                    {{/if}}
+                {{/ifeq}}
+                {{#ifeq issue.type 'old'}}{{#if issue.singleYear}}{{res 'detIssueOldPasswordYear'}}{{else}}{{#res 'detIssueOldPassword'}}{{issue.years}}{{/res}}{{/if}}{{/ifeq}}
+                {{#ifeq issue.type 'pwned'}}{{#res 'detIssuePwnedPassword'}}<a href="{{../hibpLink}}" rel="noreferrer noopener" target="_blank">Have I Been Pwned</a>{{/res}}{{/ifeq}}
+                {{#ifeq issue.type 'error'}}{{res 'detIssuePasswordCheckError'}}{{/ifeq}}
+            </p>
+            {{/each}}
         </div>
         <div class="details__issues-close-btn" title="{{res 'detIssuesHideTooltip'}}">
             <i class="fa fa-times-circle"></i>

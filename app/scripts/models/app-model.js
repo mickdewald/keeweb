@@ -22,6 +22,8 @@ import { Launcher } from 'comp/launcher';
 import { UrlFormat } from 'util/formatting/url-format';
 import { IdGenerator } from 'util/generators/id-generator';
 import { Locale } from 'util/locale';
+import { StringFormat } from 'util/formatting/string-format';
+import { MenuItemModel } from 'models/menu/menu-item-model';
 import { Logger } from 'util/logger';
 import { noop } from 'util/fn';
 import debounce from 'lodash/debounce';
@@ -165,10 +167,12 @@ class AppModel {
         if (this.files.get(file.id)) {
             return false;
         }
+        this._ensureDefaultBackup(file);
         this.files.push(file);
         for (const group of file.groups) {
             this.menu.groupsSection.addItem(group);
         }
+        this._presentGroupsMenu();
         this._addTags(file);
         this._tagsChanged();
         this.menu.filesSection.addItem({
@@ -205,6 +209,7 @@ class AppModel {
 
     reloadFile(file) {
         this.menu.groupsSection.replaceByFile(file, file.groups[0]);
+        this._presentGroupsMenu();
         this.updateTags();
     }
 
@@ -225,23 +230,54 @@ class AppModel {
     }
 
     _tagsChanged() {
-        if (this.tags.length) {
-            this.menu.tagsSection.scrollable = true;
-            this.menu.tagsSection.setItems(
-                this.tags.map((tag) => {
-                    return {
-                        title: tag,
-                        icon: 'tag',
-                        filterKey: 'tag',
-                        filterValue: tag,
-                        editable: true
-                    };
-                })
-            );
-        } else {
-            this.menu.tagsSection.scrollable = false;
-            this.menu.tagsSection.removeAllItems();
+        const section = this.menu.allItemsSection;
+        while (section.items.length > 1) {
+            section.items.pop();
         }
+        if (this.tags.length) {
+            const tagItems = this.tags.map((tag) => {
+                return new MenuItemModel({
+                    title: tag,
+                    icon: 'tag',
+                    filterKey: 'tag',
+                    filterValue: tag,
+                    editable: true
+                });
+            });
+            section.addItem({
+                title: StringFormat.capFirst(Locale.tags),
+                icon: 'tags',
+                expanded: !!AppSettingsModel.tagsMenuExpanded || !!this.filter.tag,
+                items: tagItems,
+                sectionHeader: true,
+                persistExpandedKey: 'tagsMenuExpanded',
+                cls: 'menu__item--disclosure'
+            });
+        } else {
+            section.emit('change-items');
+        }
+    }
+
+    _presentGroupsMenu() {
+        const singleFile = this.files.length <= 1;
+        let hasVisibleSubgroups = false;
+        for (const root of this.menu.groupsSection.items) {
+            if (singleFile && root.top) {
+                root.cls = 'menu__item--hide-self';
+                if (!root.expanded) {
+                    root.expanded = true;
+                }
+                if (root.items) {
+                    hasVisibleSubgroups = root.items.some((group) => group.visible !== false);
+                }
+            } else {
+                root.cls = null;
+                hasVisibleSubgroups = true;
+            }
+        }
+        const showGroups = !singleFile || hasVisibleSubgroups;
+        this.menu.groupsSection.visible = showGroups;
+        this.menu.groupsSection.grow = showGroups;
     }
 
     updateTags() {
@@ -270,10 +306,10 @@ class AppModel {
         }
         this.files.length = 0;
         this.menu.groupsSection.removeAllItems();
-        this.menu.tagsSection.scrollable = false;
-        this.menu.tagsSection.removeAllItems();
+        this._presentGroupsMenu();
         this.menu.filesSection.removeAllItems();
         this.tags.splice(0, this.tags.length);
+        this._tagsChanged();
         this.filter = {};
         this.menu.select({ item: this.menu.allItemsItem });
         Events.emit('all-files-closed');
@@ -285,6 +321,7 @@ class AppModel {
         this.files.remove(file);
         this.updateTags();
         this.menu.groupsSection.removeByFile(file);
+        this._presentGroupsMenu();
         this.menu.filesSection.removeByFile(file);
         this.menu.select({ item: this.menu.allItemsSection.items[0] });
         Events.emit('one-file-closed');
@@ -296,7 +333,12 @@ class AppModel {
     }
 
     setFilter(filter) {
+        const keepAttachments =
+            filter.attachments === undefined && this.filter && this.filter.attachments;
         this.filter = this.prepareFilter(filter);
+        if (keepAttachments) {
+            this.filter.attachments = true;
+        }
         this.filter.subGroups = this.settings.expandGroups;
         if (!this.filter.advanced && this.advancedSearch) {
             this.filter.advanced = this.advancedSearch;
@@ -311,6 +353,7 @@ class AppModel {
     }
 
     refresh() {
+        this._presentGroupsMenu();
         this.setFilter(this.filter);
     }
 
@@ -1215,6 +1258,56 @@ class AppModel {
         this.fileInfos.save();
     }
 
+    _ensureDefaultBackup(file) {
+        let defaultPath = this.settings.backupDefaultPath;
+        if (!Launcher || !defaultPath || file.backup || file.storage !== 'file') {
+            return;
+        }
+        defaultPath = Launcher.expandHomePath(defaultPath);
+        const backup = {
+            enabled: true,
+            storage: 'file',
+            path: defaultPath + '/' + file.name + '.kdbx.{date}.bak',
+            schedule: '1d',
+            pending: true
+        };
+        file.backup = backup;
+        this.setFileBackup(file.id, backup);
+    }
+
+    pruneBackups(backup, logger) {
+        const maxCount = this.settings.backupMaxCount;
+        if (!Launcher || !maxCount || backup.storage !== 'file') {
+            return;
+        }
+        const sep = backup.path.lastIndexOf('/');
+        const folder = backup.path.substring(0, sep);
+        const namePattern = backup.path.substring(sep + 1);
+        const dateIx = namePattern.indexOf('{date}');
+        if (dateIx < 0) {
+            return;
+        }
+        const prefix = namePattern.substring(0, dateIx);
+        const suffix = namePattern.substring(dateIx + '{date}'.length);
+        Launcher.listDir(folder, (err, entries) => {
+            if (err || !entries) {
+                return;
+            }
+            const backups = entries
+                .filter(
+                    (name) =>
+                        name.length > prefix.length + suffix.length &&
+                        name.startsWith(prefix) &&
+                        name.endsWith(suffix)
+                )
+                .sort();
+            for (const name of backups.slice(0, -maxCount)) {
+                logger.info('Pruning old backup', name);
+                Launcher.deleteFile(folder + '/' + name);
+            }
+        });
+    }
+
     backupFile(file, data, callback) {
         const opts = file.opts;
         let backup = file.backup;
@@ -1238,6 +1331,7 @@ class AppModel {
                     delete backup.pending;
                     file.backup = backup;
                     this.setFileBackup(file.id, backup);
+                    this.pruneBackups(backup, logger);
                 }
                 callback(err);
             });

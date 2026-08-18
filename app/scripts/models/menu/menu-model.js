@@ -8,6 +8,7 @@ import { MenuSectionModel } from 'models/menu/menu-section-model';
 import { StringFormat } from 'util/formatting/string-format';
 import { Locale } from 'util/locale';
 import { Launcher } from 'comp/launcher';
+import { UsbListener } from 'comp/app/usb-listener';
 import { Features } from 'util/features';
 
 class MenuModel extends Model {
@@ -25,6 +26,8 @@ class MenuModel extends Model {
         ]);
         this.allItemsItem = this.allItemsSection.items[0];
         this.groupsSection = new GroupsMenuModel();
+        this.groupsSection.visible = false;
+        this.groupsSection.grow = false;
         this.colorsSection = new MenuSectionModel([
             {
                 locTitle: 'menuColors',
@@ -36,10 +39,9 @@ class MenuModel extends Model {
             }
         ]);
         this.colorsItem = this.colorsSection.items[0];
-        const defTags = [this._getDefaultTagItem()];
-        this.tagsSection = new MenuSectionModel(defTags);
-        this.tagsSection.set({ scrollable: true, drag: true });
-        this.tagsSection.defaultItems = defTags;
+        this.tagsSection = new MenuSectionModel();
+        this.tagsSection.set({ scrollable: false, drag: false });
+        this.tagsSection.defaultItems = [];
         this.trashSection = new MenuSectionModel([
             {
                 locTitle: 'menuTrash',
@@ -50,6 +52,7 @@ class MenuModel extends Model {
                 drop: true
             }
         ]);
+        this.trashItem = this.trashSection.items[0];
         Colors.AllColors.forEach((color) => {
             const option = {
                 cls: `fa ${color}-color`,
@@ -58,13 +61,7 @@ class MenuModel extends Model {
             };
             this.colorsSection.items[0].addOption(option);
         });
-        this.menus.app = new MenuSectionCollection([
-            this.allItemsSection,
-            this.colorsSection,
-            this.tagsSection,
-            this.groupsSection,
-            this.trashSection
-        ]);
+        this.menus.app = new MenuSectionCollection([this.allItemsSection, this.groupsSection]);
 
         this.generalSection = new MenuSectionModel([
             {
@@ -122,7 +119,7 @@ class MenuModel extends Model {
         this.pluginsSection = new MenuSectionModel([
             { locTitle: 'plugins', icon: 'puzzle-piece', page: 'plugins' }
         ]);
-        if (Launcher) {
+        if (Launcher && UsbListener.supported) {
             this.devicesSection = new MenuSectionModel([
                 { locTitle: 'menuSetDevices', icon: 'usb', page: 'devices' }
             ]);
@@ -162,11 +159,13 @@ class MenuModel extends Model {
             this._select(section, sel.item);
         }
         if (sections === this.menus.app) {
-            this.colorsItem.options.forEach((opt) => {
-                opt.active = opt === sel.option;
-            });
-            this.colorsItem.iconCls =
-                sel.item === this.colorsItem && sel.option ? sel.option.value + '-color' : null;
+            if (this.colorsItem && this.colorsItem.options) {
+                this.colorsItem.options.forEach((opt) => {
+                    opt.active = opt === sel.option;
+                });
+                this.colorsItem.iconCls =
+                    sel.item === this.colorsItem && sel.option ? sel.option.value + '-color' : null;
+            }
             const filterKey = sel.item.filterKey;
             const filterValue = (sel.option || sel.item).filterValue;
             const filter = {};
@@ -254,7 +253,9 @@ class MenuModel extends Model {
                 }
             }
         }
-        this.tagsSection.defaultItems[0] = this._getDefaultTagItem();
+        if (this.tagsSection.defaultItems && this.tagsSection.defaultItems[0]) {
+            this.tagsSection.defaultItems[0] = this._getDefaultTagItem();
+        }
     }
 
     _getDefaultTagItem() {

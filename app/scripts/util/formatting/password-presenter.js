@@ -16,6 +16,17 @@ function charCodeToHtml(char) {
     return Math.random() < 0.2 ? String.fromCharCode(char) : `&#x${char.toString(16)};`;
 }
 
+function charClass(char) {
+    const ch = String.fromCharCode(char);
+    if (/\p{Nd}/u.test(ch)) {
+        return 'password-char--digit';
+    }
+    if (/\p{L}/u.test(ch)) {
+        return '';
+    }
+    return 'password-char--special';
+}
+
 const PasswordPresenter = {
     present(length) {
         return new Array(length + 1).join('•');
@@ -40,12 +51,12 @@ const PasswordPresenter = {
         let ix = 0;
         value.forEachChar((char) => {
             const charHtml = charCodeToHtml(char);
-            items.push({ html: charHtml, order: ix });
+            items.push({ html: charHtml, order: ix, cls: charClass(char) });
 
             if (Math.random() > 0.5) {
                 const fakeChar = gen.randomCharCode();
                 const fakeCharHtml = charCodeToHtml(fakeChar);
-                items.push({ html: fakeCharHtml, order: -1 });
+                items.push({ html: fakeCharHtml, order: -1, cls: charClass(fakeChar) });
             }
             ix++;
         });
@@ -60,6 +71,9 @@ const PasswordPresenter = {
         for (const item of items) {
             const el = document.createElement('div');
             el.innerHTML = item.html;
+            if (item.cls) {
+                el.className = item.cls;
+            }
             if (item.order >= 0) {
                 el.style.order = item.order;
             } else {
@@ -72,4 +86,4 @@ const PasswordPresenter = {
     }
 };
 
-export { PasswordPresenter };
+export { PasswordPresenter, charClass };

@@ -5,11 +5,13 @@ import { DragDropInfo } from 'comp/app/drag-drop-info';
 import { Alerts } from 'comp/ui/alerts';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { EntryPresenter } from 'presenters/entry-presenter';
+import { collectPasswordIssueIds } from 'util/data/password-audit';
 import { StringFormat } from 'util/formatting/string-format';
 import { Locale } from 'util/locale';
 import { Resizable } from 'framework/views/resizable';
 import { Scrollable } from 'framework/views/scrollable';
 import { DropdownView } from 'views/dropdown-view';
+import { MenuWorkspaceView } from 'views/menu/menu-workspace-view';
 import { ListSearchView } from 'views/list-search-view';
 import throttle from 'lodash/throttle';
 import template from 'templates/list.hbs';
@@ -62,6 +64,8 @@ class ListView extends View {
         this.listenTo(Events, 'filter', this.filterChanged);
         this.listenTo(Events, 'entry-updated', this.entryUpdated);
         this.listenTo(Events, 'set-locale', this.render);
+        this.listenTo(AppSettingsModel, 'change', this.invalidatePasswordIssueIds);
+        this.listenTo(Events, 'refresh', this.invalidatePasswordIssueIds);
 
         this.listenTo(this.model.settings, 'change:tableView', this.setTableView);
 
@@ -85,6 +89,13 @@ class ListView extends View {
             this.views.search.render();
             this.setTableView();
 
+            if (AppSettingsModel.compactLayout && !this.views.workspace) {
+                this.views.workspace = new MenuWorkspaceView(this.model, {
+                    parent: this.$el.find('.list__workspace')[0]
+                });
+                this.views.workspace.render();
+            }
+
             this.createScroll({
                 root: this.$el.find('.list__items')[0],
                 scroller: this.$el.find('.scroller')[0],
@@ -107,6 +118,10 @@ class ListView extends View {
                 }
             });
             presenter.columns = columns;
+            presenter.passwordIssueIds = this.getPasswordIssueIds();
+            const filter = this.model.filter;
+            presenter.searchTerms =
+                filter.textLowerParts || (filter.textLower ? [filter.textLower] : null);
             this.presenter = presenter;
 
             presenter.present(this.items[0]);
@@ -370,7 +385,22 @@ class ListView extends View {
         this.render();
     }
 
+    getPasswordIssueIds() {
+        // the full audit is too expensive to re-run on every search keystroke
+        const filesKey = this.model.files.map((file) => file.id).join(',');
+        if (!this.passwordIssueIds || this.passwordIssueIdsFilesKey !== filesKey) {
+            this.passwordIssueIds = collectPasswordIssueIds(this.model.files, AppSettingsModel);
+            this.passwordIssueIdsFilesKey = filesKey;
+        }
+        return this.passwordIssueIds;
+    }
+
+    invalidatePasswordIssueIds() {
+        this.passwordIssueIds = null;
+    }
+
     entryUpdated() {
+        this.invalidatePasswordIssueIds();
         const scrollTop = this.itemsEl[0].scrollTop;
         this.render();
         this.itemsEl[0].scrollTop = scrollTop;

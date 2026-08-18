@@ -6,6 +6,7 @@ import { Keys } from 'const/keys';
 import { Comparators } from 'util/data/comparators';
 import { Features } from 'util/features';
 import { StringFormat } from 'util/formatting/string-format';
+import { AppSettingsModel } from 'models/app-settings-model';
 import { Locale } from 'util/locale';
 import { DropdownView } from 'views/dropdown-view';
 import template from 'templates/list-search.hbs';
@@ -22,9 +23,12 @@ class ListSearchView extends View {
         'focus .list__search-field': 'inputFocus',
         'click .list__search-btn-new': 'createOptionsClick',
         'click .list__search-btn-sort': 'sortOptionsClick',
+        'click .list__search-btn-tags': 'tagOptionsClick',
+        'click .list__search-btn-att': 'attachmentsFilterClick',
         'click .list__search-icon-search': 'advancedSearchClick',
         'click .list__search-btn-menu': 'toggleMenu',
         'click .list__search-icon-clear': 'clickClear',
+        'click .list__quick-nav-btn': 'quickNavClick',
         'change .list__search-adv input[type=checkbox]': 'toggleAdvCheck'
     };
 
@@ -179,7 +183,11 @@ class ListSearchView extends View {
         super.render({
             adv: this.advancedSearch,
             advEnabled: this.advancedSearchEnabled,
-            canCreate: this.model.canCreateEntries()
+            canCreate: this.model.canCreateEntries(),
+            showTags: AppSettingsModel.compactLayout,
+            showQuickNav: AppSettingsModel.compactLayout,
+            trashActive: !!(this.model.filter && this.model.filter.trash),
+            attachmentsActive: !!(this.model.filter && this.model.filter.attachments)
         });
         this.inputEl = this.$el.find('.list__search-field');
         if (searchVal) {
@@ -270,6 +278,17 @@ class ListSearchView extends View {
         if (filter.filter.text !== this.inputEl.val()) {
             this.inputEl.val(filter.text || '');
         }
+        const tagBtn = this.$el.find('.list__search-btn-tags');
+        if (tagBtn.length) {
+            tagBtn.toggleClass('list__search-btn-tags--filtered', !!filter.filter.tag);
+            tagBtn.attr('title', filter.filter.tag || StringFormat.capFirst(Locale.tags));
+        }
+        this.$el
+            .find('.list__quick-nav-btn[data-action="trash"]')
+            .toggleClass('list__quick-nav-btn--active', !!filter.filter.trash);
+        this.$el
+            .find('.list__search-btn-att')
+            .toggleClass('list__search-btn-att--filtered', !!filter.filter.attachments);
         const sortIconCls = this.sortIcons[filter.sort] || 'sort';
         this.$el.find('.list__search-btn-sort>i').attr('class', 'fa fa-' + sortIconCls);
         let adv = !!filter.filter.advanced;
@@ -324,7 +343,7 @@ class ListSearchView extends View {
             this.views.searchDropdown.remove();
             this.views.searchDropdown = null;
             this.$el
-                .find('.list__search-btn-sort,.list__search-btn-new')
+                .find('.list__search-btn-sort,.list__search-btn-new,.list__search-btn-tags')
                 .removeClass('sel--active');
         }
     }
@@ -405,6 +424,58 @@ class ListSearchView extends View {
         Events.emit('set-sort', e.item);
     }
 
+    attachmentsFilterClick(e) {
+        e.stopImmediatePropagation();
+        this.hideSearchOptions();
+        Events.emit('add-filter', {
+            attachments: !this.model.filter.attachments
+        });
+    }
+
+    tagOptionsClick(e) {
+        this.toggleTagOptions();
+        e.stopImmediatePropagation();
+    }
+
+    toggleTagOptions() {
+        if (this.views.searchDropdown && this.views.searchDropdown.isTags) {
+            this.hideSearchOptions();
+            return;
+        }
+        this.hideSearchOptions();
+        const btn = this.$el.find('.list__search-btn-tags');
+        btn.addClass('sel--active');
+        const view = new DropdownView();
+        view.isTags = true;
+        this.listenTo(view, 'cancel', this.hideSearchOptions);
+        this.listenTo(view, 'select', this.tagDropdownSelect);
+        const activeTag = this.model.filter.tag;
+        const options = [
+            {
+                value: '',
+                icon: 'th-large',
+                text: StringFormat.capFirst(Locale.menuAllItems),
+                active: !activeTag
+            }
+        ];
+        for (const tag of this.model.tags) {
+            options.push({ value: tag, icon: 'tag', text: tag, active: activeTag === tag });
+        }
+        view.render({
+            position: {
+                top: btn[0].getBoundingClientRect().bottom,
+                right: this.$el[0].getBoundingClientRect().right + 1
+            },
+            options
+        });
+        this.views.searchDropdown = view;
+    }
+
+    tagDropdownSelect(e) {
+        this.hideSearchOptions();
+        Events.emit('set-filter', e.item ? { tag: e.item } : {});
+    }
+
     createDropdownSelect(e) {
         this.hideSearchOptions();
         switch (e.item) {
@@ -435,6 +506,28 @@ class ListSearchView extends View {
     clickClear() {
         this.inputEl.val('');
         this.inputChange();
+    }
+
+    quickNavClick(e) {
+        const btn = e.target.closest('.list__quick-nav-btn');
+        if (!btn) {
+            return;
+        }
+        switch (btn.getAttribute('data-action')) {
+            case 'settings':
+                Events.emit('toggle-settings', 'general');
+                break;
+            case 'health':
+                Events.emit('show-password-health');
+                break;
+            case 'trash':
+                if (this.model.menu && this.model.menu.trashItem) {
+                    Events.emit('menu-select', { item: this.model.menu.trashItem });
+                }
+                break;
+            default:
+                break;
+        }
     }
 }
 

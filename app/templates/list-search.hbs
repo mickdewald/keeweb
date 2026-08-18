@@ -13,6 +13,12 @@
                 <i class="fa fa-times-circle"></i>
             </div>
         </div>
+        <div class="list__search-btn-tags {{#unless showTags}}hide{{/unless}}" title="{{Res 'tags'}}">
+            <i class="fa fa-tag"></i>
+        </div>
+        <div class="list__search-btn-att {{#if attachmentsActive}}list__search-btn-att--filtered{{/if}}" title="{{res 'listFilterAttachments'}}">
+            <i class="fa fa-paperclip"></i>
+        </div>
         <div class="list__search-btn-new {{#unless canCreate}}hide{{/unless}}" title="{{res 'searchAddNew'}}">
             <i class="fa fa-plus"></i>
         </div>
@@ -46,4 +52,17 @@
                 {{#if adv.exact}}checked{{/if}}><label for="list__search-adv-check-exact">{{res 'searchExact'}}</label></div>
         </div>
     </div>
+    {{#if showQuickNav}}
+    <div class="list__quick-nav">
+        <button type="button" class="list__quick-nav-btn" data-action="settings">
+            <i class="fa fa-cog"></i><span>{{res 'settings'}}</span>
+        </button>
+        <button type="button" class="list__quick-nav-btn" data-action="health">
+            <i class="fa fa-exclamation-triangle"></i><span>{{res 'pwHealthShort'}}</span>
+        </button>
+        <button type="button" class="list__quick-nav-btn {{#if trashActive}}list__quick-nav-btn--active{{/if}}" data-action="trash">
+            <i class="fa fa-trash-alt"></i><span>{{res 'menuTrash'}}</span>
+        </button>
+    </div>
+    {{/if}}
 </div>

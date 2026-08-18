@@ -6,7 +6,10 @@ if (process.send && process.argv.includes('--native-module-host')) {
 }
 
 const electron = require('electron');
+const remoteMain = require('@electron/remote/main');
 const path = require('path');
+
+remoteMain.initialize();
 const fs = require('fs');
 const url = require('url');
 
@@ -278,7 +281,11 @@ function createMainWindow() {
     const bgColor = themeBgColors[theme] || defaultBgColor;
 
     const isWindows = process.platform === 'win32';
+    const isMac = process.platform === 'darwin';
     let titlebarStyle = appSettings.titlebarStyle;
+    if (isMac && (!titlebarStyle || titlebarStyle === 'default')) {
+        titlebarStyle = 'hidden-inset';
+    }
     if (titlebarStyle === 'hidden-inset') {
         titlebarStyle = 'hiddenInset';
     }
@@ -292,13 +299,12 @@ function createMainWindow() {
         minHeight: 400,
         titleBarStyle: titlebarStyle,
         frame: !frameless,
-        backgroundColor: bgColor,
+        backgroundColor: isMac ? '#00000000' : bgColor,
         webPreferences: {
             contextIsolation: false,
             backgroundThrottling: false,
             nodeIntegration: true,
             nodeIntegrationInWorker: true,
-            enableRemoteModule: true,
             spellcheck: false,
             v8CacheOptions: 'none'
         }
@@ -306,7 +312,11 @@ function createMainWindow() {
     if (process.platform !== 'win32') {
         windowOptions.icon = path.join(__dirname, 'img', 'icon.png');
     }
+    if (isMac) {
+        windowOptions.vibrancy = 'sidebar';
+    }
     mainWindow = new electron.BrowserWindow(windowOptions);
+    remoteMain.enable(mainWindow.webContents);
     logProgress('creating main window');
 
     mainWindow.loadURL(htmlPath);
@@ -821,7 +831,7 @@ function getAppMainRoot() {
     if (isDev) {
         return __dirname;
     } else {
-        return process.mainModule.path;
+        return require.main.path;
     }
 }
 
@@ -844,18 +854,64 @@ function loadSettingsEncryptionKey() {
             return null;
         }
 
-        const keytar = reqNative('keytar');
-
-        return keytar.getPassword('KeeWeb', 'settings-key').then((key) => {
-            if (key) {
-                return Buffer.from(key, 'hex');
+        // safeStorage needs the app to be ready
+        return main.whenReady().then(() => {
+            const { safeStorage } = electron;
+            if (!safeStorage.isEncryptionAvailable()) {
+                logStartupMessage('safeStorage unavailable, falling back to keytar');
+                return loadSettingsEncryptionKeyFromKeytar();
             }
-            key = require('crypto').randomBytes(48);
-            return keytar.setPassword('KeeWeb', 'settings-key', key.toString('hex')).then(() => {
-                return migrateOldConfigs(key).then(() => key);
+
+            const keyFilePath = path.join(main.getPath('userData'), 'settings-key.bin');
+            if (fs.existsSync(keyFilePath)) {
+                try {
+                    const hex = safeStorage.decryptString(fs.readFileSync(keyFilePath));
+                    fs.chmodSync(keyFilePath, 0o600);
+                    return Buffer.from(hex, 'hex');
+                } catch (e) {
+                    // corrupted or written by another keychain state: fall through to keytar
+                    logStartupMessage(`Error reading settings key file, trying keytar: ${e}`);
+                }
+            }
+
+            // migrate the key from keytar, or create a fresh one on first run
+            return loadSettingsEncryptionKeyFromKeytar().then((key) => {
+                let keyPromise;
+                if (key) {
+                    keyPromise = Promise.resolve(key);
+                } else {
+                    key = require('crypto').randomBytes(48);
+                    keyPromise = migrateOldConfigs(key).then(() => key);
+                }
+                return keyPromise.then((key) => {
+                    try {
+                        fs.writeFileSync(
+                            keyFilePath,
+                            safeStorage.encryptString(key.toString('hex')),
+                            { mode: 0o600 }
+                        );
+                    } catch (e) {
+                        logStartupMessage(`Error writing settings key file: ${e}`);
+                    }
+                    return key;
+                });
             });
         });
     });
+}
+
+function loadSettingsEncryptionKeyFromKeytar() {
+    return Promise.resolve()
+        .then(() => {
+            const keytar = reqNative('keytar');
+            return keytar
+                .getPassword('KeeWeb', 'settings-key')
+                .then((key) => (key ? Buffer.from(key, 'hex') : null));
+        })
+        .catch((e) => {
+            logStartupMessage(`Error reading settings key from keytar: ${e}`);
+            return null;
+        });
 }
 
 function loadConfig(name) {

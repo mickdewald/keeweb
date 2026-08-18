@@ -23,11 +23,14 @@ const Launcher = {
     electron() {
         return this.req('electron');
     },
+    remote() {
+        return this.req('@electron/remote');
+    },
     remoteApp() {
-        return this.electron().remote.app;
+        return this.remote().app;
     },
     remReq(mod) {
-        return this.electron().remote.require(mod);
+        return this.remote().require(mod);
     },
     openLink(href) {
         if (/^(http|https|ftp|sftp|mailto):/i.test(href)) {
@@ -36,7 +39,7 @@ const Launcher = {
     },
     devTools: true,
     openDevTools() {
-        this.electron().remote.getCurrentWindow().webContents.openDevTools({ mode: 'bottom' });
+        this.remote().getCurrentWindow().webContents.openDevTools({ mode: 'bottom' });
     },
     getSaveFileName(defaultPath, callback) {
         if (defaultPath) {
@@ -71,6 +74,11 @@ const Launcher = {
     getDocumentsPath(fileName) {
         return this.joinPath(this.remoteApp().getPath('documents'), fileName || '');
     },
+    expandHomePath(path) {
+        return path && path.startsWith('~/')
+            ? this.joinPath(this.remoteApp().getPath('home'), path.substring(2))
+            : path;
+    },
     getAppPath(fileName) {
         const dirname = this.req('path').dirname;
         const appPath = __dirname.endsWith('app.asar') ? __dirname : this.remoteApp().getAppPath();
@@ -101,6 +109,9 @@ const Launcher = {
     },
     deleteFile(path, callback) {
         this.req('fs').unlink(path, callback || noop);
+    },
+    listDir(path, callback) {
+        this.req('fs').readdir(path, callback || noop);
     },
     statFile(path, callback) {
         this.req('fs').stat(path, (err, stats) => callback(stats, err));
@@ -203,7 +214,9 @@ const Launcher = {
         return process.platform !== 'linux';
     },
     updaterEnabled() {
-        return process.platform !== 'linux';
+        // this fork is deployed via scripts/dev/build-macos-touchid-agent.sh; an upstream
+        // auto-update would replace the customized app with vanilla KeeWeb
+        return false;
     },
     getMainWindow() {
         return this.remoteApp().getMainWindow();
@@ -226,7 +239,7 @@ const Launcher = {
         }
     },
     isAppFocused() {
-        return !!this.electron().remote.BrowserWindow.getFocusedWindow();
+        return !!this.remote().BrowserWindow.getFocusedWindow();
     },
     showMainWindow() {
         this.remoteApp().showAndFocusMainWindow();

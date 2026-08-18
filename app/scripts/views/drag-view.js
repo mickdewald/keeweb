@@ -38,6 +38,8 @@ class DragView extends View {
                 this.mouseDownCount = 1;
             }
             this.initialOffset = e[this.offsetProp];
+            this.dragging = true;
+            this.rafPending = false;
             const cursor = this.$el.css('cursor');
             this.dragMask = $('<div/>', { 'class': 'drag-mask' })
                 .css('cursor', cursor)
@@ -54,13 +56,24 @@ class DragView extends View {
         if (e.which === 0) {
             this.mouseup();
         } else {
-            this.emit('drag', { offset: e[this.offsetProp] - this.initialOffset });
+            this.pendingOffset = e[this.offsetProp] - this.initialOffset;
+            if (!this.rafPending) {
+                this.rafPending = true;
+                requestAnimationFrame(() => {
+                    this.rafPending = false;
+                    if (this.dragging) {
+                        this.emit('drag', { offset: this.pendingOffset });
+                    }
+                });
+            }
         }
     }
 
     mouseup() {
+        this.dragging = false;
         this.dragMask.remove();
         this.$el.removeClass('dragging');
+        this.emit('dragend');
     }
 }
 

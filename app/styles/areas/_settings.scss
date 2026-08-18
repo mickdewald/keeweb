@@ -1,29 +1,47 @@
 .settings {
+    $settings-column-width: 64em;
+
     flex: 1;
     display: flex;
     align-items: stretch;
     flex-direction: column;
     justify-content: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
     @include scrollbar-on-hover;
     overflow: hidden;
     position: relative;
     @include padding-if-titlebar;
 
+    .macos-vibrancy & {
+        background-color: var(--background-color);
+    }
+
+    .titlebar-hidden-inset & {
+        padding-top: $titlebar-padding-large;
+    }
+
     &__content {
-        margin: $medium-padding;
-        max-width: 980px;
+        margin: $medium-padding-v auto;
+        width: 100%;
+        max-width: $settings-column-width;
+        box-sizing: border-box;
     }
 
     &__content--cards,
     &__content--file {
         width: 100%;
-        max-width: 980px;
-        margin: $medium-padding auto;
+        max-width: $settings-column-width;
+        margin: $medium-padding-v auto;
         padding-left: $small-spacing;
         padding-right: $small-spacing;
         padding-bottom: $medium-padding-v;
         box-sizing: border-box;
+
+        &.settings__content--general > .settings__section:first-child {
+            margin-top: 0;
+        }
 
         input.settings__input[type='text'],
         input.settings__input[type='password'],
@@ -40,7 +58,123 @@
     }
 
     > .scroller {
-        flex: 1 0 0;
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+        align-self: stretch;
+    }
+
+    &__search-host {
+        flex: 0 0 auto;
+        width: 100%;
+        z-index: 2;
+    }
+
+    &__search {
+        width: 100%;
+        max-width: $settings-column-width;
+        margin: 0 auto;
+        padding: $small-spacing $small-spacing 0;
+        box-sizing: border-box;
+        background: var(--background-color);
+    }
+
+    &__search-field-wrap {
+        position: relative;
+        width: 100%;
+    }
+
+    input.settings__search-field {
+        display: block;
+        width: 100%;
+        max-width: none;
+        box-sizing: border-box;
+        margin: 0;
+        height: 2.4em;
+        min-height: 2.4em;
+        padding: 0 2.1em 0 2.2em;
+        border-radius: calc(var(--input-border-radius) + 6px);
+        background: var(--secondary-background-color);
+    }
+
+    &__search-icon {
+        color: var(--muted-color);
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        line-height: 1;
+    }
+
+    &__search-icon-search {
+        left: 0.75em;
+    }
+
+    &__search-icon-clear {
+        right: 0.7em;
+        display: none;
+        pointer-events: auto;
+        cursor: pointer;
+        .settings__search-field-wrap--text & {
+            display: block;
+        }
+        &:hover {
+            color: var(--medium-color);
+        }
+    }
+
+    &__search-results {
+        width: 100%;
+        margin: $small-spacing 0 0;
+        max-height: calc(100vh - 8em);
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: $tiny-spacing;
+    }
+
+    &__search-result {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15em;
+        width: 100%;
+        text-align: left;
+        padding: $small-spacing $medium-padding;
+        border: light-border();
+        border-radius: calc(var(--input-border-radius) + 6px);
+        background: var(--secondary-background-color);
+        color: var(--text-color);
+        cursor: pointer;
+        box-shadow: form-box-shadow();
+
+        &:hover,
+        &--active {
+            border-color: var(--action-color);
+            box-shadow: form-box-shadow-focus();
+        }
+    }
+
+    &__search-result-title {
+        font-weight: 600;
+    }
+
+    &__search-result-path {
+        color: var(--muted-color);
+        font-size: 0.85em;
+    }
+
+    &__search-empty {
+        color: var(--muted-color);
+        padding: $medium-padding;
+        text-align: center;
+    }
+
+    &__search-hit {
+        animation: settings-search-hit 1.8s ease;
+        outline: 2px solid var(--action-color);
+        outline-offset: 4px;
+        border-radius: var(--input-border-radius);
     }
 
     h2,
@@ -52,7 +186,11 @@
         margin: 0;
         display: flex;
         align-items: center;
-        gap: $small-spacing;
+        gap: 0.45em;
+        font-size: 1.45em;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
     }
 
     &__meta {
@@ -81,6 +219,15 @@
 
     &__section--header {
         margin-top: 0;
+        margin-bottom: $tiny-spacing;
+        padding: $tiny-spacing $tiny-spacing $small-spacing;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+
+        .settings__title {
+            margin: 0;
+        }
     }
 
     &__section-subtitle {
@@ -232,16 +379,7 @@
             }
         }
         @include nomobile {
-            position: absolute;
-            top: 0;
-            right: $base-padding-h;
-            padding: $base-padding-v * 2 0 1px 0;
-            z-index: 1;
-            background: var(--background-color);
-            box-shadow: 0 0 5px 5px var(--background-color);
-            &-post {
-                display: inline;
-            }
+            display: none;
         }
     }
 
@@ -573,12 +711,19 @@
     }
 
     &__head-icon {
-        position: relative;
-        top: 0.1em;
-        margin-right: 0.2em;
+        position: static;
+        top: auto;
+        margin: 0;
+        width: 1em;
+        text-align: center;
+        color: var(--muted-color);
+        font-size: 0.85em;
+        line-height: 1;
     }
 
     @include mobile {
+        &__search,
+        &__content,
         &__content--cards,
         &__content--file {
             margin: $small-spacing auto;

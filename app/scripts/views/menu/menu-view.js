@@ -6,6 +6,7 @@ import { AppSettingsModel } from 'models/app-settings-model';
 import { Resizable } from 'framework/views/resizable';
 import { DragView } from 'views/drag-view';
 import { MenuSectionView } from 'views/menu/menu-section-view';
+import { MenuWorkspaceView } from 'views/menu/menu-workspace-view';
 import throttle from 'lodash/throttle';
 import template from 'templates/menu/menu.hbs';
 
@@ -14,7 +15,9 @@ class MenuView extends View {
 
     template = template;
 
-    events = {};
+    events = {
+        'click .menu__app-back': 'returnToApp'
+    };
 
     sectionViews = [];
 
@@ -36,14 +39,22 @@ class MenuView extends View {
             KeyHandler.SHORTCUT_ACTION + KeyHandler.SHORTCUT_OPT
         );
         this.once('remove', () => {
+            this.removeWorkspace();
             this.sectionViews.forEach((sectionView) => sectionView.remove());
             this.sectionViews = [];
         });
     }
 
     render() {
+        this.removeWorkspace();
+        this.sectionViews.forEach((sectionView) => sectionView.remove());
+        this.sectionViews = [];
         super.render();
-        const sectionsEl = this.$el.find('.menu');
+        const menuEl = this.$el.find('.menu');
+        const sectionsEl = this.$el.find('.menu__sections');
+        const isWorkspace = this.model.sections === this.model.menus.app;
+        menuEl.toggleClass('menu--workspace', isWorkspace);
+        this.$el.find('.menu__app-back').toggleClass('hide', isWorkspace);
         this.model.sections.forEach(function (section) {
             const sectionView = new MenuSectionView(section, { parent: sectionsEl[0] });
             sectionView.render();
@@ -56,8 +67,21 @@ class MenuView extends View {
             }
             this.sectionViews.push(sectionView);
         }, this);
+        if (isWorkspace && this.options.appModel && !AppSettingsModel.compactLayout) {
+            this.workspaceView = new MenuWorkspaceView(this.options.appModel, {
+                parent: this.$el.find('.menu__workspace')[0]
+            });
+            this.workspaceView.render();
+        }
         if (typeof AppSettingsModel.menuViewWidth === 'number') {
             this.$el.width(AppSettingsModel.menuViewWidth);
+        }
+    }
+
+    removeWorkspace() {
+        if (this.workspaceView) {
+            this.workspaceView.remove();
+            this.workspaceView = null;
         }
     }
 
@@ -71,6 +95,10 @@ class MenuView extends View {
 
     switchVisibility(visible) {
         this.$el.toggleClass('menu-visible', visible);
+    }
+
+    returnToApp() {
+        Events.emit('toggle-settings', false);
     }
 
     selectPreviousSection() {

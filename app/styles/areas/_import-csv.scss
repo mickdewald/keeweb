@@ -5,6 +5,9 @@
     flex: 1;
     position: relative;
     @include padding-if-titlebar;
+    .titlebar-hidden-inset & {
+        padding-top: $titlebar-padding-large;
+    }
 
     &__body {
         @include scrollbar-on-hover;
@@ -59,6 +62,10 @@
 
     &__top {
         padding: 0 $base-padding-h;
+        .back-button {
+            position: static;
+            margin: 0 0 $small-spacing;
+        }
     }
 
     &__bottom {

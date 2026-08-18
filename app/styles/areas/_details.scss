@@ -28,52 +28,71 @@
     &__header {
         display: flex;
         align-items: flex-start;
-        padding-bottom: $small-spacing;
+        width: 100%;
+        margin: 0;
+        padding: $small-spacing $medium-padding-h;
+        box-sizing: border-box;
         overflow: visible;
         min-height: 40px;
+        .macos-vibrancy & {
+            -webkit-app-region: drag;
+        }
+        &-title,
+        input.details__header-title-input {
+            box-sizing: border-box;
+            flex: 0 1 auto;
+            align-self: flex-start;
+            width: auto;
+            max-width: calc(100% - 8em);
+            min-width: 0;
+            margin: 0 6px;
+            padding: 8px 6px;
+            min-height: 48px;
+            height: auto;
+            line-height: 1.25;
+            font-size: $large-header-font-size;
+            font-weight: bold;
+            font-family: $heading-font-family;
+            border: 1px solid transparent;
+            border-radius: var(--input-border-radius);
+            white-space: normal;
+            word-break: break-word;
+            -webkit-app-region: no-drag;
+        }
         &-title {
             user-select: text;
-            flex: 1;
-            align-self: flex-start;
             cursor: text;
-            margin: 0 6px;
-            padding: 3px 6px 1px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            border-radius: var(--input-border-radius);
-            border: 1px solid transparent;
-            // why px and not em? it's like this to prevent jumping in different browsers
-            // when switching from a div to an input and vice versa
-            height: 42px;
-            line-height: 40px;
-            white-space: nowrap;
+            overflow: visible;
             &:hover {
                 transition: border-color $base-duration $base-timing;
-                border: 1px solid var(--light-border-color);
+                border-color: var(--light-border-color);
                 @include mobile {
                     border-color: transparent;
                 }
             }
         }
         input.details__header-title-input {
-            // see the comment about px above
-            height: 48px;
-            line-height: 40px;
+            display: block;
             user-select: text;
-            flex: 1;
-            margin: 0 6px;
-            padding: 0 6px;
-            font-size: $large-header-font-size;
-            font-weight: bold;
-            min-width: 0;
+            box-shadow: none;
+            flex: 1 1 auto;
             @include mobile {
                 width: 100%;
             }
+        }
+        &-drag {
+            flex: 1 1 4em;
+            align-self: stretch;
+            min-width: 4em;
+            min-height: 48px;
+            -webkit-app-region: drag;
         }
         &-color {
             user-select: none;
             font-size: $large-header-font-size;
             padding-top: 0.1em;
+            flex: 0 0 auto;
+            -webkit-app-region: no-drag;
         }
         &-icon {
             @include area-selectable();
@@ -85,6 +104,8 @@
             width: 1.8em;
             height: 1.5em;
             text-align: center;
+            flex: 0 0 auto;
+            -webkit-app-region: no-drag;
         }
         &-icon-img {
             vertical-align: middle;
@@ -148,35 +169,48 @@
             display: flex;
             align-items: stretch;
             align-content: flex-start;
-            flex-direction: row;
+            flex-direction: column;
             justify-content: flex-start;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             overflow-x: hidden;
-            padding-top: 3px;
+            padding-top: $tiny-spacing;
             @media screen and (-webkit-min-device-pixel-ratio: 0) {
                 width: 100% !important;
             }
         }
 
-        &-fields {
-            flex: 1 0 50%;
+        &-fields,
+        &-aside,
+        &-after {
+            width: 100%;
             min-width: 0;
-            margin-right: $base-padding-h;
+            box-sizing: border-box;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: $medium-padding;
+            padding-right: $medium-padding;
+        }
+
+        &-fields,
+        &-aside {
+            flex: 0 0 auto;
+            margin-bottom: $base-spacing;
+            padding: $medium-padding;
+            border: 1px solid var(--light-border-color);
+            border-radius: calc(var(--input-border-radius) + 8px);
+            background: var(--secondary-background-color);
+            box-shadow: none;
         }
 
         &-aside {
-            flex: 0 0 auto;
             display: flex;
             align-items: stretch;
             flex-direction: column;
             justify-content: flex-start;
-            @include mobile {
-                width: 100%;
-            }
         }
 
         &-after {
-            flex: 100% 1 0;
+            flex: 0 0 auto;
         }
     }
 
@@ -192,7 +226,22 @@
 
         &-label {
             color: var(--muted-color);
-            width: 7em;
+            // one layout pass for the width sync: all labels unclamped at once
+            .details--measure-labels & {
+                flex: 0 0 auto;
+                width: max-content;
+                max-width: none;
+                overflow: visible;
+            }
+            // Both cards share one label column.
+            flex: 0 0 var(--details-label-width, 7em);
+            width: var(--details-label-width, 7em);
+            max-width: 22em;
+            min-width: 0;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             text-align: right;
             cursor: pointer;
             padding-right: 1em;
@@ -218,7 +267,8 @@
             }
         }
         &-value {
-            flex: 1;
+            flex: 1 1 auto;
+            min-width: 0;
             user-select: text;
             align-self: flex-start;
             position: relative;
@@ -321,10 +371,11 @@
                 a {
                     color: var(--muted-color);
                 }
-                width: 13em;
-                padding-right: 0;
-                margin-right: 0;
-                flex: 0 0 auto;
+                width: auto;
+                min-width: 0;
+                padding-right: $base-padding-h;
+                margin-right: 2em;
+                flex: 1 1 auto;
             }
             &-btn {
                 @include position(absolute, -0.2em 0 null null);
@@ -445,6 +496,53 @@
             padding-bottom: 0.5em;
         }
 
+        &-value--revealed,
+        &-colored-edit {
+            .password-char--digit {
+                color: var(--action-color);
+            }
+            .password-char--special {
+                color: var(--error-color);
+            }
+        }
+
+        &-colored-edit {
+            position: absolute;
+            pointer-events: none;
+            overflow: hidden;
+            white-space: pre;
+            color: var(--text-color);
+        }
+
+        input.input--colored-edit {
+            -webkit-text-fill-color: transparent;
+            caret-color: var(--text-color);
+        }
+
+        &-copy {
+            color: var(--muted-color);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity $slow-transition-out, color $base-duration $base-timing;
+            align-self: flex-start;
+            width: 2em;
+            text-align: center;
+            padding-top: 0.1em;
+            .details__field:hover & {
+                opacity: 1;
+                transition: opacity $slow-transition-in;
+            }
+            &:hover {
+                color: var(--action-color);
+            }
+            .details__field--edit & {
+                display: none;
+            }
+            @include mobile {
+                display: none;
+            }
+        }
+
         &-options {
             color: var(--muted-color);
             cursor: pointer;
@@ -528,25 +626,55 @@
     }
 
     &__attachment-preview {
-        margin-right: $base-padding-h;
+        display: flex;
+        flex-direction: column;
         width: 100%;
-        &-data {
-            > image {
-                width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 0 $medium-padding-h $medium-padding-v;
+
+        &-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: $small-spacing;
+            margin-bottom: $base-spacing;
+        }
+
+        &-action {
+            @include bg-btn();
+            display: inline-flex;
+            align-items: center;
+            margin: 0;
+            min-width: 0;
+            font-weight: 600;
+            color: var(--text-color);
+
+            > i {
+                margin-right: 0.45em;
             }
-            > pre {
-                white-space: pre-wrap;
+
+            &--danger:hover {
+                color: var(--error-color);
             }
         }
-        &-download-text {
-            user-select: none;
-            position: absolute;
-            bottom: $base-padding-v;
-            right: $base-padding-h;
-            opacity: 0.15;
-            display: none;
-            @include nomobile {
-                display: block;
+
+        &-data {
+            min-width: 0;
+            max-width: 100%;
+            overflow: auto;
+
+            > img,
+            > image {
+                max-width: 100%;
+                height: auto;
+            }
+            > pre {
+                margin: 0;
+                white-space: pre-wrap;
+                word-break: break-word;
+                overflow-wrap: anywhere;
             }
         }
         &-icon {
@@ -557,19 +685,13 @@
             flex-direction: column;
             flex: 1 0 auto;
             justify-content: flex-start;
-            align-self: flex-start;
-            align-items: center;
-            text-align: center;
+            align-self: stretch;
+            align-items: stretch;
+            text-align: left;
             .details__attachment-preview-icon {
                 display: block;
+                align-self: center;
                 font-size: 10em;
-            }
-            .details__attachment-preview-download-text {
-                position: static;
-                margin-top: $large-padding;
-                opacity: 1;
-            }
-            .details__attachment-preview-buttons {
                 margin-top: $large-padding;
             }
             .details__attachment-preview-data {
@@ -580,8 +702,8 @@
 
     &__issues {
         margin-top: $base-padding-v;
-        color: var(--text-contrast-error-color);
-        background-color: var(--error-color);
+        color: var(--black-color);
+        background-color: var(--yellow-color);
         border-radius: var(--block-border-radius);
         display: flex;
         align-items: stretch;
@@ -592,7 +714,34 @@
             padding: $medium-padding-v 0;
             flex-grow: 1;
             > a {
-                color: var(--text-contrast-error-color);
+                color: var(--black-color);
+            }
+        }
+        &-line {
+            margin: 0 0 0.35em;
+            &:last-child {
+                margin-bottom: 0;
+            }
+            > a {
+                color: var(--black-color);
+            }
+        }
+        &-entries {
+            display: inline;
+        }
+        &-entry {
+            display: inline;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: inherit;
+            font: inherit;
+            text-decoration: underline;
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+            &:hover {
+                opacity: 0.75;
             }
         }
         &-icon {
@@ -637,6 +786,12 @@
         &-trash,
         &-trash-del {
             @include icon-btn($error: true);
+            align-self: flex-end;
+            margin-right: 10px;
+        }
+
+        &-trash-restore {
+            @include icon-btn;
             align-self: flex-end;
             margin-right: 10px;
         }

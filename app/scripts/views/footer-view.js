@@ -34,6 +34,7 @@ class FooterView extends View {
         this.listenTo(Events, 'file-changed', this.render);
         this.listenTo(Events, 'set-locale', this.render);
         this.listenTo(UpdateModel, 'change:updateStatus', this.render);
+        this.listenTo(Events, 'toggle-generator', this.genPass);
     }
 
     render() {
@@ -58,16 +59,27 @@ class FooterView extends View {
     }
 
     genPass(e) {
-        e.stopPropagation();
+        if (e && e.stopPropagation) {
+            e.stopPropagation();
+        }
         if (this.views.gen) {
             this.views.gen.remove();
             return;
         }
-        const el = this.$el.find('.footer__btn-generate');
-        const rect = el[0].getBoundingClientRect();
-        const bodyRect = document.body.getBoundingClientRect();
-        const right = bodyRect.right - rect.right;
-        const bottom = bodyRect.bottom - rect.top;
+        let right;
+        let bottom;
+        if (e && e.pos) {
+            right = e.pos.right;
+            bottom = e.pos.bottom;
+        } else {
+            const el = this.$el.find('.footer__btn-generate')[0];
+            const rect = el
+                ? el.getBoundingClientRect()
+                : { right: 24, top: window.innerHeight - 24 };
+            const bodyRect = document.body.getBoundingClientRect();
+            right = bodyRect.right - rect.right;
+            bottom = bodyRect.bottom - rect.top;
+        }
         const generator = new GeneratorView({ copy: true, pos: { right, bottom } });
         generator.render();
         generator.once('remove', () => {
@@ -78,9 +90,12 @@ class FooterView extends View {
 
     showFile(e) {
         const fileId = $(e.target).closest('.footer__db-item').data('file-id');
-        if (fileId) {
-            Events.emit('show-file', { fileId });
+        const file = fileId && this.model.files.get(fileId);
+        if (!file) {
+            return;
         }
+        const root = file.groups && file.groups[0];
+        Events.emit('menu-select', { item: root || this.model.menu.allItemsItem });
     }
 
     openFile() {

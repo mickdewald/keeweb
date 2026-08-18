@@ -1,0 +1,49 @@
+<div class="menu__workspace-popover">
+    {{#if files.length}}
+    <div class="menu__workspace-files">
+        {{#each files as |file|}}
+        <button type="button" class="menu__workspace-item menu__workspace-item--file {{#if file.current}}menu__workspace-item--current{{/if}}" data-action="file" data-file-id="{{file.id}}">
+            <i class="fa fa-{{#if file.current}}check{{else}}lock{{/if}}"></i>
+            <span class="menu__workspace-item-text">{{file.name}}</span>
+            {{#if file.modified}}<i class="menu__workspace-dot fa fa-circle"></i>{{/if}}
+        </button>
+        {{/each}}
+    </div>
+    <div class="menu__workspace-sep"></div>
+    {{/if}}
+    <button type="button" class="menu__workspace-item" data-action="open">
+        <i class="fa fa-plus"></i>
+        <span class="menu__workspace-item-text">{{res 'footerOpen'}}</span>
+    </button>
+    <button type="button" class="menu__workspace-item" data-action="settings">
+        <i class="fa fa-cog"></i>
+        <span class="menu__workspace-item-text">{{res 'settings'}}</span>
+    </button>
+    <button type="button" class="menu__workspace-item" data-action="help">
+        <i class="fa fa-question"></i>
+        <span class="menu__workspace-item-text">{{res 'help'}}</span>
+    </button>
+    <button type="button" class="menu__workspace-item" data-action="generate">
+        <i class="fa fa-bolt"></i>
+        <span class="menu__workspace-item-text">{{res 'footerTitleGen'}}</span>
+    </button>
+    <button type="button" class="menu__workspace-item" data-action="health">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span class="menu__workspace-item-text">{{res 'pwHealthTitle'}}</span>
+    </button>
+    <div class="menu__workspace-sep"></div>
+    <button type="button" class="menu__workspace-item {{#if trashActive}}menu__workspace-item--current{{/if}}" data-action="trash">
+        <i class="fa fa-trash-alt"></i>
+        <span class="menu__workspace-item-text">{{res 'menuTrash'}}</span>
+    </button>
+    {{#if trashActive}}
+    <button type="button" class="menu__workspace-item" data-action="empty-trash">
+        <i class="fa fa-minus-circle"></i>
+        <span class="menu__workspace-item-text">{{res 'menuEmptyTrash'}}</span>
+    </button>
+    {{/if}}
+    <button type="button" class="menu__workspace-item" data-action="lock">
+        <i class="fa fa-sign-out-alt"></i>
+        <span class="menu__workspace-item-text">{{res 'footerTitleLock'}}</span>
+    </button>
+</div>

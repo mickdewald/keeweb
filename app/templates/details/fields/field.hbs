@@ -10,5 +10,6 @@
     <div class="details__field-label" draggable="true">{{title}}</div>
     <div class="details__field-value">
     </div>
+    {{#if canCopy}}<i class="details__field-copy fa fa-copy" title="{{res 'alertCopy'}}"></i>{{/if}}
     {{#if hasOptions}}<i class="details__field-options fa fa-chevron-down"></i>{{/if}}
 </div>

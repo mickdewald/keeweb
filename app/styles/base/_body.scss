@@ -10,6 +10,12 @@ body {
     position: fixed;
     -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
+
+    &.macos-vibrancy,
+    &.macos-vibrancy.th-dark,
+    &.macos-vibrancy.th-light {
+        background-color: transparent;
+    }
 }
 
 noscript {

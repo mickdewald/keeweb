@@ -205,6 +205,17 @@ class EntryModel extends Model {
         }
     }
 
+    isInRecycleBin() {
+        let group = this.group;
+        while (group) {
+            if (typeof group.isRecycleBin === 'function' && group.isRecycleBin()) {
+                return true;
+            }
+            group = group.parentGroup;
+        }
+        return false;
+    }
+
     matches(filter) {
         return this._search.matches(filter);
     }
@@ -419,6 +430,19 @@ class EntryModel extends Model {
             this.isJustCreated = false;
         }
         this.file.db.remove(this.entry);
+        this.file.reload();
+    }
+
+    restoreFromTrash() {
+        this.file.setModified();
+        const db = this.file.db;
+        let group = this.entry.previousParentGroup
+            ? db.getGroup(this.entry.previousParentGroup)
+            : null;
+        if (!group || (db.meta.recycleBinUuid && group.uuid.equals(db.meta.recycleBinUuid))) {
+            group = db.getDefaultGroup();
+        }
+        db.move(this.entry, group);
         this.file.reload();
     }
 

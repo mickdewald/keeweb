@@ -3,7 +3,14 @@ import { MenuItemCollection } from 'collections/menu/menu-item-collection';
 import { MenuItemModel } from './menu-item-model';
 
 function convertItem(item) {
-    return item instanceof MenuItemModel ? item : new MenuItemModel(item);
+    if (item instanceof MenuItemModel) {
+        return item;
+    }
+    const model = new MenuItemModel(item);
+    if (item && item.items && item.items.length) {
+        model.items = Array.from(item.items, convertItem);
+    }
+    return model;
 }
 
 class MenuSectionModel extends Model {

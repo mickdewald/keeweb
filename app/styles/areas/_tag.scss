@@ -8,6 +8,14 @@
     user-select: none;
     padding: $medium-padding;
     @include padding-if-titlebar;
+    .titlebar-hidden-inset & {
+        padding-top: $titlebar-padding-large;
+    }
+    .back-button {
+        position: static;
+        align-self: flex-start;
+        margin: 0 0 $small-spacing;
+    }
 
     &__space {
         flex: 1;

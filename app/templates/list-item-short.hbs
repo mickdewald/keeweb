@@ -4,6 +4,12 @@
     {{~else~}}
         <i class="fa fa-{{icon}} {{#if color}}{{color}}-color{{/if}} list__item-icon"></i>
     {{~/if}}
-    <span class="list__item-title">{{#if title}}{{title}}{{else}}({{res 'noTitle'}}){{/if}}</span>
-    <span class="list__item-descr thin">{{#if description}}{{description}}{{else}}&nbsp;{{/if}}</span>
+    <span class="list__item-title">{{#if title}}{{highlight title searchTerms}}{{else}}({{res 'noTitle'}}){{/if}}</span>
+    <span class="list__item-descr thin">{{#if description}}{{highlight description searchTerms}}{{else}}&nbsp;{{/if}}</span>
+    {{#if hasListMarkers}}
+    <span class="list__item-markers">
+        {{#if hasPasswordIssue}}<i class="fa fa-exclamation-triangle list__item-issue" title="{{res 'listHasPasswordIssue'}}"></i>{{/if}}
+        {{#if hasAttachments}}<i class="fa fa-paperclip list__item-att" title="{{res 'listHasAttachments'}}"></i>{{/if}}
+    </span>
+    {{/if}}
 </div>

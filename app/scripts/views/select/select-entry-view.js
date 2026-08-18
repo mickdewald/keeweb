@@ -27,7 +27,10 @@ class SelectEntryView extends View {
         'click .select-entry__item': 'itemClicked',
         'contextmenu .select-entry__item': 'itemRightClicked',
         'click .select-entry__filter': 'filterClicked',
-        'click .select-entry__cancel-btn': 'cancelClicked'
+        'click .select-entry__cancel-btn': 'cancelClicked',
+        'mousedown .select-entry__panel-resize': 'resizeMouseDown',
+        'input .select-entry__search-field': 'searchInput',
+        'click': 'backgroundClick'
     };
 
     result = null;
@@ -37,7 +40,9 @@ class SelectEntryView extends View {
         super(model);
         this.initScroll();
         this.listenTo(Events, 'main-window-blur', this.mainWindowBlur);
-        this.listenTo(Events, 'keypress:select-entry', this.keyPressed);
+        if (this.model.isAutoType) {
+            this.listenTo(Events, 'keypress:select-entry', this.keyPressed);
+        }
         this.setupKeys();
     }
 
@@ -69,29 +74,18 @@ class SelectEntryView extends View {
                 KeyHandler.SHORTCUT_ACTION,
                 'select-entry'
             );
+            this.onKey(Keys.DOM_VK_BACK_SPACE, this.backSpacePressed, false, 'select-entry');
         }
         this.onKey(Keys.DOM_VK_UP, this.upPressed, false, 'select-entry');
         this.onKey(Keys.DOM_VK_DOWN, this.downPressed, false, 'select-entry');
-        this.onKey(Keys.DOM_VK_BACK_SPACE, this.backSpacePressed, false, 'select-entry');
     }
 
     render() {
         const noColor = AppSettingsModel.colorfulIcons ? '' : 'grayscale';
 
         this.entries = this.model.filter.getEntries();
-        if (!this.result || !this.entries.includes(this.result)) {
-            this.result = this.entries[0];
-        }
-
-        const presenter = new EntryPresenter(null, noColor, this.result?.id);
-        presenter.itemOptions = this.model.itemOptions;
-
-        let itemsHtml = '';
-        const itemTemplate = this.itemTemplate;
-        this.entries.forEach((entry) => {
-            presenter.present(entry);
-            itemsHtml += itemTemplate(presenter, DefaultTemplateOptions);
-        });
+        this.syncActiveResult();
+        const itemsHtml = this.buildItemsHtml(noColor);
 
         const filters = [];
         if (this.model.filter.url) {
@@ -128,6 +122,7 @@ class SelectEntryView extends View {
 
         super.render({
             isAutoType: this.model.isAutoType,
+            searchText: this.model.filter.text,
             topMessage: this.model.topMessage,
             filters,
             itemsHtml,
@@ -138,13 +133,121 @@ class SelectEntryView extends View {
             keyEsc: Locale.keyEsc
         });
 
-        document.activeElement.blur();
+        if (this.model.isAutoType) {
+            document.activeElement.blur();
+        } else {
+            const panel = this.$el.find('.select-entry__panel')[0];
+            if (panel && AppSettingsModel.cmdPaletteWidth) {
+                panel.style.width = AppSettingsModel.cmdPaletteWidth + 'px';
+            }
+            this.focusSearchField();
+        }
 
         this.createScroll({
             root: this.$el.find('.select-entry__items')[0],
             scroller: this.$el.find('.scroller')[0],
             bar: this.$el.find('.scroller__bar')[0]
         });
+    }
+
+    buildItemsHtml(noColor) {
+        const presenter = new EntryPresenter(null, noColor, this.result?.id);
+        presenter.itemOptions = this.model.itemOptions;
+        let itemsHtml = '';
+        this.entries.forEach((entry) => {
+            presenter.present(entry);
+            itemsHtml += this.itemTemplate(presenter, DefaultTemplateOptions);
+        });
+        return itemsHtml;
+    }
+
+    syncActiveResult() {
+        if (!this.result || !this.entries.includes(this.result)) {
+            this.result = this.entries[0];
+        }
+    }
+
+    focusSearchField() {
+        const input = this.$el.find('.select-entry__search-field')[0];
+        if (!input) {
+            return;
+        }
+        input.focus();
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+    }
+
+    searchInput(e) {
+        this.model.filter.text = e.target.value;
+        this.showPaletteHint(this.model.topMessage);
+        this.refreshItems();
+    }
+
+    refreshItems() {
+        const noColor = AppSettingsModel.colorfulIcons ? '' : 'grayscale';
+        this.entries = this.model.filter.getEntries();
+        this.syncActiveResult();
+        const itemsHtml = this.buildItemsHtml(noColor);
+        const scroller = this.$el.find('.select-entry__items .scroller');
+        if (itemsHtml) {
+            scroller.html(`<table class="select-entry__table">${itemsHtml}</table>`);
+        } else {
+            scroller.html(
+                `<div class="select-entry__empty-title muted-color">${Locale.autoTypeNoMatches}</div>`
+            );
+        }
+        this.createScroll({
+            root: this.$el.find('.select-entry__items')[0],
+            scroller: this.$el.find('.scroller')[0],
+            bar: this.$el.find('.scroller__bar')[0]
+        });
+    }
+
+    showPaletteHint(msg) {
+        const footer = this.$el.find('.select-entry__footer');
+        if (footer.length) {
+            footer.text(msg);
+        }
+    }
+
+    entryCopyText(entry) {
+        if (!entry) {
+            return '';
+        }
+        const password = entry.password;
+        return password && password.isProtected ? password.getText() : password || '';
+    }
+
+    resizeMouseDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const panel = this.$el.find('.select-entry__panel')[0];
+        if (!panel) {
+            return;
+        }
+        const rect = panel.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const onMove = (moveEvent) => {
+            const width = Math.min(
+                Math.max(2 * Math.abs(moveEvent.clientX - centerX), 480),
+                window.innerWidth - 48
+            );
+            panel.style.width = width + 'px';
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            AppSettingsModel.cmdPaletteWidth = Math.round(panel.getBoundingClientRect().width);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    }
+
+    backgroundClick(e) {
+        const hasPanel = this.$el.find('.select-entry__panel').length;
+        if (hasPanel && !e.target.closest('.select-entry__panel')) {
+            this.cancelAndClose();
+        }
     }
 
     cancelAndClose() {
@@ -164,7 +267,17 @@ class SelectEntryView extends View {
     }
 
     enterPressed() {
+        if (!this.model.isAutoType && !this.canCopyActiveEntry()) {
+            this.showPaletteHint(
+                this.result ? Locale.cmdPaletteNoPassword : Locale.cmdPaletteNoMatch
+            );
+            return;
+        }
         this.closeWithResult();
+    }
+
+    canCopyActiveEntry() {
+        return !!this.entryCopyText(this.result);
     }
 
     actionEnterPressed() {
@@ -250,6 +363,11 @@ class SelectEntryView extends View {
         } else {
             const id = itemEl.data('id');
             this.result = this.entries.get(id);
+            if (!this.model.isAutoType && !this.canCopyActiveEntry()) {
+                this.highlightActive();
+                this.showPaletteHint(Locale.cmdPaletteNoPassword);
+                return;
+            }
             this.closeWithResult();
         }
     }

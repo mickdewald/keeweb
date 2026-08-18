@@ -6,6 +6,7 @@ import { CopyPaste } from 'comp/browser/copy-paste';
 import { KeyHandler } from 'comp/browser/key-handler';
 import { OtpQrReader } from 'comp/format/otp-qr-reader';
 import { Alerts } from 'comp/ui/alerts';
+import { highlightDom } from 'hbs-helpers/highlight';
 import { Keys } from 'const/keys';
 import { Timeouts } from 'const/timeouts';
 import { AppSettingsModel } from 'models/app-settings-model';
@@ -44,6 +45,7 @@ class DetailsView extends View {
         'click .details__history-link': 'showHistory',
         'click .details__buttons-trash': 'moveToTrash',
         'click .details__buttons-trash-del': 'deleteFromTrash',
+        'click .details__buttons-trash-restore': 'restoreFromTrash',
         'click .details__back-button': 'backClick',
         'click .details__attachment-add': 'attachmentBtnClick',
         'change .details__attachment-input-file': 'attachmentFileChange',
@@ -62,6 +64,7 @@ class DetailsView extends View {
         this.listenTo(Events, 'copy-url', this.copyUrl);
         this.listenTo(Events, 'copy-otp', this.copyOtp);
         this.listenTo(Events, 'toggle-settings', this.settingsToggled);
+        this.listenTo(Events, 'toggle-details', this.detailsShown);
         this.listenTo(Events, 'context-menu-select', this.contextMenuSelect);
         this.listenTo(Events, 'set-locale', this.render);
         this.listenTo(Events, 'qr-read', this.otpCodeRead);
@@ -129,6 +132,7 @@ class DetailsView extends View {
         this.template = template;
         super.render(model);
         this.setSelectedColor(this.model.color);
+        highlightDom(this.$el.find('.details__header-title')[0], this.searchTerms());
         this.addFieldViews();
         this.checkPasswordIssues();
         this.createScroll({
@@ -149,16 +153,23 @@ class DetailsView extends View {
         return this.fieldViews.find((fv) => fv.model.name === name);
     }
 
+    searchTerms() {
+        const filter = (this.appModel && this.appModel.filter) || {};
+        return filter.textLowerParts || (filter.textLower ? [filter.textLower] : null);
+    }
+
     addFieldViews() {
         const { fieldViews, fieldViewsAside } = createDetailsFields(this);
 
         const hideEmptyFields = AppSettingsModel.hideEmptyFields;
+        const searchTerms = this.searchTerms();
 
         const fieldsMainEl = this.$el.find('.details__body-fields');
         const fieldsAsideEl = this.$el.find('.details__body-aside');
         for (const views of [fieldViews, fieldViewsAside]) {
             for (const fieldView of views) {
                 fieldView.parent = views === fieldViews ? fieldsMainEl[0] : fieldsAsideEl[0];
+                fieldView.searchTerms = searchTerms;
                 fieldView.render();
                 fieldView.on('change', this.fieldChanged.bind(this));
                 fieldView.on('copy', (e) => this.copyFieldValue(e));
@@ -194,6 +205,50 @@ class DetailsView extends View {
             this.moreView.on('add-field', this.addNewField.bind(this));
             this.moreView.on('more-click', this.toggleMoreOptions.bind(this));
         }
+
+        this.scheduleSyncDetailsLabelWidth();
+    }
+
+    detailsShown(visible) {
+        if (visible) {
+            this.scheduleSyncDetailsLabelWidth();
+        }
+    }
+
+    scheduleSyncDetailsLabelWidth() {
+        this.syncDetailsLabelWidth();
+        requestAnimationFrame(() => {
+            if (!this.removed) {
+                this.syncDetailsLabelWidth();
+            }
+        });
+    }
+
+    syncDetailsLabelWidth() {
+        const root = this.el;
+        if (!root || !root.getClientRects().length || !root.offsetWidth) {
+            return;
+        }
+        const labels = root.querySelectorAll(
+            '.details__body-fields .details__field-label, .details__body-aside .details__field-label'
+        );
+        const fontSize = parseFloat(getComputedStyle(root).fontSize) || 16;
+        const minPx = Math.ceil(7 * fontSize);
+        const maxPx = Math.ceil(22 * fontSize);
+        let widest = minPx;
+        root.classList.add('details--measure-labels');
+        labels.forEach((label) => {
+            const field = label.closest('.details__field');
+            if (!field || field.classList.contains('hide') || label.querySelector('input')) {
+                return;
+            }
+            const width = Math.ceil(label.getBoundingClientRect().width);
+            if (width > widest) {
+                widest = width;
+            }
+        });
+        root.classList.remove('details--measure-labels');
+        root.style.setProperty('--details-label-width', `${Math.min(widest, maxPx)}px`);
     }
 
     addNewField(title) {
@@ -220,8 +275,9 @@ class DetailsView extends View {
 
         fieldView.on('change', this.fieldChanged.bind(this));
         fieldView.render();
-        fieldView.edit();
         this.fieldViews.push(fieldView);
+        this.scheduleSyncDetailsLabelWidth();
+        fieldView.edit();
     }
 
     toggleMoreOptions() {
@@ -338,6 +394,7 @@ class DetailsView extends View {
                     const fieldName = e.item.substr(4);
                     const fieldView = this.fieldViews.find((f) => f.model.name === fieldName);
                     fieldView.show();
+                    this.scheduleSyncDetailsLabelWidth();
                     fieldView.edit();
                 }
         }
@@ -352,6 +409,9 @@ class DetailsView extends View {
             .find('.details__colors-popup > .details__colors-popup-item')
             .removeClass('details__colors-popup-item--active');
         const colorEl = this.$el.find('.details__header-color')[0];
+        if (!colorEl) {
+            return;
+        }
         for (const cls of colorEl.classList) {
             if (cls.indexOf('color') > 0 && cls.lastIndexOf('details', 0) !== 0) {
                 colorEl.classList.remove(cls);
@@ -423,6 +483,7 @@ class DetailsView extends View {
         subView.attId = id;
         subView.render(this.pageResized.bind(this));
         subView.on('download', () => this.downloadAttachment(attachment));
+        subView.on('delete', () => this.confirmDeleteAttachment(attachment));
         this.listenTo(subView, 'close', this.render.bind(this));
         this.views.sub = subView;
         attBtn.addClass('details__attachment--active');
@@ -728,9 +789,26 @@ class DetailsView extends View {
         if (this.views.sub && this.views.sub.attId !== undefined) {
             e.preventDefault();
             const attachment = this.model.attachments[this.views.sub.attId];
-            this.model.removeAttachment(attachment.title);
-            this.render();
+            this.confirmDeleteAttachment(attachment);
         }
+    }
+
+    confirmDeleteAttachment(attachment) {
+        if (!attachment) {
+            return;
+        }
+        Alerts.yesno({
+            header: Locale.detAttDelete,
+            body: Locale.detAttDeleteBody.replace('{}', attachment.title),
+            icon: 'trash-alt',
+            success: () => {
+                this.model.removeAttachment(attachment.title);
+                this.entryUpdated();
+                if (this.appModel?.filter?.attachments && !this.model.attachments.length) {
+                    this.appModel.refresh();
+                }
+            }
+        });
     }
 
     editTitle() {
@@ -886,6 +964,11 @@ class DetailsView extends View {
         });
     }
 
+    restoreFromTrash() {
+        this.model.restoreFromTrash();
+        Events.emit('refresh');
+    }
+
     backClick() {
         Events.emit('toggle-details', false);
     }
@@ -987,8 +1070,9 @@ class DetailsView extends View {
             );
             fieldView.on('change', this.fieldChanged.bind(this));
             fieldView.render();
-            fieldView.edit();
             this.fieldViews.push(fieldView);
+            this.scheduleSyncDetailsLabelWidth();
+            fieldView.edit();
         }
     }
 

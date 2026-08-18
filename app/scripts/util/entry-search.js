@@ -9,6 +9,14 @@ class EntrySearch {
         if (!filter) {
             return true;
         }
+        if (
+            !filter.trash &&
+            !filter.includeDisabled &&
+            typeof this.model.isInRecycleBin === 'function' &&
+            this.model.isInRecycleBin()
+        ) {
+            return false;
+        }
         if (filter.tagLower) {
             if (this.model.searchTags && this.model.searchTags.indexOf(filter.tagLower) < 0) {
                 return false;
@@ -54,6 +62,11 @@ class EntrySearch {
                 !this.model.fields['TOTP Seed'] &&
                 this.model.backend !== 'otp-device'
             ) {
+                return false;
+            }
+        }
+        if (filter.attachments) {
+            if (!this.model.attachments || !this.model.attachments.length) {
                 return false;
             }
         }

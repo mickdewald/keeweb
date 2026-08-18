@@ -6,20 +6,25 @@ const DefaultAppSettings = {
     listViewWidth: null, // width of the entry list representation
     menuViewWidth: null, // width of the left menu
     tagsViewHeight: null, // tags menu section height
+    tagsMenuExpanded: false, // keep the sidebar tags list expanded
+    compactLayout: true, // single-sidebar layout: the entry list is the leftmost column
+    cmdPaletteWidth: 820, // width of the Cmd+K palette panel
     autoUpdate: 'install', // auto-update options: "install", "check", ""
     clipboardSeconds: 0, // number of seconds after which the clipboard will be cleared
     autoSave: true, // auto-save open files
+    backupDefaultPath: '~/My Drive/Backup', // folder for automatic kdbx backups of local files
+    backupMaxCount: 30, // rolling number of backups to keep per file
     autoSaveInterval: 0, // interval between performing automatic sync, minutes, -1: on every change
     rememberKeyFiles: 'path', // remember keyfiles selected on the Open screen
     idleMinutes: 15, // app lock timeout after inactivity, minutes
     minimizeOnClose: false, // minimise the app instead of closing
     minimizeOnFieldCopy: false, // minimise the app on copy
     tableView: false, // view entries as a table instead of list
-    colorfulIcons: false, // use colorful custom icons instead of grayscale
+    colorfulIcons: true, // use colorful custom icons instead of grayscale
     useMarkdown: true, // use Markdown in Notes field
     directAutotype: true, // if only one matching entry is found, select that one automatically
     autoTypeTitleFilterEnabled: true, // enable the title filtering in auto-type by default
-    titlebarStyle: 'default', // window titlebar style
+    titlebarStyle: 'hidden-inset', // window titlebar style
     lockOnMinimize: true, // lock the app when it's minimized
     lockOnCopy: false, // lock the app after a password was copied
     lockOnAutoType: false, // lock the app after performing auto-type
@@ -37,7 +42,7 @@ const DefaultAppSettings = {
     cacheConfigSettings: false, // cache config settings and use them if the config can't be loaded
     allowIframes: false, // allow displaying the app in IFrames
     useGroupIconForEntries: false, // automatically use group icon when creating new entries
-    enableUsb: true, // enable interaction with USB devices
+    enableUsb: false, // enable interaction with USB devices (YubiKey; off in this fork, the usb-detection native module is not N-API and died with Electron 22+)
     fieldLabelDblClickAutoType: false, // trigger auto-type by doubleclicking field label
     auditPasswords: true, // enable password audit
     auditPasswordEntropy: true, // show warnings for weak passwords

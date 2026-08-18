@@ -1,22 +1,12 @@
-<div class="select-entry">
+<div class="select-entry {{#unless isAutoType}}select-entry--palette{{/unless}}">
+    {{#if isAutoType}}
     <div class="select-entry__header">
-        <h1 class="select-entry__header-text">
-            {{#if isAutoType}}
-                {{res 'autoTypeHeader'}}
-            {{else}}
-                {{res 'selectEntryHeader'}}
-            {{/if}}
-        </h1>
+        <h1 class="select-entry__header-text">{{res 'autoTypeHeader'}}</h1>
         <div class="select-entry__hint" id="select-entry__hint">
-            {{#if isAutoType}}
-                <div class="select-entry__hint-text"><span class="shortcut">{{keyEnter}}</span>: {{res 'autoTypeSelectionHint'}}</div>
-                <div class="select-entry__hint-text"><span class="shortcut">{{actionSymbol}} {{keyEnter}}</span>: {{res 'autoTypeSelectionHintAction'}}</div>
-                <div class="select-entry__hint-text"><span class="shortcut">{{altSymbol}} {{keyEnter}}</span>: {{res 'autoTypeSelectionHintOpt'}}</div>
-                <div class="select-entry__hint-text"><span class="shortcut">{{shiftSymbol}} {{keyEnter}}</span>: {{res 'autoTypeSelectionHintShift'}}</div>
-            {{else}}
-                <div class="select-entry__hint-text"><span class="shortcut">{{keyEnter}}</span>: {{res 'selectEntryEnterHint'}}</div>
-                <div class="select-entry__hint-text">{{res 'selectEntryTypingHint'}}</div>
-            {{/if}}
+            <div class="select-entry__hint-text"><span class="shortcut">{{keyEnter}}</span>: {{res 'autoTypeSelectionHint'}}</div>
+            <div class="select-entry__hint-text"><span class="shortcut">{{actionSymbol}} {{keyEnter}}</span>: {{res 'autoTypeSelectionHintAction'}}</div>
+            <div class="select-entry__hint-text"><span class="shortcut">{{altSymbol}} {{keyEnter}}</span>: {{res 'autoTypeSelectionHintOpt'}}</div>
+            <div class="select-entry__hint-text"><span class="shortcut">{{shiftSymbol}} {{keyEnter}}</span>: {{res 'autoTypeSelectionHintShift'}}</div>
         </div>
     </div>
     <div class="select-entry__message">
@@ -47,4 +37,26 @@
     <div class="select-entry__buttons">
         <button class="btn btn-error select-entry__cancel-btn">{{res 'alertCancel'}} ({{res 'keyEsc'}})</button>
     </div>
+    {{else}}
+    <div class="select-entry__panel">
+        <div class="select-entry__panel-resize select-entry__panel-resize--left"></div>
+        <div class="select-entry__panel-resize select-entry__panel-resize--right"></div>
+        <div class="select-entry__search">
+            <i class="fa fa-search"></i>
+            <input type="text" class="select-entry__search-field" autocomplete="off" spellcheck="false"
+                   placeholder="{{res 'cmdPaletteSearch'}}" value="{{searchText}}">
+        </div>
+        <div class="select-entry__items">
+            <div class="scroller">
+                {{#if itemsHtml}}
+                    <table class="select-entry__table">{{{itemsHtml}}}</table>
+                {{else}}
+                    <div class="select-entry__empty-title muted-color">{{res 'autoTypeNoMatches'}}</div>
+                {{/if}}
+            </div>
+            <div class="scroller__bar-wrapper"><div class="scroller__bar"></div></div>
+        </div>
+        <div class="select-entry__footer">{{topMessage}}</div>
+    </div>
+    {{/if}}
 </div>

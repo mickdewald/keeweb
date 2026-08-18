@@ -17,6 +17,8 @@ import { Timeouts } from 'const/timeouts';
 import { SelectEntryView } from 'views/select/select-entry-view';
 import { SelectEntryFieldView } from 'views/select/select-entry-field-view';
 import { SelectEntryFilter } from 'comp/app/select-entry-filter';
+import { createProtocolReadHandlers } from 'comp/extension/protocol-read-handlers';
+import { createProtocolWriteHandlers } from 'comp/extension/protocol-write-handlers';
 
 const KeeWebAssociationId = 'KeeWeb';
 const KeeWebHash = '398d9c782ec76ae9e9877c2321cbda2b31fc6d18ccf0fed5ca4bd746bab4d64a'; // sha256('KeeWeb')
@@ -290,567 +292,62 @@ function focusKeeWeb() {
     }
 }
 
-async function findEntry(request, returnIfOneMatch, filterOptions) {
-    const payload = decryptRequest(request);
-    await checkContentRequestPermissions(request);
+let ProtocolHandlers;
 
-    if (!payload.url) {
-        throw new Error('Empty url');
-    }
-
-    const files = getAvailableFiles(request);
-    const client = getClient(request);
-
-    const filter = new SelectEntryFilter(
-        { url: payload.url, title: payload.title },
+function createProtocolHandlers() {
+    const protocolContext = {
+        kdbxweb,
+        Events,
+        Launcher,
+        tweetnaclBox,
+        PasswordGenerator,
+        GeneratorPresets,
+        Alerts,
+        Locale,
+        AppSettingsModel,
+        Timeouts,
+        SelectEntryView,
+        SelectEntryFieldView,
+        SelectEntryFilter,
+        KeeWebAssociationId,
+        KeeWebHash,
+        Errors,
+        connectedClients,
+        logger,
         appModel,
-        files,
-        filterOptions
-    );
-    filter.subdomains = false;
+        incrementNonce,
+        getClient,
+        decryptRequest,
+        encryptResponse,
+        makeError,
+        ensureAtLeastOneFileIsOpen,
+        checkContentRequestPermissions,
+        getAvailableFiles,
+        getVersion,
+        isKeeWebConnect,
+        getHumanReadableExtensionName,
+        focusKeeWeb,
+        ExtensionCreateGroupView,
+        ExtensionSaveEntryView,
+        RuntimeDataModel,
+        ExtensionGroupIconId,
+        DefaultExtensionGroupName,
+        ExtensionGroupNames,
+        alertWithTimeout
+    };
 
-    let entries = filter.getEntries();
-
-    filter.subdomains = true;
-
-    let entry;
-
-    if (entries.length) {
-        if (entries.length === 1 && returnIfOneMatch && client.permissions.askGet === 'multiple') {
-            entry = entries[0];
-        }
-    } else {
-        entries = filter.getEntries();
-
-        if (!entries.length) {
-            if (AppSettingsModel.extensionFocusIfEmpty) {
-                filter.useUrl = false;
-                if (filter.title && AppSettingsModel.autoTypeTitleFilterEnabled) {
-                    filter.useTitle = true;
-                    entries = filter.getEntries();
-                    if (!entries.length) {
-                        filter.useTitle = false;
-                    }
-                }
-            } else {
-                throw makeError(Errors.noMatches);
-            }
-        }
-    }
-
-    if (!entry) {
-        const extName = getHumanReadableExtensionName(client);
-        const topMessage = Locale.extensionSelectPasswordFor.replace('{}', extName);
-        const selectEntryView = new SelectEntryView({ filter, topMessage });
-
-        focusKeeWeb();
-
-        const inactivityTimer = setTimeout(() => {
-            selectEntryView.emit('result', undefined);
-        }, Timeouts.KeeWebConnectRequest);
-
-        const result = await selectEntryView.showAndGetResult();
-
-        clearTimeout(inactivityTimer);
-
-        entry = result?.entry;
-        if (!entry) {
-            throw makeError(Errors.userRejected);
-        }
-    }
-
-    client.stats.passwordsRead++;
-
-    return entry;
+    return {
+        ...createProtocolReadHandlers(protocolContext),
+        ...createProtocolWriteHandlers(protocolContext)
+    };
 }
-
-const ProtocolHandlers = {
-    'ping'({ data }) {
-        return { data };
-    },
-
-    'change-public-keys'(request, connection) {
-        let { publicKey, version, clientID: clientId } = request;
-
-        if (connectedClients.has(clientId)) {
-            throw new Error('Changing keys is not allowed');
-        }
-
-        if (!Launcher) {
-            // on web there can be only one connected client
-            connectedClients.clear();
-        }
-
-        const keys = tweetnaclBox.keyPair();
-        publicKey = kdbxweb.ByteUtils.base64ToBytes(publicKey);
-
-        const stats = {
-            connectedDate: new Date(),
-            passwordsRead: 0,
-            passwordsWritten: 0
-        };
-
-        connectedClients.set(clientId, { connection, publicKey, version, keys, stats });
-
-        Events.emit('browser-extension-sessions-changed');
-
-        logger.info('New client key created', clientId, version);
-
-        const nonceBytes = kdbxweb.ByteUtils.base64ToBytes(request.nonce);
-        incrementNonce(nonceBytes);
-        const nonce = kdbxweb.ByteUtils.bytesToBase64(nonceBytes);
-
-        return {
-            action: 'change-public-keys',
-            version: getVersion(request),
-            publicKey: kdbxweb.ByteUtils.bytesToBase64(keys.publicKey),
-            nonce,
-            success: 'true',
-            ...(isKeeWebConnect(request) ? { appName: 'KeeWeb' } : undefined)
-        };
-    },
-
-    async 'get-databasehash'(request) {
-        decryptRequest(request);
-
-        if (request.triggerUnlock) {
-            await checkContentRequestPermissions(request);
-        } else {
-            ensureAtLeastOneFileIsOpen();
-        }
-
-        return encryptResponse(request, {
-            hash: KeeWebHash,
-            success: 'true',
-            version: getVersion(request)
-        });
-    },
-
-    'generate-password'(request) {
-        const password = PasswordGenerator.generate(GeneratorPresets.browserExtensionPreset);
-
-        return encryptResponse(request, {
-            version: getVersion(request),
-            success: 'true',
-            entries: [{ password }]
-        });
-    },
-
-    'lock-database'(request) {
-        decryptRequest(request);
-        ensureAtLeastOneFileIsOpen();
-
-        Events.emit('lock-workspace');
-
-        if (Alerts.alertDisplayed) {
-            focusKeeWeb();
-        }
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request)
-        });
-    },
-
-    'associate'(request) {
-        decryptRequest(request);
-        ensureAtLeastOneFileIsOpen();
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            hash: KeeWebHash,
-            id: KeeWebAssociationId
-        });
-    },
-
-    'test-associate'(request) {
-        const payload = decryptRequest(request);
-        // ensureAtLeastOneFileIsOpen();
-
-        if (payload.id !== KeeWebAssociationId) {
-            throw makeError(Errors.noOpenFiles);
-        }
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            hash: KeeWebHash,
-            id: payload.id
-        });
-    },
-
-    async 'get-logins'(request) {
-        const entry = await findEntry(request, true);
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            hash: KeeWebHash,
-            count: 1,
-            entries: [
-                {
-                    group: entry.group.title,
-                    login: entry.user || '',
-                    name: entry.title || '',
-                    password: entry.password?.getText() || '',
-                    skipAutoSubmit: 'false',
-                    stringFields: [],
-                    uuid: kdbxweb.ByteUtils.bytesToHex(entry.entry.uuid.bytes)
-                }
-            ],
-            id: ''
-        });
-    },
-
-    async 'get-totp-by-url'(request) {
-        const entry = await findEntry(request, true, { otp: true });
-
-        entry.initOtpGenerator();
-
-        if (!entry.otpGenerator) {
-            throw makeError(Errors.noMatches);
-        }
-
-        let selectEntryFieldView;
-        if (entry.needsTouch) {
-            selectEntryFieldView = new SelectEntryFieldView({
-                needsTouch: true,
-                deviceShortName: entry.device.shortName
-            });
-            selectEntryFieldView.render();
-        }
-
-        const otpPromise = new Promise((resolve, reject) => {
-            selectEntryFieldView?.on('result', () => reject(makeError(Errors.userRejected)));
-            entry.otpGenerator.next((err, otp) => {
-                if (otp) {
-                    resolve(otp);
-                } else {
-                    reject(err || makeError(Errors.userRejected));
-                }
-            });
-        });
-
-        let totp;
-        try {
-            totp = await otpPromise;
-        } finally {
-            selectEntryFieldView?.remove();
-        }
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            totp
-        });
-    },
-
-    async 'get-any-field'(request) {
-        const entry = await findEntry(request, false);
-
-        const selectEntryFieldView = new SelectEntryFieldView({
-            entry
-        });
-        const inactivityTimer = setTimeout(() => {
-            selectEntryFieldView.emit('result', undefined);
-        }, Timeouts.KeeWebConnectRequest);
-
-        const field = await selectEntryFieldView.showAndGetResult();
-
-        clearTimeout(inactivityTimer);
-
-        if (!field) {
-            throw makeError(Errors.userRejected);
-        }
-
-        let value = entry.getAllFields()[field];
-        if (value.isProtected) {
-            value = value.getText();
-        }
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            field,
-            value
-        });
-    },
-
-    async 'get-totp'(request) {
-        decryptRequest(request);
-        await checkContentRequestPermissions(request);
-
-        throw new Error('Not implemented');
-    },
-
-    async 'set-login'(request) {
-        const payload = decryptRequest(request);
-        await checkContentRequestPermissions(request);
-
-        focusKeeWeb();
-
-        if (!payload.url) {
-            throw new Error('Empty url');
-        }
-        const url = new URL(payload.url);
-
-        const files = getAvailableFiles(request);
-        const client = getClient(request);
-
-        let selectedGroup;
-
-        let entryToUpdate;
-        if (payload.uuid) {
-            for (const file of files) {
-                const entryId = kdbxweb.ByteUtils.bytesToBase64(
-                    kdbxweb.ByteUtils.hexToBytes(payload.uuid)
-                );
-                const foundEntry = file.getEntry(file.subId(entryId));
-                if (foundEntry) {
-                    if (entryToUpdate) {
-                        throw new Error('Two entries with the same ID found');
-                    } else {
-                        entryToUpdate = foundEntry;
-                        selectedGroup = foundEntry.group;
-                    }
-                }
-            }
-            if (!entryToUpdate) {
-                throw new Error('Updated entry not found');
-            }
-        }
-
-        if (client.permissions.askSave === 'auto' && client.permissions.saveTo && !selectedGroup) {
-            const file = files.find((f) => f.id === client.permissions.saveTo.fileId);
-            selectedGroup = file?.getGroup(client.permissions.saveTo.groupId);
-        }
-
-        if (client.permissions.askSave !== 'auto' || !selectedGroup) {
-            if (!selectedGroup && RuntimeDataModel.extensionSaveConfig) {
-                const file = files.find(
-                    (f) => f.id === RuntimeDataModel.extensionSaveConfig.fileId
-                );
-                selectedGroup = file?.getGroup(RuntimeDataModel.extensionSaveConfig.groupId);
-            }
-
-            const allGroups = [];
-            for (const file of files) {
-                file.forEachGroup((group) => {
-                    const spaces = [];
-                    for (let parent = group; parent.parentGroup; parent = parent.parentGroup) {
-                        spaces.push(' ', ' ');
-                    }
-
-                    if (
-                        !selectedGroup &&
-                        group.iconId === ExtensionGroupIconId &&
-                        ExtensionGroupNames.has(group.title)
-                    ) {
-                        selectedGroup = group;
-                    }
-
-                    allGroups.push({
-                        id: group.id,
-                        fileId: file.id,
-                        spaces,
-                        title: group.title,
-                        selected: group.id === selectedGroup?.id
-                    });
-                });
-            }
-            if (!selectedGroup) {
-                allGroups.splice(1, 0, {
-                    id: '',
-                    fileId: files[0].id,
-                    spaces: [' ', ' '],
-                    title: `${DefaultExtensionGroupName} (${Locale.extensionSaveEntryNewGroup})`,
-                    selected: true
-                });
-            }
-
-            const saveEntryView = new ExtensionSaveEntryView({
-                extensionName: getHumanReadableExtensionName(client),
-                url: payload.url,
-                user: payload.login,
-                askSave: RuntimeDataModel.extensionSaveConfig?.askSave || 'always',
-                update: !!entryToUpdate,
-                allGroups
-            });
-
-            await alertWithTimeout({
-                header: Locale.extensionSaveEntryHeader,
-                icon: 'plus',
-                buttons: [Alerts.buttons.allow, Alerts.buttons.deny],
-                view: saveEntryView
-            });
-
-            const config = { ...saveEntryView.config };
-            if (!entryToUpdate) {
-                if (config.groupId) {
-                    const file = files.find((f) => f.id === config.fileId);
-                    selectedGroup = file.getGroup(config.groupId);
-                } else {
-                    selectedGroup = appModel.createNewGroupWithName(
-                        files[0].groups[0],
-                        files[0],
-                        DefaultExtensionGroupName
-                    );
-                    selectedGroup.setIcon(ExtensionGroupIconId);
-                    config.groupId = selectedGroup.id;
-                }
-
-                RuntimeDataModel.extensionSaveConfig = config;
-                client.permissions.saveTo = { fileId: config.fileId, groupId: config.groupId };
-            }
-
-            client.permissions.askSave = config.askSave;
-        }
-
-        const entryFields = {
-            Title: url.hostname,
-            UserName: payload.login,
-            Password: kdbxweb.ProtectedValue.fromString(payload.password || ''),
-            URL: payload.url
-        };
-
-        if (entryToUpdate) {
-            for (const [field, value] of Object.entries(entryFields)) {
-                if (value) {
-                    entryToUpdate.setField(field, value);
-                }
-            }
-        } else {
-            appModel.createNewEntryWithFields(selectedGroup, entryFields);
-        }
-
-        client.stats.passwordsWritten++;
-
-        Events.emit('browser-extension-sessions-changed');
-        Events.emit('refresh');
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            count: null,
-            entries: null,
-            hash: KeeWebHash
-        });
-    },
-
-    async 'get-database-groups'(request) {
-        decryptRequest(request);
-        await checkContentRequestPermissions(request);
-
-        const makeGroups = (group) => {
-            const res = {
-                name: group.title,
-                uuid: kdbxweb.ByteUtils.bytesToHex(group.group.uuid.bytes),
-                children: []
-            };
-            for (const subGroup of group.items) {
-                if (subGroup.matches()) {
-                    res.children.push(makeGroups(subGroup));
-                }
-            }
-            return res;
-        };
-
-        const groups = [];
-        for (const file of getAvailableFiles(request)) {
-            for (const group of file.groups) {
-                groups.push(makeGroups(group));
-            }
-        }
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            groups: { groups }
-        });
-    },
-
-    async 'create-new-group'(request) {
-        const payload = decryptRequest(request);
-        await checkContentRequestPermissions(request);
-
-        if (!payload.groupName) {
-            throw new Error('No groupName');
-        }
-
-        const groupNames = payload.groupName
-            .split('/')
-            .map((g) => g.trim())
-            .filter((g) => g);
-
-        if (!groupNames.length) {
-            throw new Error('Empty group path');
-        }
-
-        const files = getAvailableFiles(request);
-
-        for (const file of files) {
-            for (const rootGroup of file.groups) {
-                let foundGroup = rootGroup;
-                const pendingGroups = [...groupNames];
-                while (pendingGroups.length && foundGroup) {
-                    const title = pendingGroups.shift();
-                    foundGroup = foundGroup.items.find((g) => g.title === title);
-                }
-                if (foundGroup) {
-                    return encryptResponse(request, {
-                        success: 'true',
-                        version: getVersion(request),
-                        name: foundGroup.title,
-                        uuid: kdbxweb.ByteUtils.bytesToHex(foundGroup.group.uuid.bytes)
-                    });
-                }
-            }
-        }
-
-        const client = getClient(request);
-        const createGroupView = new ExtensionCreateGroupView({
-            extensionName: getHumanReadableExtensionName(client),
-            groupPath: groupNames.join(' / '),
-            files: files.map((f, ix) => ({ id: f.id, name: f.name, selected: ix === 0 }))
-        });
-
-        await alertWithTimeout({
-            header: Locale.extensionNewGroupHeader,
-            icon: 'folder-plus',
-            buttons: [Alerts.buttons.allow, Alerts.buttons.deny],
-            view: createGroupView
-        });
-
-        const selectedFile = files.find((f) => f.id === createGroupView.selectedFile);
-
-        let newGroup = selectedFile.groups[0];
-        const pendingGroups = [...groupNames];
-
-        while (pendingGroups.length) {
-            const title = pendingGroups.shift();
-            const item = newGroup.items.find((g) => g.title === title);
-            if (item) {
-                newGroup = item;
-            } else {
-                newGroup = appModel.createNewGroupWithName(newGroup, selectedFile, title);
-            }
-        }
-
-        return encryptResponse(request, {
-            success: 'true',
-            version: getVersion(request),
-            name: newGroup.title,
-            uuid: kdbxweb.ByteUtils.bytesToHex(newGroup.group.uuid.bytes)
-        });
-    }
-};
 
 const ProtocolImpl = {
     init(vars) {
         appModel = vars.appModel;
         logger = vars.logger;
         sendEvent = vars.sendEvent;
+        ProtocolHandlers = createProtocolHandlers();
 
         setupListeners();
     },

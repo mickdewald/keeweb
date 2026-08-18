@@ -84,6 +84,9 @@ class SettingsView extends View {
                 if (item.page !== page) {
                     continue;
                 }
+                if (page === 'file' && this.file && item.file === this.file) {
+                    return item;
+                }
                 if (section && item.section === section) {
                     return item;
                 }

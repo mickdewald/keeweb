@@ -9,17 +9,17 @@ import { UsbListener } from 'comp/app/usb-listener';
 import { Links } from 'const/links';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { DateFormat } from 'comp/i18n/date-format';
-import { UrlFormat } from 'util/formatting/url-format';
 import { PasswordPresenter } from 'util/formatting/password-presenter';
 import { Locale } from 'util/locale';
 import { Features } from 'util/features';
 import { FileSaver } from 'util/ui/file-saver';
-import { OpenConfigView } from 'views/open-config-view';
-import { omit } from 'util/fn';
 import template from 'templates/settings/settings-file.hbs';
-
-const DefaultBackupPath = 'Backups/{name}.{date}.bak';
-const DefaultBackupSchedule = '1w';
+import { SettingsFileSaveMixin } from 'views/settings/settings-file-view-save';
+import {
+    DefaultBackupPath,
+    DefaultBackupSchedule,
+    SettingsFileBackupMixin
+} from 'views/settings/settings-file-view-backup';
 
 class SettingsFileView extends View {
     template = template;
@@ -205,216 +205,6 @@ class SettingsFileView extends View {
         }
     }
 
-    validatePassword(continueCallback) {
-        if (!this.model.passwordLength) {
-            Alerts.yesno({
-                header: Locale.setFileEmptyPass,
-                body: Locale.setFileEmptyPassBody,
-                success: () => {
-                    continueCallback();
-                },
-                cancel: () => {
-                    this.$el.find('#settings__file-master-pass').focus();
-                }
-            });
-            return false;
-        }
-        return true;
-    }
-
-    save(arg) {
-        if (!arg) {
-            arg = {};
-        }
-        arg.startedByUser = true;
-        if (!arg.skipValidation) {
-            const isValid = this.validatePassword(() => {
-                arg.skipValidation = true;
-                this.save(arg);
-            });
-            if (!isValid) {
-                return;
-            }
-        }
-
-        this.appModel.syncFile(this.model, arg);
-    }
-
-    saveDefault() {
-        this.save();
-    }
-
-    toggleChooser() {
-        this.$el.find('.settings__file-save-choose').toggleClass('hide');
-    }
-
-    saveToFile(skipValidation) {
-        if (skipValidation !== true && !this.validatePassword(this.saveToFile.bind(this, true))) {
-            return;
-        }
-        const fileName = this.model.name + '.kdbx';
-        if (Launcher && !this.model.storage) {
-            Launcher.getSaveFileName(fileName, (path) => {
-                if (path) {
-                    this.save({ storage: 'file', path });
-                }
-            });
-        } else {
-            this.model.getData((data) => {
-                if (!data) {
-                    return;
-                }
-                if (Launcher) {
-                    Launcher.getSaveFileName(fileName, (path) => {
-                        if (path) {
-                            Storage.file.save(path, null, data, (err) => {
-                                if (err) {
-                                    Alerts.error({
-                                        header: Locale.setFileSaveError,
-                                        body: Locale.setFileSaveErrorBody + ' ' + path + ':',
-                                        pre: err
-                                    });
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    const blob = new Blob([data], { type: 'application/octet-stream' });
-                    FileSaver.saveAs(blob, fileName);
-                }
-            });
-        }
-    }
-
-    saveToXml() {
-        Alerts.yesno({
-            header: Locale.setFileExportRaw,
-            body: Locale.setFileExportRawBody,
-            success: () => {
-                this.model.getXml((xml) => {
-                    const blob = new Blob([xml], { type: 'text/xml' });
-                    FileSaver.saveAs(blob, this.model.name + '.xml');
-                });
-            }
-        });
-    }
-
-    saveToHtml() {
-        Alerts.yesno({
-            header: Locale.setFileExportRaw,
-            body: Locale.setFileExportRawBody,
-            success: () => {
-                this.model.getHtml((html) => {
-                    const blob = new Blob([html], { type: 'text/html' });
-                    FileSaver.saveAs(blob, this.model.name + '.html');
-                });
-            }
-        });
-    }
-
-    saveToStorage(e) {
-        if (this.model.syncing || this.model.demo) {
-            return;
-        }
-        const storageName = $(e.target).closest('.settings__file-save-to-storage').data('storage');
-        const storage = Storage[storageName];
-        if (!storage) {
-            return;
-        }
-        if (this.model.storage === storageName) {
-            this.save();
-        } else {
-            if (!storage.list) {
-                if (storage.getOpenConfig) {
-                    const config = {
-                        id: storage.name,
-                        name: Locale[storage.name] || storage.name,
-                        icon: storage.icon,
-                        buttons: false,
-                        ...storage.getOpenConfig()
-                    };
-                    const openConfigView = new OpenConfigView(config);
-                    Alerts.alert({
-                        header: '',
-                        body: '',
-                        icon: storage.icon || 'file-alt',
-                        buttons: [Alerts.buttons.ok, Alerts.buttons.cancel],
-                        esc: '',
-                        opaque: true,
-                        view: openConfigView,
-                        success: () => {
-                            const storageConfig = openConfigView.getData();
-                            if (!storageConfig) {
-                                return;
-                            }
-                            const opts = omit(storageConfig, ['path', 'storage']);
-                            if (opts && Object.keys(opts).length) {
-                                this.model.opts = opts;
-                            }
-                            this.save({ storage: storageName, path: storageConfig.path, opts });
-                        }
-                    });
-                } else {
-                    Alerts.notImplemented();
-                }
-                return;
-            }
-            this.model.syncing = true;
-            storage.list('', (err, files) => {
-                this.model.syncing = false;
-                if (err) {
-                    return;
-                }
-                const expName = this.model.name.toLowerCase();
-                const existingFile = [...files].find(
-                    (file) =>
-                        !file.dir && UrlFormat.getDataFileName(file.name).toLowerCase() === expName
-                );
-                if (existingFile) {
-                    Alerts.yesno({
-                        header: Locale.setFileAlreadyExists,
-                        body: Locale.setFileAlreadyExistsBody.replace('{}', this.model.name),
-                        success: () => {
-                            this.model.syncing = true;
-                            storage.remove(existingFile.path, (err) => {
-                                this.model.syncing = false;
-                                if (!err) {
-                                    this.save({ storage: storageName });
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    this.save({ storage: storageName });
-                }
-            });
-        }
-    }
-
-    closeFile() {
-        if (this.model.modified) {
-            Alerts.yesno({
-                header: Locale.setFileUnsaved,
-                body: Locale.setFileUnsavedBody,
-                buttons: [
-                    { result: 'close', title: Locale.setFileCloseNoSave, error: true },
-                    { result: '', title: Locale.setFileDontClose }
-                ],
-                success: (result) => {
-                    if (result === 'close') {
-                        this.closeFileNoCheck();
-                    }
-                }
-            });
-        } else {
-            this.closeFileNoCheck();
-        }
-    }
-
-    closeFileNoCheck() {
-        this.appModel.closeFile(this.model);
-    }
-
     keyFileChange(e) {
         switch (e.target.value) {
             case 'old':
@@ -521,117 +311,6 @@ class SettingsFileView extends View {
             this.$el.find('.settings__file-confirm-master-pass-warning').show();
             this.model.resetPassword();
         }
-    }
-
-    changeName(e) {
-        const value = $.trim(e.target.value);
-        if (!value) {
-            return;
-        }
-        this.model.setName(value);
-    }
-
-    changeDefUser(e) {
-        const value = $.trim(e.target.value);
-        this.model.setDefaultUser(value);
-    }
-
-    changeBackupEnabled(e) {
-        const enabled = e.target.checked;
-        let backup = this.model.backup;
-        if (!backup) {
-            backup = { enabled, schedule: DefaultBackupSchedule };
-            const defaultPath = DefaultBackupPath.replace('{name}', this.model.name);
-            if (Launcher) {
-                backup.storage = 'file';
-                backup.path = Launcher.getDocumentsPath(defaultPath);
-            } else {
-                backup.storage = 'dropbox';
-                backup.path = defaultPath;
-            }
-            // } else if (this.model.storage === 'webdav') {
-            //     backup.storage = 'webdav';
-            //     backup.path = this.model.path + '.{date}.bak';
-            // } else if (this.model.storage) {
-            //     backup.storage = this.model.storage;
-            //     backup.path = DefaultBackupPath.replace('{name}', this.model.name);
-            // } else {
-            //     Object.keys(Storage).forEach(name => {
-            //         var prv = Storage[name];
-            //         if (!backup.storage && !prv.system && prv.enabled) {
-            //             backup.storage = name;
-            //         }
-            //     });
-            //     if (!backup.storage) {
-            //         e.target.checked = false;
-            //         return;
-            //     }
-            //     backup.path = DefaultBackupPath.replace('{name}', this.model.name);
-            // }
-            this.$el.find('#settings__file-backup-storage').val(backup.storage);
-            this.$el.find('#settings__file-backup-path').val(backup.path);
-        }
-        this.$el.find('.settings__file-backups').toggleClass('hide', !enabled);
-        backup.enabled = enabled;
-        this.setBackup(backup);
-    }
-
-    changeBackupPath(e) {
-        const backup = this.model.backup;
-        backup.path = e.target.value.trim();
-        this.setBackup(backup);
-    }
-
-    changeBackupStorage(e) {
-        const backup = this.model.backup;
-        backup.storage = e.target.value;
-        this.setBackup(backup);
-    }
-
-    changeBackupSchedule(e) {
-        const backup = this.model.backup;
-        backup.schedule = e.target.value;
-        this.setBackup(backup);
-    }
-
-    setBackup(backup) {
-        this.model.backup = backup;
-        this.appModel.setFileBackup(this.model.id, backup);
-    }
-
-    backupFile() {
-        if (this.backupInProgress) {
-            return;
-        }
-        const backupButton = this.$el.find('.settings__file-button-backup');
-        backupButton.text(Locale.setFileBackupNowWorking);
-        this.model.getData((data) => {
-            if (!data) {
-                this.backupInProgress = false;
-                backupButton.text(Locale.setFileBackupNow);
-                return;
-            }
-            this.appModel.backupFile(this.model, data, (err) => {
-                this.backupInProgress = false;
-                backupButton.text(Locale.setFileBackupNow);
-                if (err) {
-                    let title = '';
-                    let description = '';
-                    if (err.isDir) {
-                        title = Locale.setFileBackupErrorIsDir;
-                        description = Locale.setFileBackupErrorIsDirDescription;
-                    } else {
-                        title = Locale.setFileBackupError;
-                        description = Locale.setFileBackupErrorDescription;
-                    }
-                    Alerts.error({
-                        title,
-                        body: description,
-                        pre: err.toString()
-                    });
-                }
-            });
-        });
     }
 
     changeTrash(e) {
@@ -778,5 +457,7 @@ class SettingsFileView extends View {
         });
     }
 }
+
+Object.assign(SettingsFileView.prototype, SettingsFileSaveMixin, SettingsFileBackupMixin);
 
 export { SettingsFileView };

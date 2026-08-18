@@ -236,28 +236,18 @@ class DetailsView extends View {
         const minPx = Math.ceil(7 * fontSize);
         const maxPx = Math.ceil(22 * fontSize);
         let widest = minPx;
+        root.classList.add('details--measure-labels');
         labels.forEach((label) => {
             const field = label.closest('.details__field');
             if (!field || field.classList.contains('hide') || label.querySelector('input')) {
                 return;
             }
-            const prevWidth = label.style.width;
-            const prevFlex = label.style.flex;
-            const prevMaxWidth = label.style.maxWidth;
-            const prevOverflow = label.style.overflow;
-            label.style.flex = '0 0 auto';
-            label.style.width = 'max-content';
-            label.style.maxWidth = 'none';
-            label.style.overflow = 'visible';
             const width = Math.ceil(label.getBoundingClientRect().width);
-            label.style.width = prevWidth;
-            label.style.flex = prevFlex;
-            label.style.maxWidth = prevMaxWidth;
-            label.style.overflow = prevOverflow;
             if (width > widest) {
                 widest = width;
             }
         });
+        root.classList.remove('details--measure-labels');
         root.style.setProperty('--details-label-width', `${Math.min(widest, maxPx)}px`);
     }
 

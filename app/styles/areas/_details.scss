@@ -226,6 +226,13 @@
 
         &-label {
             color: var(--muted-color);
+            // one layout pass for the width sync: all labels unclamped at once
+            .details--measure-labels & {
+                flex: 0 0 auto;
+                width: max-content;
+                max-width: none;
+                overflow: visible;
+            }
             // Both cards share one label column.
             flex: 0 0 var(--details-label-width, 7em);
             width: var(--details-label-width, 7em);

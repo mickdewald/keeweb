@@ -756,7 +756,10 @@ class DetailsView extends View {
             icon: 'trash-alt',
             success: () => {
                 this.model.removeAttachment(attachment.title);
-                this.render();
+                this.entryUpdated();
+                if (this.appModel?.filter?.attachments && !this.model.attachments.length) {
+                    this.appModel.refresh();
+                }
             }
         });
     }

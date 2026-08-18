@@ -7,9 +7,9 @@
             <i class="fa fa-{{icon}} {{#if color}}{{color}}-color{{/if}} select-entry__item-icon"></i>
         {{~/if~}}
     </td>
-    <td class="select-entry__item-title-cell">{{#if title}}{{title}}{{else}}({{res 'noTitle'}}){{/if}}</td>
-    <td class="select-entry__item-user-cell">{{user}}</td>
-    <td class="select-entry__item-url-cell">{{url}}</td>
+    <td class="select-entry__item-title-cell" title="{{title}}">{{#if title}}{{highlight title searchTerms}}{{else}}({{res 'noTitle'}}){{/if}}</td>
+    <td class="select-entry__item-user-cell" title="{{user}}">{{highlight user searchTerms}}</td>
+    <td class="select-entry__item-url-cell" title="{{url}}">{{highlight url searchTerms}}</td>
     {{#if itemOptions}}
         <td class="select-entry__item-options">
             <i class="fa fa-ellipsis-h"></i>

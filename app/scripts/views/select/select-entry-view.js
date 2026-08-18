@@ -8,6 +8,7 @@ import { EntryPresenter } from 'presenters/entry-presenter';
 import { StringFormat } from 'util/formatting/string-format';
 import { UrlFormat } from 'util/formatting/url-format';
 import { Locale } from 'util/locale';
+import { Tip } from 'util/ui/tip';
 import { Scrollable } from 'framework/views/scrollable';
 import { DropdownView } from 'views/dropdown-view';
 import { buildItemOptions, itemOptionsPosition } from 'views/select/select-entry-item-options';
@@ -153,6 +154,9 @@ class SelectEntryView extends View {
     buildItemsHtml(noColor) {
         const presenter = new EntryPresenter(null, noColor, this.result?.id);
         presenter.itemOptions = this.model.itemOptions;
+        presenter.searchTerms = this.model.filter.text
+            ? this.model.filter.text.toLowerCase().split(/\s+/).filter(Boolean)
+            : null;
         let itemsHtml = '';
         this.entries.forEach((entry) => {
             presenter.present(entry);
@@ -189,6 +193,7 @@ class SelectEntryView extends View {
         this.syncActiveResult();
         const itemsHtml = this.buildItemsHtml(noColor);
         const scroller = this.$el.find('.select-entry__items .scroller');
+        Tip.destroyTips(scroller[0]);
         if (itemsHtml) {
             scroller.html(`<table class="select-entry__table">${itemsHtml}</table>`);
         } else {
@@ -196,6 +201,7 @@ class SelectEntryView extends View {
                 `<div class="select-entry__empty-title muted-color">${Locale.autoTypeNoMatches}</div>`
             );
         }
+        Tip.createTips(scroller[0]);
         this.createScroll({
             root: this.$el.find('.select-entry__items')[0],
             scroller: this.$el.find('.scroller')[0],

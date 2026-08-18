@@ -353,6 +353,7 @@
   "pwHealthReusedCount": "{}-mal verwendet",
   "pwHealthOld": "Alt",
   "pwHealthOldHint": "Seit {} Jahren nicht geändert (Schwelle unter Einstellungen → Audit).",
+  "pwHealthNone": "Keine",
   "autoTypeMsgMatchedByWindow": "Passwort auswählen für {}",
   "autoTypeNoMatches": "keine passenden Einträge",
   "autoTypeSelectionHint": "Die Auto-Type-Sequenz eintippen",

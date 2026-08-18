@@ -49,4 +49,17 @@
                 {{#if adv.exact}}checked{{/if}}><label for="list__search-adv-check-exact">{{res 'searchExact'}}</label></div>
         </div>
     </div>
+    {{#if showQuickNav}}
+    <div class="list__quick-nav">
+        <button type="button" class="list__quick-nav-btn" data-action="settings" title="{{res 'settings'}}">
+            <i class="fa fa-cog"></i><span>{{res 'settings'}}</span>
+        </button>
+        <button type="button" class="list__quick-nav-btn" data-action="health" title="{{res 'pwHealthTitle'}}">
+            <i class="fa fa-exclamation-triangle"></i><span>{{res 'pwHealthTitle'}}</span>
+        </button>
+        <button type="button" class="list__quick-nav-btn {{#if trashActive}}list__quick-nav-btn--active{{/if}}" data-action="trash" title="{{res 'menuTrash'}}">
+            <i class="fa fa-trash-alt"></i><span>{{res 'menuTrash'}}</span>
+        </button>
+    </div>
+    {{/if}}
 </div>

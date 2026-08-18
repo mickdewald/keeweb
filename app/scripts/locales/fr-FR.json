@@ -360,6 +360,7 @@
   "pwHealthReusedCount": "Utilisé {} fois",
   "pwHealthOld": "Ancien",
   "pwHealthOldHint": "Inchangé depuis {} ans (réglage dans Paramètres → Audit).",
+  "pwHealthNone": "Aucun",
   "autoTypeMsgMatchedByWindow": "Sélectionner un mot de passe pour {}",
   "autoTypeNoMatches": "aucun",
   "autoTypeSelectionHint": "Saisissez la séquence automatique",

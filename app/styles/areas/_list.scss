@@ -163,6 +163,55 @@ mark.search-hl {
                 }
             }
         }
+    }
+
+    &__quick-nav {
+        display: flex;
+        align-items: stretch;
+        gap: 4px;
+        margin-top: 6px;
+        -webkit-app-region: no-drag;
+    }
+
+    &__quick-nav-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4em;
+        min-width: 0;
+        height: 2.1em;
+        margin: 0;
+        padding: 0 0.5em;
+        border: 0;
+        border-radius: 8px;
+        background: var(--secondary-background-color);
+        color: var(--text-color);
+        font: inherit;
+        font-size: 0.82em;
+        cursor: pointer;
+        -webkit-app-region: no-drag;
+        > .fa {
+            flex: 0 0 auto;
+            color: var(--muted-color);
+        }
+        > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        &:hover {
+            background: var(--intermediate-background-color);
+        }
+        &--active {
+            color: var(--action-color);
+            > .fa {
+                color: var(--action-color);
+            }
+        }
+    }
+
+    &__search {
         &-adv {
             flex: 100%;
             display: flex;

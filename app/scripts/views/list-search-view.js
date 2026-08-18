@@ -27,6 +27,7 @@ class ListSearchView extends View {
         'click .list__search-icon-search': 'advancedSearchClick',
         'click .list__search-btn-menu': 'toggleMenu',
         'click .list__search-icon-clear': 'clickClear',
+        'click .list__quick-nav-btn': 'quickNavClick',
         'change .list__search-adv input[type=checkbox]': 'toggleAdvCheck'
     };
 
@@ -182,7 +183,9 @@ class ListSearchView extends View {
             adv: this.advancedSearch,
             advEnabled: this.advancedSearchEnabled,
             canCreate: this.model.canCreateEntries(),
-            showTags: AppSettingsModel.compactLayout
+            showTags: AppSettingsModel.compactLayout,
+            showQuickNav: AppSettingsModel.compactLayout,
+            trashActive: !!(this.model.filter && this.model.filter.trash)
         });
         this.inputEl = this.$el.find('.list__search-field');
         if (searchVal) {
@@ -278,6 +281,9 @@ class ListSearchView extends View {
             tagBtn.toggleClass('list__search-btn-tags--filtered', !!filter.filter.tag);
             tagBtn.attr('title', filter.filter.tag || StringFormat.capFirst(Locale.tags));
         }
+        this.$el
+            .find('.list__quick-nav-btn[data-action="trash"]')
+            .toggleClass('list__quick-nav-btn--active', !!filter.filter.trash);
         const sortIconCls = this.sortIcons[filter.sort] || 'sort';
         this.$el.find('.list__search-btn-sort>i').attr('class', 'fa fa-' + sortIconCls);
         let adv = !!filter.filter.advanced;
@@ -487,6 +493,28 @@ class ListSearchView extends View {
     clickClear() {
         this.inputEl.val('');
         this.inputChange();
+    }
+
+    quickNavClick(e) {
+        const btn = e.target.closest('.list__quick-nav-btn');
+        if (!btn) {
+            return;
+        }
+        switch (btn.getAttribute('data-action')) {
+            case 'settings':
+                Events.emit('toggle-settings', 'general');
+                break;
+            case 'health':
+                Events.emit('show-password-health');
+                break;
+            case 'trash':
+                if (this.model.menu && this.model.menu.trashItem) {
+                    Events.emit('menu-select', { item: this.model.menu.trashItem });
+                }
+                break;
+            default:
+                break;
+        }
     }
 }
 

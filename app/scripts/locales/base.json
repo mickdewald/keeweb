@@ -361,6 +361,7 @@
   "pwHealthReusedCount": "Used {} times",
   "pwHealthOld": "Old",
   "pwHealthOldHint": "Not changed in {} years (Settings → Audit to change the threshold).",
+  "pwHealthNone": "None",
   "autoTypeMsgMatchedByWindow": "Select a password for {}",
   "autoTypeNoMatches": "no matches",
   "autoTypeSelectionHint": "Type the autotype sequence",

@@ -9,6 +9,7 @@ import { StringFormat } from 'util/formatting/string-format';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { Locale } from 'util/locale';
 import { DropdownView } from 'views/dropdown-view';
+import { createSortOptions } from 'views/list-search-sort-options';
 import template from 'templates/list-search.hbs';
 
 class ListSearchView extends View {
@@ -41,68 +42,7 @@ class ListSearchView extends View {
 
     constructor(model) {
         super(model);
-        this.sortOptions = [
-            {
-                value: 'title',
-                icon: 'sort-alpha-down',
-                loc: () =>
-                    StringFormat.capFirst(Locale.title) + ' ' + this.addArrow(Locale.searchAZ)
-            },
-            {
-                value: '-title',
-                icon: 'sort-alpha-down-alt',
-                loc: () =>
-                    StringFormat.capFirst(Locale.title) + ' ' + this.addArrow(Locale.searchZA)
-            },
-            {
-                value: 'website',
-                icon: 'sort-alpha-down',
-                loc: () =>
-                    StringFormat.capFirst(Locale.website) + ' ' + this.addArrow(Locale.searchAZ)
-            },
-            {
-                value: '-website',
-                icon: 'sort-alpha-down-alt',
-                loc: () =>
-                    StringFormat.capFirst(Locale.website) + ' ' + this.addArrow(Locale.searchZA)
-            },
-            {
-                value: 'user',
-                icon: 'sort-alpha-down',
-                loc: () => StringFormat.capFirst(Locale.user) + ' ' + this.addArrow(Locale.searchAZ)
-            },
-            {
-                value: '-user',
-                icon: 'sort-alpha-down-alt',
-                loc: () => StringFormat.capFirst(Locale.user) + ' ' + this.addArrow(Locale.searchZA)
-            },
-            {
-                value: 'created',
-                icon: 'sort-numeric-down',
-                loc: () => Locale.searchCreated + ' ' + this.addArrow(Locale.searchON)
-            },
-            {
-                value: '-created',
-                icon: 'sort-numeric-down-alt',
-                loc: () => Locale.searchCreated + ' ' + this.addArrow(Locale.searchNO)
-            },
-            {
-                value: 'updated',
-                icon: 'sort-numeric-down',
-                loc: () => Locale.searchUpdated + ' ' + this.addArrow(Locale.searchON)
-            },
-            {
-                value: '-updated',
-                icon: 'sort-numeric-down-alt',
-                loc: () => Locale.searchUpdated + ' ' + this.addArrow(Locale.searchNO)
-            },
-            {
-                value: '-attachments',
-                icon: 'sort-amount-down',
-                loc: () => Locale.searchAttachments
-            },
-            { value: '-rank', icon: 'sort-amount-down', loc: () => Locale.searchRank }
-        ];
+        this.sortOptions = createSortOptions();
         this.sortIcons = {};
         this.sortOptions.forEach((opt) => {
             this.sortIcons[opt.value] = opt.icon;
@@ -493,10 +433,6 @@ class ListSearchView extends View {
                     this.emit('create-entry', { template: this.entryTemplates[e.item] });
                 }
         }
-    }
-
-    addArrow(str) {
-        return str.replace('{}', '→');
     }
 
     fileListUpdated() {

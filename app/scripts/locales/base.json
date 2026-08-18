@@ -353,6 +353,7 @@
   "cmdPaletteNoMatch": "No matching entries",
   "cmdPaletteNoPassword": "This entry has no password to copy",
   "pwHealthTitle": "Password health",
+  "pwHealthShort": "Health",
   "pwHealthOk": "No weak, reused, or old passwords in the open files.",
   "pwHealthSummary": "{} weak · {} reused · {} old",
   "pwHealthWeak": "Weak",

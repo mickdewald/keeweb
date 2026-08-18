@@ -51,13 +51,13 @@
     </div>
     {{#if showQuickNav}}
     <div class="list__quick-nav">
-        <button type="button" class="list__quick-nav-btn" data-action="settings" title="{{res 'settings'}}">
+        <button type="button" class="list__quick-nav-btn" data-action="settings">
             <i class="fa fa-cog"></i><span>{{res 'settings'}}</span>
         </button>
-        <button type="button" class="list__quick-nav-btn" data-action="health" title="{{res 'pwHealthTitle'}}">
-            <i class="fa fa-exclamation-triangle"></i><span>{{res 'pwHealthTitle'}}</span>
+        <button type="button" class="list__quick-nav-btn" data-action="health">
+            <i class="fa fa-exclamation-triangle"></i><span>{{res 'pwHealthShort'}}</span>
         </button>
-        <button type="button" class="list__quick-nav-btn {{#if trashActive}}list__quick-nav-btn--active{{/if}}" data-action="trash" title="{{res 'menuTrash'}}">
+        <button type="button" class="list__quick-nav-btn {{#if trashActive}}list__quick-nav-btn--active{{/if}}" data-action="trash">
             <i class="fa fa-trash-alt"></i><span>{{res 'menuTrash'}}</span>
         </button>
     </div>

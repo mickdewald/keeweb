@@ -345,6 +345,7 @@
   "cmdPaletteNoMatch": "Keine passenden Einträge",
   "cmdPaletteNoPassword": "Dieser Eintrag hat kein Passwort zum Kopieren",
   "pwHealthTitle": "Passwort-Gesundheit",
+  "pwHealthShort": "Gesundheit",
   "pwHealthOk": "Keine schwachen, wiederverwendeten oder alten Passwörter in den offenen Dateien.",
   "pwHealthSummary": "{} schwach · {} wiederverwendet · {} alt",
   "pwHealthWeak": "Schwach",

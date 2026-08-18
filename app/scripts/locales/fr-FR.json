@@ -352,6 +352,7 @@
   "cmdPaletteNoMatch": "Aucune entrée correspondante",
   "cmdPaletteNoPassword": "Cette entrée n'a pas de mot de passe à copier",
   "pwHealthTitle": "Santé des mots de passe",
+  "pwHealthShort": "Santé",
   "pwHealthOk": "Aucun mot de passe faible, réutilisé ou ancien dans les fichiers ouverts.",
   "pwHealthSummary": "{} faibles · {} réutilisés · {} anciens",
   "pwHealthWeak": "Faible",

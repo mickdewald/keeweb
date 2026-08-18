@@ -719,6 +719,24 @@
                 color: var(--black-color);
             }
         }
+        &-entries {
+            display: inline;
+        }
+        &-entry {
+            display: inline;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: inherit;
+            font: inherit;
+            text-decoration: underline;
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+            &:hover {
+                opacity: 0.75;
+            }
+        }
         &-icon {
             padding: $medium-padding;
             width: 1em;

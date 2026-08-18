@@ -9,7 +9,16 @@
             <p class="details__issues-line">
                 {{#ifeq issue.type 'weak'}}{{res 'detIssueWeakPassword'}}{{/ifeq}}
                 {{#ifeq issue.type 'poor'}}{{res 'detIssuePoorPassword'}}{{/ifeq}}
-                {{#ifeq issue.type 'reused'}}{{#res 'detIssueReusedPassword'}}{{issue.count}}{{/res}}{{/ifeq}}
+                {{#ifeq issue.type 'reused'}}
+                    {{#res 'detIssueReusedPassword'}}{{issue.count}}{{/res}}
+                    {{#if issue.entries.length}}
+                        <span class="details__issues-entries">
+                            {{#each issue.entries as |entry|}}
+                                <button type="button" class="details__issues-entry" data-entry-id="{{entry.id}}">{{#if entry.title}}{{entry.title}}{{else}}({{res 'noTitle'}}){{/if}}{{#if entry.user}} · {{entry.user}}{{/if}}</button>{{#unless @last}}, {{/unless}}
+                            {{/each}}
+                        </span>
+                    {{/if}}
+                {{/ifeq}}
                 {{#ifeq issue.type 'old'}}{{#res 'detIssueOldPassword'}}{{issue.years}}{{/res}}{{/ifeq}}
                 {{#ifeq issue.type 'pwned'}}{{#res 'detIssuePwnedPassword'}}<a href="{{../hibpLink}}" rel="noreferrer noopener" target="_blank">Have I Been Pwned</a>{{/res}}{{/ifeq}}
                 {{#ifeq issue.type 'error'}}{{res 'detIssuePasswordCheckError'}}{{/ifeq}}

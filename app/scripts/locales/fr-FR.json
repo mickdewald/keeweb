@@ -335,7 +335,7 @@
   "detIssuePwnedPassword": "Ce mot de passe a été exposé à une faille selon {}, il est recommandé de le changer",
   "detIssuePasswordCheckError": "Une erreur est survenue en vérifiant la force du mot de passe en ligne",
   "detIssueOldPassword": "Ce mot de passe n'a pas été modifié depuis {} ans.",
-  "detIssueReusedPassword": "Ce mot de passe est réutilisé dans {} entrées.",
+  "detIssueReusedPassword": "Ce mot de passe est réutilisé dans {} entrées :",
   "detIssueCloseAlertHeader": "Cacher les problèmes de mots de passe",
   "detIssueCloseAlertBody": "Il y a plusieurs façon de cacher ce message :",
   "detIssueCloseAlertEntry": "Ne plus montrer pour cette entrée",

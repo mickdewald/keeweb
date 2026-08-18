@@ -120,6 +120,8 @@ describe('password audit', () => {
         });
         expect(issues.map((issue) => issue.type)).to.eql(['reused', 'old']);
         expect(issues[0].count).to.eql(2);
+        expect(issues[0].entries.map((item) => item.id)).to.eql(['reused-b']);
+        expect(issues[0].entries[0].title).to.eql('Shop');
         expect(issues[1].years).to.eql(2);
     });
 });

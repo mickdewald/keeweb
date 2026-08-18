@@ -130,20 +130,24 @@ function collectPasswordIssueIds(files, settings) {
     return ids;
 }
 
-function countPasswordReuse(entry, files) {
+function findReusedEntries(entry, files) {
+    const others = [];
     if (!isAuditable(entry)) {
-        return 0;
+        return others;
     }
-    let count = 0;
     for (const other of collectEntries(files)) {
-        if (!isAuditable(other)) {
+        if (!other || other.id === entry.id || !isAuditable(other)) {
             continue;
         }
         if (entry.password.equals(other.password)) {
-            count++;
+            others.push({
+                id: other.id,
+                title: other.title || '',
+                user: other.user || ''
+            });
         }
     }
-    return count;
+    return others;
 }
 
 function describePasswordIssues(entry, files, settings = {}) {
@@ -163,9 +167,13 @@ function describePasswordIssues(entry, files, settings = {}) {
     } else if (auditEntropy && strength.level < PasswordStrengthLevel.Good) {
         issues.push({ type: 'weak' });
     }
-    const reuseCount = countPasswordReuse(entry, files);
-    if (reuseCount > 1) {
-        issues.push({ type: 'reused', count: reuseCount });
+    const reused = findReusedEntries(entry, files);
+    if (reused.length) {
+        issues.push({
+            type: 'reused',
+            count: reused.length + 1,
+            entries: reused
+        });
     }
     if (isOldPassword(entry, oldYears)) {
         issues.push({ type: 'old', years: oldYears });

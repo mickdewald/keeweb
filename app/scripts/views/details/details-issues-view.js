@@ -12,7 +12,10 @@ import { checkIfPasswordIsExposedOnline } from 'comp/app/online-password-checker
 
 function issuesKey(issues) {
     return (issues || [])
-        .map((issue) => `${issue.type}:${issue.count || ''}:${issue.years || ''}`)
+        .map((issue) => {
+            const extra = (issue.entries || []).map((entry) => entry.id).join(',');
+            return `${issue.type}:${issue.count || ''}:${issue.years || ''}:${extra}`;
+        })
         .join('|');
 }
 
@@ -22,7 +25,8 @@ class DetailsIssuesView extends View {
     template = template;
 
     events = {
-        'click .details__issues-close-btn': 'closeIssuesClick'
+        'click .details__issues-close-btn': 'closeIssuesClick',
+        'click .details__issues-entry': 'reusedEntryClick'
     };
 
     passwordIssues = [];
@@ -140,6 +144,43 @@ class DetailsIssuesView extends View {
 
     openAuditSettings() {
         Events.emit('toggle-settings', 'general', 'audit');
+    }
+
+    reusedEntryClick(e) {
+        e.preventDefault();
+        const link = e.target.closest('.details__issues-entry');
+        if (!link) {
+            return;
+        }
+        const id = link.getAttribute('data-entry-id');
+        const entry = this.findEntryById(id);
+        if (!entry || !AppModel.instance) {
+            return;
+        }
+        const visible = AppModel.instance.getEntries();
+        if (!visible.get(id)) {
+            AppModel.instance.setFilter({});
+        }
+        Events.emit('select-entry', entry);
+    }
+
+    findEntryById(id) {
+        const files = AppModel.instance && AppModel.instance.files;
+        if (!files || !id) {
+            return null;
+        }
+        let found = null;
+        files.forEach((file) => {
+            if (found || typeof file.forEachEntry !== 'function') {
+                return;
+            }
+            file.forEachEntry({}, (entry) => {
+                if (!found && entry.id === id) {
+                    found = entry;
+                }
+            });
+        });
+        return found;
     }
 }
 

@@ -336,7 +336,7 @@
   "detIssuePwnedPassword": "This password has been exposed in a data breach according to {}, it's recommended to change it.",
   "detIssuePasswordCheckError": "There was an error checking password strength online.",
   "detIssueOldPassword": "The password has not been changed in {} years.",
-  "detIssueReusedPassword": "This password is reused on {} entries.",
+  "detIssueReusedPassword": "This password is reused on {} entries:",
   "detIssueCloseAlertHeader": "Hide password issues",
   "detIssueCloseAlertBody": "There are different ways you can hide this warning:",
   "detIssueCloseAlertEntry": "Don't show for this entry",

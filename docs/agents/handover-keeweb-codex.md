@@ -29,10 +29,12 @@ Letzter Lauf: 112 passing.
 Deploy (beendet die App hart, ungespeicherte kdbx-Änderungen sind weg):
 
 ```sh
-./scripts/dev/build-macos-touchid-agent.sh --deploy-path /Applications/KeeWeb-Codex.app --no-backup
+./scripts/dev/build-macos-touchid-agent.sh
 ```
 
-Nie nach `/Applications/KeeWeb.app`. Das Deploy-Skript lintet (Prettier) und bricht bei Fehlern ab.
+Nie nach `/Applications/KeeWeb.app`. Das Deploy-Skript ersetzt `/Applications/KeeWeb-Codex.app`
+standardmäßig ohne App-Bundle-Backup, lintet (Prettier) und bricht bei Fehlern ab. Ein Backup ist
+nur als bewusstes Opt-in mit `--backup` erlaubt.
 
 Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Datei im Browser öffnen.
 

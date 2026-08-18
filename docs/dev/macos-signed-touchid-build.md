@@ -41,7 +41,7 @@ If `keys/keeweb.provisionprofile` is missing on this machine, copy it from the w
 
 ```bash
 mkdir -p keys
-cp /Applications/KeeWeb.app/Contents/embedded.provisionprofile keys/keeweb.provisionprofile
+cp /Applications/KeeWeb-Codex.app/Contents/embedded.provisionprofile keys/keeweb.provisionprofile
 ```
 
 Minimal `keys/codesign.json` example:
@@ -82,14 +82,14 @@ tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app
 
 ## Deploy for testing
 
-Always replace the target app atomically (no merge copy):
+Use the canonical script. It replaces `/Applications/KeeWeb-Codex.app` without leaving a timestamped
+app backup behind:
 
 ```bash
-rm -rf /Applications/KeeWeb-Codex.app
-ditto tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app /Applications/KeeWeb-Codex.app
-xattr -cr /Applications/KeeWeb-Codex.app
-open -n /Applications/KeeWeb-Codex.app
+scripts/dev/build-macos-touchid-agent.sh
 ```
+
+For an exceptional recovery workflow, explicitly opt in with `--backup`.
 
 ## Verification checklist
 

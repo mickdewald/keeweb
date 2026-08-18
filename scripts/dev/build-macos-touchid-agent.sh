@@ -11,7 +11,7 @@ Options:
   --deploy-path <path>   Target app path (default: /Applications/KeeWeb-Codex.app)
   --skip-build           Skip build/sign, only deploy from existing tmp build app
   --skip-deploy          Build/sign only, do not copy to /Applications
-  --no-backup            Replace the target app without creating a backup
+  --backup               Back up the installed app before replacing it
   --no-open              Do not open app after deploy
   -h, --help             Show this help
 EOF
@@ -27,7 +27,7 @@ require_cmd() {
 DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb-Codex.app}"
 DO_BUILD=1
 DO_DEPLOY=1
-BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-1}"
+BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-0}"
 OPEN_AFTER_DEPLOY=1
 
 while [[ $# -gt 0 ]]; do
@@ -44,8 +44,8 @@ while [[ $# -gt 0 ]]; do
             DO_DEPLOY=0
             shift
             ;;
-        --no-backup)
-            BACKUP_ON_DEPLOY=0
+        --backup)
+            BACKUP_ON_DEPLOY=1
             shift
             ;;
         --no-open)

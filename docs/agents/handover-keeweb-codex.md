@@ -82,10 +82,9 @@ Bewusst offen gelassen: Backup-Namenskollision bei gleichnamigen kdbx in verschi
 
 ## Offen / Ideen (grob priorisiert)
 
-1. **Cmd+K Schnellsuche** (Command-Palette: tippen → Enter → kopiert)
-2. **TOTP prominenter** (Code groß, Countdown-Ring, One-Click-Copy)
-3. **Generator-Popover** modernisieren (heißt im Workspace-Menü „Generate“)
-4. Passwort-Health-Übersicht (schwach/wiederverwendet/alt)
-5. Vibrancy-Feinschliff (gut, aber noch nicht ChatGPT-Niveau)
+1. **Passwort-Health-Übersicht** (schwach/wiederverwendet/alt) — NÄCHSTER GROSSER PUNKT
+2. **Vibrancy-Feinschliff** (Screenshot-Runden mit Mick; „wunderschön" ist es laut Mick noch nicht)
+3. ERLEDIGT: Cmd+K Spotlight-Palette (resizable, cmdPaletteWidth), Generator-Popover (Chips, Stärke-Balken)
+4. TOTP prominenter — von Mick als nicht relevant markiert
 6. ERLEDIGT: Ein-Sidebar-Layout, eingefärbte Passwort-Zeichen (auch im Edit-Feld)
 7. Electron: 13 → 22 → 43 ERLEDIGT (@electron/remote; USB/YubiKey hart deaktiviert — usb-detection ist nicht N-API). Native Module (secure-enclave/Touch ID, keytar, argon2) sind N-API/ABI-stabil — kein Rebuild bei Sprüngen. Nach Electron-Sprüngen fragt macOS Keychain-Freigaben einmalig neu ab. Settings-Key läuft seit 656e30da über safeStorage (settings-key.bin, keytar nur noch Fallback). Bumps via scripts/dev/update-electron.sh. contextIsolation-Refactor bewusst GESTRICHEN (Aufwand 3-5 Sessions, kein praktischer Gewinn für private Einzelplatz-App — Entscheidung mit Mick am 2026-08-17). WICHTIG: Nach node_modules-Wechsel den Dev-Server neu starten, sonst mischt Webpack alte/neue Modulpfade (doppelte Handlebars-Instanz, Helper fehlen).

@@ -1,42 +1,68 @@
-let perfTimestamps = [{ name: 'pre-init', ts: process.hrtime() }];
-
 if (process.send && process.argv.includes('--native-module-host')) {
     require('./native-module-host').startInOwnProcess();
     return;
 }
+
+const {
+    pushPerfTimestamp,
+    logProgress,
+    logStartupMessage,
+    reportStartProfile
+} = require('./scripts/startup-profile');
 
 const electron = require('electron');
 const remoteMain = require('@electron/remote/main');
 const path = require('path');
 
 remoteMain.initialize();
-const fs = require('fs');
 const url = require('url');
 
+const { context } = require('./scripts/context');
+const { emitRemoteEvent } = require('./scripts/remote-events');
 const { locale, setLocale, getLocaleValues } = require('./scripts/locale');
 const { Logger } = require('./scripts/logger');
 const { isDev } = require('./scripts/util/app-info');
+const {
+    setUserDataPaths,
+    setEnv,
+    setDevAppIcon,
+    hookRequestHeaders
+} = require('./scripts/startup-env');
+const {
+    setConfigEncryptionKey,
+    getAppMainRoot,
+    getAppContentRoot,
+    loadSettingsEncryptionKey,
+    loadConfig,
+    saveConfig
+} = require('./scripts/config-store');
+const {
+    setMainWindowMaximized,
+    delaySaveMainWindowPosition,
+    updateMainWindowPositionIfPending,
+    saveMainWindowPosition,
+    restoreMainWindowPosition,
+    coerceMainWindowPositionToConnectedDisplay
+} = require('./scripts/window-position');
+const {
+    hasAppIcon,
+    minimizeApp,
+    minimizeThenHideIfInTray,
+    restoreMainWindow,
+    showAndFocusMainWindow
+} = require('./scripts/tray');
+const { setGlobalShortcuts, subscribePowerEvents } = require('./scripts/global-shortcuts');
+const { setMenu, onContextMenu } = require('./scripts/app-menu');
+const { httpRequest } = require('./scripts/http-request');
 
-perfTimestamps?.push({ name: 'loading app requires', ts: process.hrtime() });
+pushPerfTimestamp('loading app requires');
 
 const main = electron.app;
 const logger = new Logger('remote-app');
 
-let mainWindow = null;
-let appIcon = null;
 let ready = false;
 let appReady = false;
 let pendingUpdateFilePath;
-let mainWindowPosition = {};
-let updateMainWindowPositionTimeout = null;
-let mainWindowMaximized = false;
-
-const windowPositionFileName = 'window-position.json';
-const portableConfigFileName = 'keeweb-portable.json';
-
-const startupLogging =
-    process.argv.some((arg) => arg.startsWith('--startup-logging')) ||
-    process.env.KEEWEB_STARTUP_LOGGING === '1';
 
 const gotTheLock = main.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -44,9 +70,6 @@ if (!gotTheLock) {
 }
 
 logProgress('single instance lock');
-
-let usingPortableUserDataDir = false;
-let execPath;
 
 setUserDataPaths();
 
@@ -90,13 +113,12 @@ const defaultBgColor = '#282C34';
 logProgress('defining args');
 
 setEnv();
-setDevAppIcon();
+setDevAppIcon(htmlPath);
 
-let configEncryptionKey;
 let appSettings;
 
 const settingsPromise = loadSettingsEncryptionKey().then((key) => {
-    configEncryptionKey = key;
+    setConfigEncryptionKey(key);
     logProgress('loading settings key');
 
     return loadConfig('app-settings').then((settings) => {
@@ -146,15 +168,15 @@ main.on('open-file', (e, path) => {
 });
 main.on('activate', () => {
     if (process.platform === 'darwin') {
-        if (appReady && !mainWindow && appSettings) {
+        if (appReady && !context.mainWindow && appSettings) {
             createMainWindow();
-        } else if (appIcon) {
+        } else if (hasAppIcon()) {
             restoreMainWindow();
         }
     }
 });
 main.on('before-quit', (e) => {
-    if (main.hookBeforeQuitEvent && mainWindow) {
+    if (main.hookBeforeQuitEvent && context.mainWindow) {
         e.preventDefault();
         emitRemoteEvent('launcher-before-quit');
     }
@@ -163,7 +185,7 @@ main.on('will-quit', () => {
     electron.globalShortcut.unregisterAll();
 });
 main.on('second-instance', () => {
-    if (mainWindow) {
+    if (context.mainWindow) {
         restoreMainWindow();
     }
 });
@@ -182,48 +204,15 @@ main.on('web-contents-created', (event, contents) => {
 });
 main.restartAndUpdate = function (updateFilePath) {
     pendingUpdateFilePath = updateFilePath;
-    mainWindow.close();
+    context.mainWindow.close();
     setTimeout(() => {
         pendingUpdateFilePath = undefined;
     }, 1000);
 };
-main.minimizeApp = function (menuItemLabels) {
-    let imagePath;
-    // a workaround to correctly restore focus on windows platform
-    // without this workaround, focus is not restored to the previously focused field
-    if (process.platform === 'win32') {
-        mainWindow.minimize();
-    }
-    mainWindow.hide();
-    if (process.platform === 'darwin') {
-        main.dock.hide();
-        imagePath = 'macOS-MenubarTemplate.png';
-    } else {
-        imagePath = 'icon.png';
-    }
-    mainWindow.setSkipTaskbar(true);
-    if (!appIcon) {
-        const image = electron.nativeImage.createFromPath(path.join(__dirname, 'img', imagePath));
-        appIcon = new electron.Tray(image);
-        if (process.platform !== 'darwin') {
-            appIcon.on('click', restoreMainWindow);
-        }
-        const contextMenu = electron.Menu.buildFromTemplate([
-            { label: menuItemLabels.restore, click: restoreMainWindow },
-            { label: menuItemLabels.quit, click: closeMainWindow }
-        ]);
-        appIcon.setContextMenu(contextMenu);
-        appIcon.setToolTip('KeeWeb');
-    }
-};
-main.minimizeThenHideIfInTray = function () {
-    // This function is called when auto-type has displayed a selection list and a selection was made.
-    // To ensure focus returns to the previous window we must minimize first even if we're going to hide.
-    mainWindow.minimize();
-    if (appIcon) mainWindow.hide();
-};
+main.minimizeApp = minimizeApp;
+main.minimizeThenHideIfInTray = minimizeThenHideIfInTray;
 main.getMainWindow = function () {
-    return mainWindow;
+    return context.mainWindow;
 };
 main.setHookBeforeQuitEvent = (hooked) => {
     main.hookBeforeQuitEvent = !!hooked;
@@ -235,18 +224,6 @@ main.saveConfig = saveConfig;
 main.getAppMainRoot = getAppMainRoot;
 main.getAppContentRoot = getAppContentRoot;
 main.httpRequest = httpRequest;
-
-function logProgress(name) {
-    perfTimestamps?.push({ name, ts: process.hrtime() });
-    logStartupMessage(name);
-}
-
-function logStartupMessage(msg) {
-    if (startupLogging) {
-        // eslint-disable-next-line no-console
-        console.log('[startup]', msg);
-    }
-}
 
 function checkSettingsTheme(theme) {
     // old settings migration
@@ -315,7 +292,8 @@ function createMainWindow() {
     if (isMac) {
         windowOptions.vibrancy = 'sidebar';
     }
-    mainWindow = new electron.BrowserWindow(windowOptions);
+    const mainWindow = new electron.BrowserWindow(windowOptions);
+    context.mainWindow = mainWindow;
     remoteMain.enable(mainWindow.webContents);
     logProgress('creating main window');
 
@@ -345,18 +323,18 @@ function createMainWindow() {
     mainWindow.on('focus', mainWindowFocus);
     mainWindow.on('blur', mainWindowBlur);
     mainWindow.on('closed', () => {
-        mainWindow = null;
+        context.mainWindow = null;
         saveMainWindowPosition();
     });
     mainWindow.on('minimize', () => {
         emitRemoteEvent('launcher-minimize');
     });
     mainWindow.on('maximize', () => {
-        mainWindowMaximized = true;
+        setMainWindowMaximized(true);
         emitRemoteEvent('launcher-maximize');
     });
     mainWindow.on('unmaximize', () => {
-        mainWindowMaximized = false;
+        setMainWindowMaximized(false);
         emitRemoteEvent('launcher-unmaximize');
     });
     mainWindow.on('leave-full-screen', () => {
@@ -372,117 +350,6 @@ function createMainWindow() {
 
     restoreMainWindowPosition();
     logProgress('restoring main window position');
-}
-
-function restoreMainWindow() {
-    if (process.platform === 'darwin' && !main.dock.isVisible()) {
-        main.dock.show();
-    }
-    if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-    }
-    mainWindow.setSkipTaskbar(false);
-    mainWindow.show();
-    coerceMainWindowPositionToConnectedDisplay();
-    setTimeout(destroyAppIcon, 0);
-}
-
-function showAndFocusMainWindow() {
-    if (appIcon) {
-        restoreMainWindow();
-    }
-    if (mainWindowMaximized) {
-        mainWindow.maximize();
-    } else {
-        mainWindow.show();
-    }
-    mainWindow.focus();
-    if (process.platform === 'darwin' && !main.dock.isVisible()) {
-        main.dock.show();
-    }
-}
-
-function closeMainWindow() {
-    emitRemoteEvent('launcher-exit-request');
-    setTimeout(destroyAppIcon, 0);
-}
-
-function destroyAppIcon() {
-    if (appIcon) {
-        appIcon.destroy();
-        appIcon = null;
-    }
-}
-
-function delaySaveMainWindowPosition() {
-    if (updateMainWindowPositionTimeout) {
-        clearTimeout(updateMainWindowPositionTimeout);
-    }
-    updateMainWindowPositionTimeout = setTimeout(updateMainWindowPosition, 500);
-}
-
-function updateMainWindowPositionIfPending() {
-    if (updateMainWindowPositionTimeout) {
-        clearTimeout(updateMainWindowPositionTimeout);
-        updateMainWindowPosition();
-    }
-}
-
-function updateMainWindowPosition() {
-    if (!mainWindow) {
-        return;
-    }
-    updateMainWindowPositionTimeout = null;
-    const bounds = mainWindow.getBounds();
-    if (!mainWindow.isMaximized() && !mainWindow.isMinimized() && !mainWindow.isFullScreen()) {
-        mainWindowPosition.x = bounds.x;
-        mainWindowPosition.y = bounds.y;
-        mainWindowPosition.width = bounds.width;
-        mainWindowPosition.height = bounds.height;
-    }
-    mainWindowPosition.maximized = mainWindow.isMaximized();
-    mainWindowPosition.fullScreen = mainWindow.isFullScreen();
-    mainWindowPosition.changed = true;
-}
-
-function saveMainWindowPosition() {
-    if (!mainWindowPosition.changed) {
-        return;
-    }
-    delete mainWindowPosition.changed;
-    try {
-        fs.writeFileSync(
-            path.join(main.getPath('userData'), windowPositionFileName),
-            JSON.stringify(mainWindowPosition),
-            'utf8'
-        );
-    } catch (e) {}
-}
-
-function restoreMainWindowPosition() {
-    const fileName = path.join(main.getPath('userData'), windowPositionFileName);
-    fs.readFile(fileName, 'utf8', (e, data) => {
-        if (data) {
-            try {
-                mainWindowPosition = JSON.parse(data);
-            } catch (e) {
-                logStartupMessage(`Error loading main window position: ${e}`);
-            }
-            if (mainWindow && mainWindowPosition) {
-                if (mainWindowPosition.width && mainWindowPosition.height) {
-                    mainWindow.setBounds(mainWindowPosition);
-                    coerceMainWindowPositionToConnectedDisplay();
-                }
-                if (mainWindowPosition.maximized) {
-                    mainWindow.maximize();
-                    mainWindowMaximized = true;
-                }
-                if (mainWindowPosition.fullScreen) {
-                    mainWindow.setFullScreen(true);
-                }
-            }
-        }
-    });
 }
 
 function mainWindowBlur() {
@@ -501,103 +368,13 @@ function mainWindowClosed() {
     main.removeAllListeners('remote-app-event');
 }
 
-function emitRemoteEvent(e, arg) {
-    if (mainWindow && mainWindow.webContents) {
-        main.emit('remote-app-event', {
-            name: e,
-            data: arg
-        });
-    }
-}
-
-function setMenu() {
-    if (process.platform === 'darwin') {
-        const name = require('electron').app.name;
-        const template = [
-            {
-                label: name,
-                submenu: [
-                    { role: 'about', label: locale.sysMenuAboutKeeWeb?.replace('{}', 'KeeWeb') },
-                    { type: 'separator' },
-                    { role: 'services', submenu: [], label: locale.sysMenuServices },
-                    { type: 'separator' },
-                    {
-                        accelerator: 'Command+H',
-                        role: 'hide',
-                        label: locale.sysMenuHide?.replace('{}', 'KeeWeb')
-                    },
-                    {
-                        accelerator: 'Command+Shift+H',
-                        role: 'hideothers',
-                        label: locale.sysMenuHideOthers
-                    },
-                    { role: 'unhide', label: locale.sysMenuUnhide },
-                    { type: 'separator' },
-                    {
-                        role: 'quit',
-                        accelerator: 'Command+Q',
-                        label: locale.sysMenuQuit?.replace('{}', 'KeeWeb')
-                    }
-                ]
-            },
-            {
-                label: locale.sysMenuEdit || 'Edit',
-                submenu: [
-                    { accelerator: 'CmdOrCtrl+Z', role: 'undo', label: locale.sysMenuUndo },
-                    { accelerator: 'Shift+CmdOrCtrl+Z', role: 'redo', label: locale.sysMenuRedo },
-                    { type: 'separator' },
-                    { accelerator: 'CmdOrCtrl+X', role: 'cut', label: locale.sysMenuCut },
-                    { accelerator: 'CmdOrCtrl+C', role: 'copy', label: locale.sysMenuCopy },
-                    { accelerator: 'CmdOrCtrl+V', role: 'paste', label: locale.sysMenuPaste },
-                    {
-                        accelerator: 'CmdOrCtrl+A',
-                        role: 'selectall',
-                        label: locale.sysMenuSelectAll
-                    }
-                ]
-            },
-            {
-                label: locale.sysMenuWindow || 'Window',
-                submenu: [
-                    { accelerator: 'CmdOrCtrl+M', role: 'minimize', label: locale.sysMenuMinimize },
-                    { accelerator: 'Command+W', role: 'close', label: locale.sysMenuClose }
-                ]
-            }
-        ];
-        const menu = electron.Menu.buildFromTemplate(template);
-        electron.Menu.setApplicationMenu(menu);
-    } else {
-        mainWindow.setMenuBarVisibility(false);
-        mainWindow.setMenu(null);
-        electron.Menu.setApplicationMenu(null);
-    }
-}
-
-function onContextMenu(e, props) {
-    if (props.inputFieldType !== 'plainText' || !props.isEditable) {
-        return;
-    }
-    const Menu = electron.Menu;
-    const inputMenu = Menu.buildFromTemplate([
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { type: 'separator' },
-        { role: 'selectall' }
-    ]);
-    inputMenu.popup(mainWindow);
-}
-
 function notifyOpenFile() {
-    if (ready && openFile && mainWindow) {
+    if (ready && openFile && context.mainWindow) {
         const openKeyfile = process.argv
             .filter((arg) => arg.startsWith('--keyfile='))
             .map((arg) => arg.replace('--keyfile=', ''))[0];
         const fileInfo = JSON.stringify({ data: openFile, key: openKeyfile });
-        mainWindow.webContents.executeJavaScript(
+        context.mainWindow.webContents.executeJavaScript(
             'if (window.launcherOpen) { window.launcherOpen(' +
                 fileInfo +
                 '); } ' +
@@ -607,381 +384,6 @@ function notifyOpenFile() {
         );
         openFile = null;
     }
-}
-
-function setGlobalShortcuts(appSettings) {
-    const defaultShortcutModifiers = process.platform === 'darwin' ? 'Ctrl+Alt+' : 'Shift+Alt+';
-    const defaultShortcuts = {
-        AutoType: { shortcut: defaultShortcutModifiers + 'T', event: 'auto-type' },
-        CopyPassword: { shortcut: defaultShortcutModifiers + 'C', event: 'copy-password' },
-        CopyUser: { shortcut: defaultShortcutModifiers + 'B', event: 'copy-user' },
-        CopyUrl: { shortcut: defaultShortcutModifiers + 'U', event: 'copy-url' },
-        CopyOtp: { event: 'copy-otp' },
-        RestoreApp: { action: restoreMainWindow }
-    };
-    electron.globalShortcut.unregisterAll();
-    for (const [key, shortcutDef] of Object.entries(defaultShortcuts)) {
-        const fromSettings = appSettings[`globalShortcut${key}`];
-        const shortcut = fromSettings || shortcutDef.shortcut;
-        if (shortcut) {
-            try {
-                electron.globalShortcut.register(shortcut, () => {
-                    if (shortcutDef.event) {
-                        emitRemoteEvent(shortcutDef.event);
-                    }
-                    if (shortcutDef.action) {
-                        shortcutDef.action();
-                    }
-                });
-            } catch (e) {}
-        }
-    }
-    logProgress('setting global shortcuts');
-}
-
-function subscribePowerEvents() {
-    electron.powerMonitor.on('suspend', () => {
-        emitRemoteEvent('power-monitor-suspend');
-    });
-    electron.powerMonitor.on('resume', () => {
-        emitRemoteEvent('power-monitor-resume');
-    });
-    electron.powerMonitor.on('lock-screen', () => {
-        emitRemoteEvent('os-lock');
-    });
-    logProgress('subscribing to power events');
-}
-
-function setUserDataPaths() {
-    execPath = process.execPath;
-
-    let isPortable = false;
-
-    switch (process.platform) {
-        case 'darwin':
-            isPortable = !execPath.includes('/Applications/');
-            if (isPortable) {
-                execPath = execPath.substring(0, execPath.indexOf('.app'));
-            }
-            break;
-        case 'win32':
-            isPortable = !execPath.includes('Program Files');
-            break;
-        case 'linux':
-            isPortable = !execPath.startsWith('/usr/') && !execPath.startsWith('/opt/');
-            break;
-    }
-
-    if (isDev && process.env.KEEWEB_IS_PORTABLE) {
-        try {
-            isPortable = !!JSON.parse(process.env.KEEWEB_IS_PORTABLE);
-        } catch {}
-    }
-
-    logProgress('portable check');
-
-    if (isPortable) {
-        const portableConfigDir = path.dirname(execPath);
-        const portableConfigPath = path.join(portableConfigDir, portableConfigFileName);
-
-        if (fs.existsSync(portableConfigPath)) {
-            try {
-                const portableConfig = JSON.parse(fs.readFileSync(portableConfigPath, 'utf8'));
-                const portableUserDataDir = path.resolve(
-                    portableConfigDir,
-                    portableConfig.userDataDir
-                );
-
-                if (!fs.existsSync(portableUserDataDir)) {
-                    fs.mkdirSync(portableUserDataDir, { recursive: true });
-                }
-
-                main.setPath('userData', portableUserDataDir);
-                usingPortableUserDataDir = true;
-            } catch (e) {
-                logStartupMessage(`Error loading portable config: ${e}`);
-            }
-        }
-    }
-
-    logProgress('userdata dir');
-}
-
-function setEnv() {
-    if (
-        process.platform === 'linux' &&
-        ['Pantheon', 'Unity:Unity7'].indexOf(process.env.XDG_CURRENT_DESKTOP) !== -1
-    ) {
-        // https://github.com/electron/electron/issues/9046
-        process.env.XDG_CURRENT_DESKTOP = 'Unity';
-    }
-
-    main.commandLine.appendSwitch('disable-background-timer-throttling');
-
-    // disable all caching, since we're not using old profile data anyway
-    main.commandLine.appendSwitch('disable-http-cache');
-    main.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
-
-    if (process.platform === 'linux') {
-        // fixes colors on Linux, see #1621
-        main.commandLine.appendSwitch('force-color-profile', 'srgb');
-    }
-
-    main.allowRendererProcessReuse = true;
-
-    logProgress('setting env');
-}
-
-function setDevAppIcon() {
-    if (isDev && htmlPath && process.platform === 'darwin') {
-        const icon = electron.nativeImage.createFromPath(
-            path.join(__dirname, '../graphics/512x512.png')
-        );
-        main.dock.setIcon(icon);
-    }
-}
-
-// When sending a PUT XMLHttpRequest Chromium includes the header "Origin: file://".
-// This confuses some WebDAV clients, notably OwnCloud.
-// The header is invalid, so removing it everywhere it occurs should do no harm.
-
-function hookRequestHeaders() {
-    electron.session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-        if (
-            !details.url.startsWith('ws:') &&
-            !details.url.startsWith('https://plugins.keeweb.info/')
-        ) {
-            delete details.requestHeaders.Origin;
-        }
-        callback({ requestHeaders: details.requestHeaders });
-    });
-    logProgress('setting request handlers');
-}
-
-// If a display is disconnected while KeeWeb is minimized, Electron does not
-// ensure that the restored window appears on a display that is still connected.
-// This checks to be sure the title bar is somewhere the user can grab it,
-// without making it impossible to minimize and restore a window keeping it
-// partially off-screen or straddling two displays if the user desires that.
-
-function coerceMainWindowPositionToConnectedDisplay() {
-    const eScreen = electron.screen;
-    const displays = eScreen.getAllDisplays();
-    if (!displays || !displays.length) return;
-    const windowBounds = mainWindow.getBounds();
-    const contentBounds = mainWindow.getContentBounds();
-    const tbLeft = windowBounds.x;
-    const tbRight = windowBounds.x + windowBounds.width;
-    const tbTop = windowBounds.y;
-    const tbBottom = contentBounds.y;
-    // 160px width and 2/3s the title bar height should be enough that the user can grab it
-    for (let i = 0; i < displays.length; ++i) {
-        const workArea = displays[i].workArea;
-        const overlapWidth =
-            Math.min(tbRight, workArea.x + workArea.width) - Math.max(tbLeft, workArea.x);
-        const overlapHeight =
-            Math.min(tbBottom, workArea.y + workArea.height) - Math.max(tbTop, workArea.y);
-        if (overlapWidth >= 160 && 3 * overlapHeight >= 2 * (tbBottom - tbTop)) return;
-    }
-    // If we get here, no display contains a big enough strip of the title bar
-    // that we can be confident the user can drag it into visibility.  Rather than
-    // attempt to guess what the user wants, just center it on the primary display.
-    // Try to keep the previous height and width, but clamp each to 90% of the workarea.
-    const workArea = eScreen.getPrimaryDisplay().workArea;
-    const newWidth = Math.min(windowBounds.width, Math.floor(0.9 * workArea.width));
-    const newHeight = Math.min(windowBounds.height, Math.floor(0.9 * workArea.height));
-    mainWindow.setBounds({
-        'x': workArea.x + Math.floor((workArea.width - newWidth) / 2),
-        'y': workArea.y + Math.floor((workArea.height - newHeight) / 2),
-        'width': newWidth,
-        'height': newHeight
-    });
-    updateMainWindowPosition();
-}
-
-function reportStartProfile() {
-    if (!perfTimestamps) {
-        return;
-    }
-
-    const processCreationTime = process.getCreationTime();
-    const totalTime = Math.round(Date.now() - processCreationTime);
-    let lastTs = 0;
-    const timings = perfTimestamps
-        .map((milestone) => {
-            const ts = milestone.ts;
-            const elapsed = lastTs
-                ? Math.round((ts[0] - lastTs[0]) * 1e3 + (ts[1] - lastTs[1]) / 1e6)
-                : 0;
-            lastTs = ts;
-            return {
-                name: milestone.name,
-                elapsed
-            };
-        })
-        .slice(1);
-
-    perfTimestamps = undefined;
-
-    const startProfile = { totalTime, timings };
-    emitRemoteEvent('start-profile', startProfile);
-}
-
-function getAppMainRoot() {
-    if (isDev) {
-        return __dirname;
-    } else {
-        return require.main.path;
-    }
-}
-
-function getAppContentRoot() {
-    return __dirname;
-}
-
-function reqNative(mod) {
-    const fileName = `${mod}-${process.platform}-${process.arch}.node`;
-
-    const modulePath = `../node_modules/@keeweb/keeweb-native-modules/${fileName}`;
-    const fullPath = path.join(getAppMainRoot(), modulePath);
-
-    return require(fullPath);
-}
-
-function loadSettingsEncryptionKey() {
-    return Promise.resolve().then(() => {
-        if (usingPortableUserDataDir) {
-            return null;
-        }
-
-        // safeStorage needs the app to be ready
-        return main.whenReady().then(() => {
-            const { safeStorage } = electron;
-            if (!safeStorage.isEncryptionAvailable()) {
-                logStartupMessage('safeStorage unavailable, falling back to keytar');
-                return loadSettingsEncryptionKeyFromKeytar();
-            }
-
-            const keyFilePath = path.join(main.getPath('userData'), 'settings-key.bin');
-            if (fs.existsSync(keyFilePath)) {
-                try {
-                    const hex = safeStorage.decryptString(fs.readFileSync(keyFilePath));
-                    fs.chmodSync(keyFilePath, 0o600);
-                    return Buffer.from(hex, 'hex');
-                } catch (e) {
-                    // corrupted or written by another keychain state: fall through to keytar
-                    logStartupMessage(`Error reading settings key file, trying keytar: ${e}`);
-                }
-            }
-
-            // migrate the key from keytar, or create a fresh one on first run
-            return loadSettingsEncryptionKeyFromKeytar().then((key) => {
-                let keyPromise;
-                if (key) {
-                    keyPromise = Promise.resolve(key);
-                } else {
-                    key = require('crypto').randomBytes(48);
-                    keyPromise = migrateOldConfigs(key).then(() => key);
-                }
-                return keyPromise.then((key) => {
-                    try {
-                        fs.writeFileSync(
-                            keyFilePath,
-                            safeStorage.encryptString(key.toString('hex')),
-                            { mode: 0o600 }
-                        );
-                    } catch (e) {
-                        logStartupMessage(`Error writing settings key file: ${e}`);
-                    }
-                    return key;
-                });
-            });
-        });
-    });
-}
-
-function loadSettingsEncryptionKeyFromKeytar() {
-    return Promise.resolve()
-        .then(() => {
-            const keytar = reqNative('keytar');
-            return keytar
-                .getPassword('KeeWeb', 'settings-key')
-                .then((key) => (key ? Buffer.from(key, 'hex') : null));
-        })
-        .catch((e) => {
-            logStartupMessage(`Error reading settings key from keytar: ${e}`);
-            return null;
-        });
-}
-
-function loadConfig(name) {
-    const ext = configEncryptionKey ? 'dat' : 'json';
-    const configFilePath = path.join(main.getPath('userData'), `${name}.${ext}`);
-
-    return new Promise((resolve, reject) => {
-        fs.readFile(configFilePath, (err, data) => {
-            if (err) {
-                if (err.code === 'ENOENT') {
-                    resolve(null);
-                } else {
-                    reject(`Error reading config ${name}: ${err}`);
-                }
-                return;
-            }
-
-            try {
-                if (configEncryptionKey) {
-                    const key = configEncryptionKey.slice(0, 32);
-                    const iv = configEncryptionKey.slice(32, 48);
-
-                    const crypto = require('crypto');
-                    const cipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-
-                    data = Buffer.concat([cipher.update(data), cipher.final()]);
-                }
-
-                resolve(data.toString('utf8'));
-            } catch (err) {
-                logStartupMessage(`Error reading config data (config ignored) ${name}: ${err}`);
-                resolve(null);
-            }
-        });
-    });
-}
-
-function saveConfig(name, data, key) {
-    if (!key) {
-        key = configEncryptionKey;
-    }
-
-    return new Promise((resolve, reject) => {
-        try {
-            data = Buffer.from(data);
-
-            if (key) {
-                const crypto = require('crypto');
-                const cipher = crypto.createCipheriv(
-                    'aes-256-cbc',
-                    key.slice(0, 32),
-                    key.slice(32, 48)
-                );
-
-                data = Buffer.concat([cipher.update(data), cipher.final()]);
-            }
-        } catch (err) {
-            return reject(`Error writing config data ${name}: ${err}`);
-        }
-
-        const ext = key ? 'dat' : 'json';
-        const configFilePath = path.join(main.getPath('userData'), `${name}.${ext}`);
-        fs.writeFile(configFilePath, data, (err) => {
-            if (err) {
-                reject(`Error writing config ${name}: ${err}`);
-            } else {
-                resolve();
-            }
-        });
-    });
 }
 
 function loadLocale() {
@@ -1001,89 +403,6 @@ function loadLocale() {
             saveConfig('locale', JSON.stringify(getLocaleValues()));
         });
     });
-}
-
-// TODO: delete in 2021
-function migrateOldConfigs(key) {
-    const knownConfigs = [
-        'file-info',
-        'app-settings',
-        'runtime-data',
-        'update-info',
-        'plugin-gallery',
-        'plugins'
-    ];
-
-    const promises = [];
-
-    for (const configName of knownConfigs) {
-        promises.push(
-            loadConfig(configName).then((data) => {
-                if (data) {
-                    return saveConfig(configName, data, key).then(() => {
-                        fs.unlinkSync(path.join(main.getPath('userData'), `${configName}.json`));
-                    });
-                }
-            })
-        );
-    }
-
-    return Promise.all(promises);
-}
-
-function httpRequest(config, log, onLoad) {
-    // eslint-disable-next-line node/no-deprecated-api
-    const opts = url.parse(config.url);
-
-    opts.method = config.method || 'GET';
-    opts.headers = {
-        'User-Agent': mainWindow.webContents.userAgent,
-        ...config.headers
-    };
-    opts.timeout = 60000;
-
-    let data;
-    if (config.data) {
-        if (config.dataIsMultipart) {
-            data = Buffer.concat(config.data.map((chunk) => Buffer.from(chunk)));
-        } else {
-            data = Buffer.from(config.data);
-        }
-        // Electron's API doesn't like that, while node.js needs it
-        // opts.headers['Content-Length'] = data.byteLength;
-    }
-
-    const req = electron.net.request(opts);
-
-    req.on('response', (res) => {
-        const chunks = [];
-        const onClose = () => {
-            log('info', 'HTTP response', opts.method, config.url, res.statusCode, res.headers);
-            onLoad({
-                status: res.statusCode,
-                response: Buffer.concat(chunks).toString('hex'),
-                headers: res.headers
-            });
-        };
-        res.on('data', (chunk) => {
-            chunks.push(chunk);
-        });
-        res.on('end', () => {
-            onClose();
-        });
-    });
-    req.on('error', (e) => {
-        log('error', 'HTTP error', opts.method, config.url, e);
-        return config.error && config.error('network error', {});
-    });
-    req.on('timeout', () => {
-        req.abort();
-        return config.error && config.error('timeout', {});
-    });
-    if (data) {
-        req.write(data);
-    }
-    req.end();
 }
 
 function setupIpcHandlers() {

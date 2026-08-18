@@ -168,46 +168,20 @@ mark.search-hl {
     &__quick-nav {
         display: flex;
         align-items: stretch;
-        gap: 4px;
-        margin-top: 6px;
+        gap: 2px;
+        margin-top: 4px;
         -webkit-app-region: no-drag;
     }
 
     &__quick-nav-btn {
+        @include app-nav-item;
         flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4em;
+        justify-content: flex-start;
         min-width: 0;
-        height: 2.1em;
-        margin: 0;
-        padding: 0 0.5em;
-        border: 0;
-        border-radius: 8px;
-        background: var(--secondary-background-color);
-        color: var(--text-color);
-        font: inherit;
-        font-size: 0.82em;
-        cursor: pointer;
-        -webkit-app-region: no-drag;
-        > .fa {
-            flex: 0 0 auto;
-            color: var(--muted-color);
-        }
         > span {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-        }
-        &:hover {
-            background: var(--intermediate-background-color);
-        }
-        &--active {
-            color: var(--action-color);
-            > .fa {
-                color: var(--action-color);
-            }
         }
     }
 

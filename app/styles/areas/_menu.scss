@@ -48,6 +48,14 @@
         }
     }
 
+    &__app-back {
+        @include app-nav-item;
+        flex: 0 0 auto;
+        align-self: stretch;
+        margin: 6px 8px 2px;
+        width: auto;
+    }
+
     &__sections {
         flex: 1;
         display: flex;

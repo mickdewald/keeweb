@@ -375,22 +375,7 @@
             }
         }
         @include nomobile {
-            position: absolute;
-            top: $small-spacing;
-            right: $base-padding-h;
-            padding: 0.45em 0.9em;
-            z-index: 3;
-            border-radius: 2em;
-            background: var(--secondary-background-color);
-            &:hover {
-                background: var(--intermediate-background-color);
-            }
-            .titlebar-hidden-inset & {
-                top: calc(#{$small-spacing} + #{$titlebar-padding-large});
-            }
-            &-post {
-                display: inline;
-            }
+            display: none;
         }
     }
 

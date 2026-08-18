@@ -1,14 +1,53 @@
-.back-button {
+@mixin app-nav-item {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 0.45em 0.7em;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    text-align: left;
     cursor: pointer;
+    -webkit-app-region: no-drag;
+    > .fa {
+        width: 1.2em;
+        margin-right: 8px;
+        opacity: 0.7;
+        text-align: center;
+    }
+    &:hover,
+    &--active,
+    &.sel--active {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: var(--text-color);
+    }
+    body.th-light &,
+    body.th-light.macos-vibrancy & {
+        &:hover,
+        &--active,
+        &.sel--active {
+            background-color: rgba(0, 0, 0, 0.06);
+        }
+    }
+}
+
+.back-button {
+    @include app-nav-item;
     position: absolute;
-    top: 0;
-    right: $base-padding-h;
-    padding: $base-padding-v * 2 0 1px 0;
+    top: $small-spacing;
+    left: $base-padding-h;
+    right: auto;
     z-index: 1;
+    .titlebar-hidden-inset & {
+        top: calc(#{$small-spacing} + #{$titlebar-padding-large});
+    }
     &__post {
-        margin-left: $tiny-spacing;
-        margin-right: $small-spacing;
-        position: relative;
-        top: 0.2em;
+        display: none;
     }
 }

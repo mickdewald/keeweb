@@ -15,7 +15,9 @@ class MenuView extends View {
 
     template = template;
 
-    events = {};
+    events = {
+        'click .menu__app-back': 'returnToApp'
+    };
 
     sectionViews = [];
 
@@ -52,6 +54,7 @@ class MenuView extends View {
         const sectionsEl = this.$el.find('.menu__sections');
         const isWorkspace = this.model.sections === this.model.menus.app;
         menuEl.toggleClass('menu--workspace', isWorkspace);
+        this.$el.find('.menu__app-back').toggleClass('hide', isWorkspace);
         this.model.sections.forEach(function (section) {
             const sectionView = new MenuSectionView(section, { parent: sectionsEl[0] });
             sectionView.render();
@@ -92,6 +95,10 @@ class MenuView extends View {
 
     switchVisibility(visible) {
         this.$el.toggleClass('menu-visible', visible);
+    }
+
+    returnToApp() {
+        Events.emit('toggle-settings', false);
     }
 
     selectPreviousSection() {

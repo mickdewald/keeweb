@@ -57,8 +57,7 @@ function presentEntry(entry, extra) {
 function auditPasswords(files, settings = {}) {
     const auditEntropy = settings.auditPasswordEntropy !== false;
     const excludePins = settings.excludePinsFromAudit !== false;
-    const oldYears =
-        settings.auditPasswordAge > 0 ? settings.auditPasswordAge : DefaultOldYears;
+    const oldYears = settings.auditPasswordAge > 0 ? settings.auditPasswordAge : DefaultOldYears;
 
     const entries = collectEntries(files).filter((entry) => {
         if (!isAuditable(entry)) {

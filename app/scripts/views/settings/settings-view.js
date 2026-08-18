@@ -122,8 +122,7 @@ class SettingsView extends View {
     }
 
     scrollToSection(section) {
-        const scrollEl =
-            section && this.views.page.el.querySelector(`#${section}`);
+        const scrollEl = section && this.views.page.el.querySelector(`#${section}`);
         if (scrollEl) {
             scrollEl.scrollIntoView({ block: 'start', inline: 'nearest' });
             return;

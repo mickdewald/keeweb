@@ -1,5 +1,10 @@
 import { Features } from 'util/features';
 import { Launcher } from 'comp/launcher';
+import { UsbListener } from 'comp/app/usb-listener';
+
+function devicesVisible() {
+    return !!(Launcher && UsbListener.supported);
+}
 
 function item(id, page, section, target, titleKey, categoryKey, keywords = [], visible) {
     return { id, page, section, target, titleKey, categoryKey, keywords, visible };
@@ -431,7 +436,7 @@ const SettingsSearchCatalog = [
         'menuSetDevices',
         'setDevicesTitle',
         ['usb', 'yubikey', 'otp'],
-        () => !!Launcher
+        devicesVisible
     ),
     item(
         'enable-usb',
@@ -441,7 +446,7 @@ const SettingsSearchCatalog = [
         'setDevicesEnableUsb',
         'menuSetDevices',
         ['usb'],
-        () => !!Launcher
+        devicesVisible
     ),
     item(
         'yubikey-show-icon',
@@ -451,7 +456,7 @@ const SettingsSearchCatalog = [
         'setDevicesYubiKeyOtpShowIcon',
         'menuSetDevices',
         ['yubikey', 'otp'],
-        () => !!Launcher
+        devicesVisible
     ),
     item(
         'yubikey-match',
@@ -461,7 +466,7 @@ const SettingsSearchCatalog = [
         'setDevicesYubiKeyOtpMatchEntries',
         'menuSetDevices',
         ['yubikey', 'otp'],
-        () => !!Launcher
+        devicesVisible
     ),
     item(
         'yubikey-auto-open',
@@ -471,7 +476,7 @@ const SettingsSearchCatalog = [
         'setDevicesYubiKeyOtpAutoOpen',
         'menuSetDevices',
         ['yubikey', 'otp'],
-        () => !!Launcher
+        devicesVisible
     ),
     item('file-backup', 'file', null, '#settings__file-backup-enabled', 'setFileBackups', 'file', [
         'backup',

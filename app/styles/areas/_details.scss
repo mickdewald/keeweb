@@ -695,8 +695,8 @@
 
     &__issues {
         margin-top: $base-padding-v;
-        color: var(--text-contrast-error-color);
-        background-color: var(--error-color);
+        color: var(--black-color);
+        background-color: var(--yellow-color);
         border-radius: var(--block-border-radius);
         display: flex;
         align-items: stretch;
@@ -707,7 +707,7 @@
             padding: $medium-padding-v 0;
             flex-grow: 1;
             > a {
-                color: var(--text-contrast-error-color);
+                color: var(--black-color);
             }
         }
         &-line {
@@ -716,7 +716,7 @@
                 margin-bottom: 0;
             }
             > a {
-                color: var(--text-contrast-error-color);
+                color: var(--black-color);
             }
         }
         &-icon {

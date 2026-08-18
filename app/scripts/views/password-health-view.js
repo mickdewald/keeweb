@@ -53,7 +53,10 @@ class PasswordHealthView extends View {
                 ...item,
                 updated: item.updated ? DateFormat.dStr(item.updated) : ''
             })),
-            oldHint: Locale.pwHealthOldHint.replace('{}', this.report.oldYears)
+            oldHint:
+                this.report.oldYears === 1
+                    ? Locale.pwHealthOldHintYear
+                    : Locale.pwHealthOldHint.replace('{}', this.report.oldYears)
         });
         this.createColumnScrolls();
     }

@@ -152,6 +152,8 @@
   "listNoWebsite": "keine Website",
   "listNoUser": "kein Benutzer",
   "listNoAttachments": "keine Anhänge",
+  "listHasAttachments": "Hat Anhänge",
+  "listFilterAttachments": "Einträge mit Anhängen zeigen",
   "listAddTemplateHeader": "Vorlagen",
   "listAddTemplateBody1": "Vorlagen ermöglichen es, Einträge mit nur einem Klick zu erstellen. Fügen Sie etwas zum Vorlage-Eintrag hinzu und klicken Sie auf {}, um diese Vorlage zu verwenden.",
   "listAddTemplateBody2": "Sie können Ihre Vorlagen in der Gruppe “{}” finden.",

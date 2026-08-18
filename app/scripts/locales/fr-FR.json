@@ -156,6 +156,8 @@
   "listNoWebsite": "aucun site web",
   "listNoUser": "aucun utilisateur",
   "listNoAttachments": "aucune pièce-jointe",
+  "listHasAttachments": "Contient des pièces jointes",
+  "listFilterAttachments": "Afficher les entrées avec pièces jointes",
   "listAddTemplateHeader": "Modèles",
   "listAddTemplateBody1": "Les modèles (templates) vous permettent de créer des nouvelles entrées en un clic. Ajouter quelque chose à l'entrée du modèle et ensuite cliquer de nouveau sur {} pour utiliser ce modèle.",
   "listAddTemplateBody2": "Vous pouvez toujours retrouver vos modèles dans le groupe {}.",

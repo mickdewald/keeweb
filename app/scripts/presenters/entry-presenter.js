@@ -68,6 +68,9 @@ EntryPresenter.prototype = {
     get fileName() {
         return this.entry ? this.entry.fileName : undefined;
     },
+    get hasAttachments() {
+        return !!(this.entry && this.entry.attachments && this.entry.attachments.length);
+    },
     get description() {
         if (!this.entry) {
             return '[' + Locale.listGroup + ']';

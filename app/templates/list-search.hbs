@@ -16,6 +16,9 @@
         <div class="list__search-btn-tags {{#unless showTags}}hide{{/unless}}" title="{{Res 'tags'}}">
             <i class="fa fa-tag"></i>
         </div>
+        <div class="list__search-btn-att {{#if attachmentsActive}}list__search-btn-att--filtered{{/if}}" title="{{res 'listFilterAttachments'}}">
+            <i class="fa fa-paperclip"></i>
+        </div>
         <div class="list__search-btn-new {{#unless canCreate}}hide{{/unless}}" title="{{res 'searchAddNew'}}">
             <i class="fa fa-plus"></i>
         </div>

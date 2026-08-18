@@ -24,6 +24,7 @@ class ListSearchView extends View {
         'click .list__search-btn-new': 'createOptionsClick',
         'click .list__search-btn-sort': 'sortOptionsClick',
         'click .list__search-btn-tags': 'tagOptionsClick',
+        'click .list__search-btn-att': 'attachmentsFilterClick',
         'click .list__search-icon-search': 'advancedSearchClick',
         'click .list__search-btn-menu': 'toggleMenu',
         'click .list__search-icon-clear': 'clickClear',
@@ -185,7 +186,8 @@ class ListSearchView extends View {
             canCreate: this.model.canCreateEntries(),
             showTags: AppSettingsModel.compactLayout,
             showQuickNav: AppSettingsModel.compactLayout,
-            trashActive: !!(this.model.filter && this.model.filter.trash)
+            trashActive: !!(this.model.filter && this.model.filter.trash),
+            attachmentsActive: !!(this.model.filter && this.model.filter.attachments)
         });
         this.inputEl = this.$el.find('.list__search-field');
         if (searchVal) {
@@ -284,6 +286,9 @@ class ListSearchView extends View {
         this.$el
             .find('.list__quick-nav-btn[data-action="trash"]')
             .toggleClass('list__quick-nav-btn--active', !!filter.filter.trash);
+        this.$el
+            .find('.list__search-btn-att')
+            .toggleClass('list__search-btn-att--filtered', !!filter.filter.attachments);
         const sortIconCls = this.sortIcons[filter.sort] || 'sort';
         this.$el.find('.list__search-btn-sort>i').attr('class', 'fa fa-' + sortIconCls);
         let adv = !!filter.filter.advanced;
@@ -417,6 +422,14 @@ class ListSearchView extends View {
     sortDropdownSelect(e) {
         this.hideSearchOptions();
         Events.emit('set-sort', e.item);
+    }
+
+    attachmentsFilterClick(e) {
+        e.stopImmediatePropagation();
+        this.hideSearchOptions();
+        Events.emit('add-filter', {
+            attachments: !this.model.filter.attachments
+        });
     }
 
     tagOptionsClick(e) {

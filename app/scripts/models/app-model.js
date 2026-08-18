@@ -333,7 +333,12 @@ class AppModel {
     }
 
     setFilter(filter) {
+        const keepAttachments =
+            filter.attachments === undefined && this.filter && this.filter.attachments;
         this.filter = this.prepareFilter(filter);
+        if (keepAttachments) {
+            this.filter.attachments = true;
+        }
         this.filter.subGroups = this.settings.expandGroups;
         if (!this.filter.advanced && this.advancedSearch) {
             this.filter.advanced = this.advancedSearch;

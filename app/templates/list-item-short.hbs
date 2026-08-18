@@ -6,4 +6,5 @@
     {{~/if}}
     <span class="list__item-title">{{#if title}}{{highlight title searchTerms}}{{else}}({{res 'noTitle'}}){{/if}}</span>
     <span class="list__item-descr thin">{{#if description}}{{highlight description searchTerms}}{{else}}&nbsp;{{/if}}</span>
+    {{#if hasAttachments}}<i class="fa fa-paperclip list__item-att" title="{{res 'listHasAttachments'}}"></i>{{/if}}
 </div>

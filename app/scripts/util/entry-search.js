@@ -65,6 +65,11 @@ class EntrySearch {
                 return false;
             }
         }
+        if (filter.attachments) {
+            if (!this.model.attachments || !this.model.attachments.length) {
+                return false;
+            }
+        }
         return true;
     }
 

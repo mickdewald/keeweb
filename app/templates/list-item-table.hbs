@@ -6,7 +6,7 @@
             <i class="fa fa-{{icon}} {{#if color}}{{color}}-color{{/if}} list__item-icon"></i>
         {{~/if~}}
     </div>
-    {{#if columns.title}}<div class="list__table-cell">{{#if title}}{{highlight title searchTerms}}{{else}}({{res 'noTitle'}}){{/if}}</div>{{/if}}
+    {{#if columns.title}}<div class="list__table-cell">{{#if title}}{{highlight title searchTerms}}{{else}}({{res 'noTitle'}}){{/if}}{{#if hasAttachments}} <i class="fa fa-paperclip list__item-att" title="{{res 'listHasAttachments'}}"></i>{{/if}}</div>{{/if}}
     {{#if columns.user}}<div class="list__table-cell">{{highlight user searchTerms}}</div>{{/if}}
     {{#if columns.url}}<div class="list__table-cell">{{highlight url searchTerms}}</div>{{/if}}
     {{#if columns.tags}}<div class="list__table-cell">{{highlight tags searchTerms}}</div>{{/if}}

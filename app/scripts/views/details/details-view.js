@@ -64,6 +64,7 @@ class DetailsView extends View {
         this.listenTo(Events, 'copy-url', this.copyUrl);
         this.listenTo(Events, 'copy-otp', this.copyOtp);
         this.listenTo(Events, 'toggle-settings', this.settingsToggled);
+        this.listenTo(Events, 'toggle-details', this.detailsShown);
         this.listenTo(Events, 'context-menu-select', this.contextMenuSelect);
         this.listenTo(Events, 'set-locale', this.render);
         this.listenTo(Events, 'qr-read', this.otpCodeRead);
@@ -204,6 +205,60 @@ class DetailsView extends View {
             this.moreView.on('add-field', this.addNewField.bind(this));
             this.moreView.on('more-click', this.toggleMoreOptions.bind(this));
         }
+
+        this.scheduleSyncDetailsLabelWidth();
+    }
+
+    detailsShown(visible) {
+        if (visible) {
+            this.scheduleSyncDetailsLabelWidth();
+        }
+    }
+
+    scheduleSyncDetailsLabelWidth() {
+        this.syncDetailsLabelWidth();
+        requestAnimationFrame(() => {
+            if (!this.removed) {
+                this.syncDetailsLabelWidth();
+            }
+        });
+    }
+
+    syncDetailsLabelWidth() {
+        const root = this.el;
+        if (!root || !root.getClientRects().length || !root.offsetWidth) {
+            return;
+        }
+        const labels = root.querySelectorAll(
+            '.details__body-fields .details__field-label, .details__body-aside .details__field-label'
+        );
+        const fontSize = parseFloat(getComputedStyle(root).fontSize) || 16;
+        const minPx = Math.ceil(7 * fontSize);
+        const maxPx = Math.ceil(22 * fontSize);
+        let widest = minPx;
+        labels.forEach((label) => {
+            const field = label.closest('.details__field');
+            if (!field || field.classList.contains('hide') || label.querySelector('input')) {
+                return;
+            }
+            const prevWidth = label.style.width;
+            const prevFlex = label.style.flex;
+            const prevMaxWidth = label.style.maxWidth;
+            const prevOverflow = label.style.overflow;
+            label.style.flex = '0 0 auto';
+            label.style.width = 'max-content';
+            label.style.maxWidth = 'none';
+            label.style.overflow = 'visible';
+            const width = Math.ceil(label.getBoundingClientRect().width);
+            label.style.width = prevWidth;
+            label.style.flex = prevFlex;
+            label.style.maxWidth = prevMaxWidth;
+            label.style.overflow = prevOverflow;
+            if (width > widest) {
+                widest = width;
+            }
+        });
+        root.style.setProperty('--details-label-width', `${Math.min(widest, maxPx)}px`);
     }
 
     addNewField(title) {
@@ -230,8 +285,9 @@ class DetailsView extends View {
 
         fieldView.on('change', this.fieldChanged.bind(this));
         fieldView.render();
-        fieldView.edit();
         this.fieldViews.push(fieldView);
+        this.scheduleSyncDetailsLabelWidth();
+        fieldView.edit();
     }
 
     toggleMoreOptions() {
@@ -348,6 +404,7 @@ class DetailsView extends View {
                     const fieldName = e.item.substr(4);
                     const fieldView = this.fieldViews.find((f) => f.model.name === fieldName);
                     fieldView.show();
+                    this.scheduleSyncDetailsLabelWidth();
                     fieldView.edit();
                 }
         }
@@ -1023,8 +1080,9 @@ class DetailsView extends View {
             );
             fieldView.on('change', this.fieldChanged.bind(this));
             fieldView.render();
-            fieldView.edit();
             this.fieldViews.push(fieldView);
+            this.scheduleSyncDetailsLabelWidth();
+            fieldView.edit();
         }
     }
 

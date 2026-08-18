@@ -200,12 +200,6 @@
             border-radius: calc(var(--input-border-radius) + 8px);
             background: var(--secondary-background-color);
             box-shadow: none;
-            display: grid;
-            grid-template-columns: minmax(7em, max-content) minmax(0, 1fr) 2em 2em;
-            align-items: start;
-            @include mobile {
-                display: block;
-            }
         }
 
         &-aside {
@@ -223,28 +217,24 @@
     &__field {
         $details-field-line-height: 18px;
 
-        display: grid;
-        grid-template-columns: subgrid;
-        grid-column: 1 / -1;
-        align-items: start;
+        display: flex;
+        align-items: stretch;
+        flex-direction: row;
+        justify-content: flex-start;
         margin-bottom: 0.5em;
         position: relative;
-        @include mobile {
-            display: flex;
-            align-items: stretch;
-            flex-direction: row;
-            justify-content: flex-start;
-        }
 
         &-label {
-            grid-column: 1;
             color: var(--muted-color);
-            width: auto;
+            // Both cards share one label column.
+            flex: 0 0 var(--details-label-width, 7em);
+            width: var(--details-label-width, 7em);
             max-width: 22em;
+            min-width: 0;
+            box-sizing: border-box;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            box-sizing: border-box;
             text-align: right;
             cursor: pointer;
             padding-right: 1em;
@@ -270,7 +260,7 @@
             }
         }
         &-value {
-            grid-column: 2;
+            flex: 1 1 auto;
             min-width: 0;
             user-select: text;
             align-self: flex-start;
@@ -283,7 +273,7 @@
             line-height: $details-field-line-height;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-right: 0;
+            margin-right: 2em;
             &-add-label {
                 color: transparent;
             }
@@ -523,7 +513,6 @@
         }
 
         &-copy {
-            grid-column: 3;
             color: var(--muted-color);
             cursor: pointer;
             opacity: 0;
@@ -548,7 +537,6 @@
         }
 
         &-options {
-            grid-column: 4;
             color: var(--muted-color);
             cursor: pointer;
             opacity: 0;

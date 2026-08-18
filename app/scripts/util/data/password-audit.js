@@ -130,4 +130,53 @@ function collectPasswordIssueIds(files, settings) {
     return ids;
 }
 
-export { auditPasswords, collectPasswordIssueIds, isOldPassword, DefaultOldYears };
+function countPasswordReuse(entry, files) {
+    if (!isAuditable(entry)) {
+        return 0;
+    }
+    let count = 0;
+    for (const other of collectEntries(files)) {
+        if (!isAuditable(other)) {
+            continue;
+        }
+        if (entry.password.equals(other.password)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+function describePasswordIssues(entry, files, settings = {}) {
+    if (!isAuditable(entry)) {
+        return [];
+    }
+    const auditEntropy = settings.auditPasswordEntropy !== false;
+    const excludePins = settings.excludePinsFromAudit !== false;
+    const oldYears = settings.auditPasswordAge > 0 ? settings.auditPasswordAge : DefaultOldYears;
+    const strength = passwordStrength(entry.password);
+    if (excludePins && isPinExcluded(strength, true)) {
+        return [];
+    }
+    const issues = [];
+    if (auditEntropy && strength.level < PasswordStrengthLevel.Low) {
+        issues.push({ type: 'poor' });
+    } else if (auditEntropy && strength.level < PasswordStrengthLevel.Good) {
+        issues.push({ type: 'weak' });
+    }
+    const reuseCount = countPasswordReuse(entry, files);
+    if (reuseCount > 1) {
+        issues.push({ type: 'reused', count: reuseCount });
+    }
+    if (isOldPassword(entry, oldYears)) {
+        issues.push({ type: 'old', years: oldYears });
+    }
+    return issues;
+}
+
+export {
+    auditPasswords,
+    collectPasswordIssueIds,
+    describePasswordIssues,
+    isOldPassword,
+    DefaultOldYears
+};

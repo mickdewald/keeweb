@@ -4,10 +4,17 @@ import template from 'templates/details/details-issues.hbs';
 import { Alerts } from 'comp/ui/alerts';
 import { Timeouts } from 'const/timeouts';
 import { Locale } from 'util/locale';
-import { passwordStrength, PasswordStrengthLevel } from 'util/data/password-strength';
+import { describePasswordIssues } from 'util/data/password-audit';
 import { AppSettingsModel } from 'models/app-settings-model';
+import { AppModel } from 'models/app-model';
 import { Links } from 'const/links';
 import { checkIfPasswordIsExposedOnline } from 'comp/app/online-password-checker';
+
+function issuesKey(issues) {
+    return (issues || [])
+        .map((issue) => `${issue.type}:${issue.count || ''}:${issue.years || ''}`)
+        .join('|');
+}
 
 class DetailsIssuesView extends View {
     parent = '.details__issues-container';
@@ -18,41 +25,35 @@ class DetailsIssuesView extends View {
         'click .details__issues-close-btn': 'closeIssuesClick'
     };
 
-    passwordIssue = null;
+    passwordIssues = [];
 
     constructor(model) {
         super(model);
         this.listenTo(AppSettingsModel, 'change', this.settingsChanged);
-        if (AppSettingsModel.auditPasswords) {
-            this.checkPasswordIssues();
-        }
+        this.checkPasswordIssues();
     }
 
     render(options) {
-        if (!AppSettingsModel.auditPasswords) {
-            super.render();
-            return;
-        }
         super.render({
             hibpLink: Links.HaveIBeenPwned,
-            passwordIssue: this.passwordIssue,
+            hasPasswordIssues: this.passwordIssues.length > 0,
+            passwordIssues: this.passwordIssues,
             fadeIn: options?.fadeIn
         });
     }
 
     settingsChanged() {
-        if (AppSettingsModel.auditPasswords) {
-            this.checkPasswordIssues();
-        }
+        this.checkPasswordIssues();
         this.render();
     }
 
     passwordChanged() {
-        const oldPasswordIssue = this.passwordIssue;
+        const oldKey = issuesKey(this.passwordIssues);
         this.checkPasswordIssues();
-        if (oldPasswordIssue !== this.passwordIssue) {
-            const fadeIn = !oldPasswordIssue;
-            if (this.passwordIssue) {
+        const nextKey = issuesKey(this.passwordIssues);
+        if (oldKey !== nextKey) {
+            const fadeIn = !oldKey;
+            if (this.passwordIssues.length) {
                 this.render({ fadeIn });
             } else {
                 this.el.classList.add('fade-out');
@@ -62,62 +63,47 @@ class DetailsIssuesView extends View {
     }
 
     checkPasswordIssues() {
-        if (!this.model.canCheckPasswordIssues()) {
-            this.passwordIssue = null;
-            return;
-        }
-        const { password } = this.model;
-        if (!password || !password.isProtected || !password.byteLength) {
-            this.passwordIssue = null;
-            return;
-        }
-        const auditEntropy = AppSettingsModel.auditPasswordEntropy;
-        const strength = passwordStrength(password);
-        if (AppSettingsModel.excludePinsFromAudit && strength.onlyDigits && strength.length <= 6) {
-            this.passwordIssue = null;
-        } else if (auditEntropy && strength.level < PasswordStrengthLevel.Low) {
-            this.passwordIssue = 'poor';
-        } else if (auditEntropy && strength.level < PasswordStrengthLevel.Good) {
-            this.passwordIssue = 'weak';
-        } else if (AppSettingsModel.auditPasswordAge && this.isOld()) {
-            this.passwordIssue = 'old';
-        } else {
-            this.passwordIssue = null;
-            this.checkOnHIBP();
-        }
-    }
-
-    isOld() {
-        if (!this.model.updated) {
-            return false;
-        }
-        const dt = new Date(this.model.updated);
-        dt.setFullYear(dt.getFullYear() + AppSettingsModel.auditPasswordAge);
-        return dt < Date.now();
+        this.passwordIssues = describePasswordIssues(
+            this.model,
+            AppModel.instance && AppModel.instance.files,
+            AppSettingsModel
+        );
+        this.checkOnHIBP();
     }
 
     checkOnHIBP() {
         if (!AppSettingsModel.checkPasswordsOnHIBP) {
             return;
         }
-        const isExposed = checkIfPasswordIsExposedOnline(this.model.password);
+        const password = this.model.password;
+        if (!password || !password.isProtected || !password.byteLength) {
+            return;
+        }
+        const isExposed = checkIfPasswordIsExposedOnline(password);
         if (typeof isExposed === 'boolean') {
-            this.passwordIssue = isExposed ? 'pwned' : null;
+            this.setRemoteIssue(isExposed ? 'pwned' : null);
         } else {
             const iconEl = this.el?.querySelector('.details__issues-icon');
             iconEl?.classList.add('details__issues-icon--loading');
-            isExposed.then((isExposed) => {
-                if (isExposed) {
-                    this.passwordIssue = 'pwned';
-                } else if (isExposed === false) {
-                    if (this.passwordIssue === 'pwned') {
-                        this.passwordIssue = null;
-                    }
+            isExposed.then((exposed) => {
+                if (exposed) {
+                    this.setRemoteIssue('pwned');
+                } else if (exposed === false) {
+                    this.setRemoteIssue(null);
                 } else {
-                    this.passwordIssue = iconEl ? 'error' : null;
+                    this.setRemoteIssue(iconEl ? 'error' : null);
                 }
                 this.render();
             });
+        }
+    }
+
+    setRemoteIssue(type) {
+        this.passwordIssues = this.passwordIssues.filter(
+            (issue) => issue.type !== 'pwned' && issue.type !== 'error'
+        );
+        if (type) {
+            this.passwordIssues.push({ type });
         }
     }
 

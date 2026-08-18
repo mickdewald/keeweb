@@ -1,7 +1,11 @@
 import { expect } from 'chai';
 import { ProtectedValue } from 'kdbxweb';
 import 'util/kdbxweb/protected-value-ex';
-import { auditPasswords, collectPasswordIssueIds } from 'util/data/password-audit';
+import {
+    auditPasswords,
+    collectPasswordIssueIds,
+    describePasswordIssues
+} from 'util/data/password-audit';
 
 function entry(id, title, password, extra = {}) {
     return {
@@ -104,5 +108,18 @@ describe('password audit', () => {
             { auditPasswordAge: 2 }
         );
         expect([...ids].sort()).to.eql(['old', 'reused-a', 'reused-b', 'weak']);
+    });
+
+    it('describes all issues for a single entry', () => {
+        const oldDate = new Date();
+        oldDate.setFullYear(oldDate.getFullYear() - 3);
+        const reusedA = entry('reused-a', 'Mail', 'same-secret-99!', { updated: oldDate });
+        const reusedB = entry('reused-b', 'Shop', 'same-secret-99!');
+        const issues = describePasswordIssues(reusedA, [file([reusedA, reusedB])], {
+            auditPasswordAge: 2
+        });
+        expect(issues.map((issue) => issue.type)).to.eql(['reused', 'old']);
+        expect(issues[0].count).to.eql(2);
+        expect(issues[1].years).to.eql(2);
     });
 });

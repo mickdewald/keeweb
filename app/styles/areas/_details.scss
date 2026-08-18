@@ -710,6 +710,15 @@
                 color: var(--text-contrast-error-color);
             }
         }
+        &-line {
+            margin: 0 0 0.35em;
+            &:last-child {
+                margin-bottom: 0;
+            }
+            > a {
+                color: var(--text-contrast-error-color);
+            }
+        }
         &-icon {
             padding: $medium-padding;
             width: 1em;

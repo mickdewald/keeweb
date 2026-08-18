@@ -262,6 +262,13 @@ class SelectEntryView extends View {
         });
     }
 
+    closeWithSelection() {
+        this.emit('result', {
+            entry: this.result,
+            select: true
+        });
+    }
+
     escPressed() {
         this.cancelAndClose();
     }
@@ -363,12 +370,11 @@ class SelectEntryView extends View {
         } else {
             const id = itemEl.data('id');
             this.result = this.entries.get(id);
-            if (!this.model.isAutoType && !this.canCopyActiveEntry()) {
-                this.highlightActive();
-                this.showPaletteHint(Locale.cmdPaletteNoPassword);
-                return;
+            if (this.model.isAutoType) {
+                this.closeWithResult();
+            } else {
+                this.closeWithSelection();
             }
-            this.closeWithResult();
         }
     }
 

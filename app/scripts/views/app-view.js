@@ -191,6 +191,15 @@ class AppView extends View {
             if (!entry) {
                 return;
             }
+            if (result.select) {
+                const visible = this.model.getEntries();
+                if (!visible.get(entry.id)) {
+                    // attachments must be reset explicitly: setFilter keeps it when undefined
+                    this.model.setFilter({ attachments: false });
+                }
+                Events.emit('select-entry', entry);
+                return;
+            }
             const password = entry.password;
             const text = password && password.isProtected ? password.getText() : password;
             if (text) {

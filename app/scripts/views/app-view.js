@@ -28,6 +28,7 @@ import { ImportCsvView } from 'views/import-csv-view';
 import { TitlebarView } from 'views/titlebar-view';
 import { SelectEntryView } from 'views/select/select-entry-view';
 import { SelectEntryFilter } from 'comp/app/select-entry-filter';
+import { PasswordHealthView } from 'views/password-health-view';
 import { CopyPaste } from 'comp/browser/copy-paste';
 import { Timeouts } from 'const/timeouts';
 import template from 'templates/app.hbs';
@@ -96,6 +97,7 @@ class AppView extends View {
         this.listenTo(Events, 'edit-group', this.editGroup);
         this.listenTo(Events, 'edit-tag', this.editTag);
         this.listenTo(Events, 'edit-generator-presets', this.editGeneratorPresets);
+        this.listenTo(Events, 'show-password-health', this.showPasswordHealth);
         this.listenTo(Events, 'launcher-open-file', this.launcherOpenFile);
         this.listenTo(Events, 'user-idle', this.userIdle);
         this.listenTo(Events, 'os-lock', this.osLocked);
@@ -339,6 +341,22 @@ class AppView extends View {
         });
         view.render();
         this.views.cmdPalette = view;
+    }
+
+    showPasswordHealth() {
+        if (!this.model.files.hasOpenFiles()) {
+            return;
+        }
+        this.hideOpenFile();
+        this.hideSettings();
+        this.hideKeyChange();
+        const view = new PasswordHealthView(this.model);
+        view.on('close', () => this.showEntries());
+        view.on('select', (entry) => {
+            Events.emit('select-entry', entry);
+            this.showEntries();
+        });
+        this.showPanelView(view);
     }
 
     showEditGroup(group) {

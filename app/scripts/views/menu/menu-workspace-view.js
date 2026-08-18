@@ -210,6 +210,9 @@ class MenuWorkspaceView extends View {
             case 'generate':
                 this.openGenerator();
                 break;
+            case 'health':
+                Events.emit('show-password-health');
+                break;
             case 'trash':
                 this.openTrash();
                 break;

@@ -1,0 +1,117 @@
+import { passwordStrength, PasswordStrengthLevel } from 'util/data/password-strength';
+
+const DefaultOldYears = 2;
+
+function isAuditable(entry) {
+    if (!entry) {
+        return false;
+    }
+    if (typeof entry.canCheckPasswordIssues === 'function' && !entry.canCheckPasswordIssues()) {
+        return false;
+    }
+    const password = entry.password;
+    return !!(password && password.isProtected && password.byteLength);
+}
+
+function isPinExcluded(strength, excludePins) {
+    return !!(excludePins && strength.onlyDigits && strength.length <= 6);
+}
+
+function isOldPassword(entry, years) {
+    if (!years || !entry || !entry.updated) {
+        return false;
+    }
+    const dt = new Date(entry.updated);
+    dt.setFullYear(dt.getFullYear() + years);
+    return dt.getTime() < Date.now();
+}
+
+function collectEntries(files) {
+    const entries = [];
+    if (!files) {
+        return entries;
+    }
+    files.forEach((file) => {
+        if (!file || file.backend === 'otp-device' || typeof file.forEachEntry !== 'function') {
+            return;
+        }
+        file.forEachEntry({}, (entry) => {
+            entries.push(entry);
+        });
+    });
+    return entries;
+}
+
+function presentEntry(entry, extra) {
+    return {
+        id: entry.id,
+        title: entry.title || '',
+        user: entry.user || '',
+        fileName: entry.file && entry.file.name,
+        updated: entry.updated,
+        entry,
+        ...extra
+    };
+}
+
+function auditPasswords(files, settings = {}) {
+    const auditEntropy = settings.auditPasswordEntropy !== false;
+    const excludePins = settings.excludePinsFromAudit !== false;
+    const oldYears =
+        settings.auditPasswordAge > 0 ? settings.auditPasswordAge : DefaultOldYears;
+
+    const entries = collectEntries(files).filter((entry) => {
+        if (!isAuditable(entry)) {
+            return false;
+        }
+        if (!excludePins) {
+            return true;
+        }
+        return !isPinExcluded(passwordStrength(entry.password), true);
+    });
+    const weak = [];
+    const old = [];
+
+    for (const entry of entries) {
+        const strength = passwordStrength(entry.password);
+        if (auditEntropy && strength.level < PasswordStrengthLevel.Good) {
+            weak.push(
+                presentEntry(entry, {
+                    severity: strength.level < PasswordStrengthLevel.Low ? 'poor' : 'weak'
+                })
+            );
+        }
+        if (isOldPassword(entry, oldYears)) {
+            old.push(presentEntry(entry));
+        }
+    }
+
+    const unused = entries.slice();
+    const reused = [];
+    while (unused.length) {
+        const first = unused.shift();
+        const group = [first];
+        for (let i = unused.length - 1; i >= 0; i--) {
+            if (first.password.equals(unused[i].password)) {
+                group.push(unused[i]);
+                unused.splice(i, 1);
+            }
+        }
+        if (group.length > 1) {
+            reused.push({
+                count: group.length,
+                entries: group.map((entry) => presentEntry(entry))
+            });
+        }
+    }
+
+    return {
+        weak,
+        reused,
+        old,
+        oldYears,
+        checked: entries.length
+    };
+}
+
+export { auditPasswords, isOldPassword, DefaultOldYears };

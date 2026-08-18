@@ -1,0 +1,83 @@
+import { View } from 'framework/views/view';
+import { AppSettingsModel } from 'models/app-settings-model';
+import { DateFormat } from 'comp/i18n/date-format';
+import { auditPasswords } from 'util/data/password-audit';
+import { Locale } from 'util/locale';
+import template from 'templates/password-health.hbs';
+
+class PasswordHealthView extends View {
+    parent = '.app__panel';
+
+    template = template;
+
+    events = {
+        'click .back-button': 'close',
+        'click .pw-health__entry': 'entryClicked'
+    };
+
+    report = null;
+
+    render() {
+        this.report = auditPasswords(this.model.files, AppSettingsModel);
+        const reusedEntries = this.report.reused.reduce((sum, group) => sum + group.count, 0);
+        const ok = !this.report.weak.length && !this.report.reused.length && !this.report.old.length;
+        super.render({
+            ok,
+            summary: Locale.pwHealthSummary
+                .replace('{}', this.report.weak.length)
+                .replace('{}', reusedEntries)
+                .replace('{}', this.report.old.length),
+            weak: this.report.weak,
+            reused: this.report.reused.map((group) => ({
+                label: Locale.pwHealthReusedCount.replace('{}', group.count),
+                entries: group.entries
+            })),
+            reusedEntries,
+            old: this.report.old.map((item) => ({
+                ...item,
+                updated: item.updated ? DateFormat.dStr(item.updated) : ''
+            })),
+            oldHint: Locale.pwHealthOldHint.replace('{}', this.report.oldYears)
+        });
+    }
+
+    close() {
+        this.emit('close');
+    }
+
+    entryClicked(e) {
+        const item = e.target.closest('.pw-health__entry');
+        if (!item) {
+            return;
+        }
+        const id = item.getAttribute('data-id');
+        const found = this.findEntry(id);
+        if (found) {
+            this.emit('select', found);
+        }
+    }
+
+    findEntry(id) {
+        const report = this.report;
+        if (!report) {
+            return null;
+        }
+        const fromWeak = report.weak.find((item) => item.id === id);
+        if (fromWeak) {
+            return fromWeak.entry;
+        }
+        const fromOld = report.old.find((item) => item.id === id);
+        if (fromOld) {
+            return fromOld.entry;
+        }
+        for (const group of report.reused) {
+            const match = group.entries.find((item) => item.id === id);
+            if (match) {
+                return match.entry;
+            }
+        }
+        return null;
+    }
+}
+
+export { PasswordHealthView };

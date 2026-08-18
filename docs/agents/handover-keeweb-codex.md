@@ -81,8 +81,8 @@ Nachgezogen: Cmd+K hat ein echtes Suchfeld (Paste/IME), bleibt bei 0 Treffern od
 
 ## Offen / Ideen (grob priorisiert)
 
-1. **Passwort-Health-Übersicht** (schwach/wiederverwendet/alt) — nächster großer Punkt
-2. **Vibrancy-Feinschliff** (Screenshot-Runden mit Mick)
+1. **Vibrancy-Feinschliff** (Screenshot-Runden mit Mick)
+2. ERLEDIGT: Passwort-Health-Übersicht (Workspace-Menü → Passwort-Gesundheit; schwach/wiederverwendet/alt; Klick öffnet den Eintrag)
 
 Erledigt und nicht wieder aufrollen: Cmd+K-Palette, Generator-Popover, Ein-Sidebar-Layout, farbige Passwort-Zeichen, Electron 13→43 (`@electron/remote`; USB/YubiKey hart aus — `usb-detection` ist nicht N-API). Native Module (secure-enclave/Touch ID, keytar, argon2) sind N-API/ABI-stabil. Settings-Key über safeStorage (`settings-key.bin`, keytar nur Fallback). Bumps via `scripts/dev/update-electron.sh`. contextIsolation bewusst gestrichen (Entscheidung 2026-08-17). TOTP prominenter: von Mick als nicht relevant markiert.
 

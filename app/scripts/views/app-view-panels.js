@@ -10,7 +10,6 @@ import { OpenView } from 'views/open-view';
 import { SettingsView } from 'views/settings/settings-view';
 import { TagView } from 'views/tag-view';
 import { ImportCsvView } from 'views/import-csv-view';
-import { PasswordHealthView } from 'views/password-health-view';
 
 const AppViewPanelsMixin = {
     showOpenFile() {
@@ -139,22 +138,6 @@ const AppViewPanelsMixin = {
         }
         this.model.menu.select({ item: selectedMenuItem });
         this.views.menu.switchVisibility(false);
-    },
-
-    showPasswordHealth() {
-        if (!this.model.files.hasOpenFiles()) {
-            return;
-        }
-        this.hideOpenFile();
-        this.hideSettings();
-        this.hideKeyChange();
-        const view = new PasswordHealthView(this.model);
-        view.on('close', () => this.showEntries());
-        view.on('select', (entry) => {
-            Events.emit('select-entry', entry);
-            this.showEntries();
-        });
-        this.showPanelView(view);
     },
 
     showEditGroup(group) {

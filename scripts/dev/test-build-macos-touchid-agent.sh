@@ -30,4 +30,37 @@ if [[ "$BACKUP_TRACE" != *"--backup"* ]]; then
     exit 1
 fi
 
+BUILD_SCRIPT="$(<"$SCRIPT_DIR/build-macos-touchid-agent.sh")"
+APP_SOURCE="$(<"$SCRIPT_DIR/../../app/scripts/app.js")"
+
+if [[ "$BUILD_SCRIPT" == *"build-darwin-installer"* || "$BUILD_SCRIPT" == *"desktop-darwin-installer-helper"* ]]; then
+    echo "The private macOS build must not embed KeeWeb's privileged installer" >&2
+    exit 1
+fi
+
+if [[ "$BUILD_SCRIPT" != *'APP_BUILD_PATH/Contents/Installer'* ]]; then
+    echo "The private macOS build must reject an embedded installer before deploy" >&2
+    exit 1
+fi
+
+if [[ "$BUILD_SCRIPT" != *'tmp/desktop/app/scripts/update-installer.js'* ]]; then
+    echo "The private macOS build must strip the unused update-installer runtime" >&2
+    exit 1
+fi
+
+if [[ "$BUILD_SCRIPT" != *'Run once: sudo chown -R'* ]]; then
+    echo "A legacy root-owned app must stop with a one-time migration command" >&2
+    exit 1
+fi
+
+if [[ "$APP_SOURCE" == *"AppRightsChecker"* ]]; then
+    echo "The private fork must not start KeeWeb's root ownership checker" >&2
+    exit 1
+fi
+
+if [[ -e "$SCRIPT_DIR/../../app/scripts/comp/app/app-rights-checker.js" ]]; then
+    echo "The private fork must not ship the root ownership checker" >&2
+    exit 1
+fi
+
 echo "macOS deploy policy test passed"

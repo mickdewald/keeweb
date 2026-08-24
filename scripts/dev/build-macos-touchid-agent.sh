@@ -204,10 +204,12 @@ if [[ "$DO_BUILD" -eq 1 ]]; then
     export NODE_OPTIONS=--openssl-legacy-provider
     npx grunt \
         default \
-        build-desktop-app-content \
+        build-desktop-app-content
+
+    rm -f tmp/desktop/app/scripts/update-installer.js
+
+    npx grunt \
         electron:darwin-arm64 \
-        build-darwin-installer \
-        copy:desktop-darwin-installer-helper-arm64 \
         copy:native-modules-darwin-arm64 \
         copy:native-messaging-host-darwin-arm64 \
         osx-sign:desktop-arm64 \
@@ -220,8 +222,19 @@ if [[ ! -d "$APP_BUILD_PATH" ]]; then
     exit 1
 fi
 
+if [[ -e "$APP_BUILD_PATH/Contents/Installer" ]]; then
+    echo "Private KeeWeb build unexpectedly contains the privileged installer" >&2
+    exit 1
+fi
+
 if [[ "$DO_DEPLOY" -eq 1 ]]; then
     stop_running_app
+
+    if [[ -d "$DEPLOY_PATH" && ! -w "$DEPLOY_PATH" ]]; then
+        echo "Existing app is not writable; refusing to leave a second KeeWeb copy in /Applications." >&2
+        printf 'Run once: sudo chown -R %q:admin %q\n' "$(id -un)" "$DEPLOY_PATH" >&2
+        exit 1
+    fi
 
     if [[ "$BACKUP_ON_DEPLOY" -eq 1 && -d "$DEPLOY_PATH" ]]; then
         BACKUP_PATH="$(next_backup_deploy_path "$DEPLOY_PATH")"

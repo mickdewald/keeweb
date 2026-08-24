@@ -14,7 +14,7 @@ This file only adds repo-specific agent guidance.
    - arm64 build,
    - signed app generation,
    - provisioning profile wiring,
-   - atomic deploy to `/Applications/KeeWeb-Codex.app`,
+   - atomic deploy to `/Applications/KeeWeb.app`,
    - post-deploy signature verification.
 4. If it fails, stop and report:
    - script output,

@@ -5,13 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 TRACE="$(bash -x "$SCRIPT_DIR/build-macos-touchid-agent.sh" --help 2>&1)"
 BACKUP_TRACE="$(bash -x "$SCRIPT_DIR/build-macos-touchid-agent.sh" --backup --help 2>&1 || true)"
 
-if [[ "$TRACE" != *"DEPLOY_PATH=/Applications/KeeWeb-Codex.app"* ]]; then
-    echo "Expected the default deploy target to be /Applications/KeeWeb-Codex.app" >&2
+if [[ "$TRACE" != *"DEPLOY_PATH=/Applications/KeeWeb.app"* ]]; then
+    echo "Expected the default deploy target to be /Applications/KeeWeb.app" >&2
     exit 1
 fi
 
-if [[ "$TRACE" != *"default: /Applications/KeeWeb-Codex.app"* ]]; then
-    echo "Expected --help to document the KeeWeb-Codex.app deploy target" >&2
+if [[ "$TRACE" != *"default: /Applications/KeeWeb.app"* ]]; then
+    echo "Expected --help to document the KeeWeb.app deploy target" >&2
     exit 1
 fi
 

@@ -41,7 +41,7 @@ If `keys/keeweb.provisionprofile` is missing on this machine, copy it from the w
 
 ```bash
 mkdir -p keys
-cp /Applications/KeeWeb-Codex.app/Contents/embedded.provisionprofile keys/keeweb.provisionprofile
+cp /Applications/KeeWeb.app/Contents/embedded.provisionprofile keys/keeweb.provisionprofile
 ```
 
 Minimal `keys/codesign.json` example:
@@ -82,7 +82,7 @@ tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app
 
 ## Deploy for testing
 
-Use the canonical script. It replaces `/Applications/KeeWeb-Codex.app` without leaving a timestamped
+Use the canonical script. It replaces `/Applications/KeeWeb.app` without leaving a timestamped
 app backup behind:
 
 ```bash
@@ -94,9 +94,9 @@ For an exceptional recovery workflow, explicitly opt in with `--backup`.
 ## Verification checklist
 
 ```bash
-/usr/bin/codesign --verify --deep --strict --verbose=4 /Applications/KeeWeb-Codex.app
-/usr/bin/codesign -dvvv /Applications/KeeWeb-Codex.app | rg 'Identifier=|TeamIdentifier=|Authority='
-/usr/bin/codesign -d --entitlements :- /Applications/KeeWeb-Codex.app | rg 'application-identifier|team-identifier|keychain-access-groups'
+/usr/bin/codesign --verify --deep --strict --verbose=4 /Applications/KeeWeb.app
+/usr/bin/codesign -dvvv /Applications/KeeWeb.app | rg 'Identifier=|TeamIdentifier=|Authority='
+/usr/bin/codesign -d --entitlements :- /Applications/KeeWeb.app | rg 'application-identifier|team-identifier|keychain-access-groups'
 ```
 
 Expected:

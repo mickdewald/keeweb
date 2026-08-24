@@ -8,7 +8,7 @@ Usage: scripts/dev/build-macos-touchid-agent.sh [options]
 Builds a signed arm64 KeeWeb macOS dev app with Touch ID support and deploys it.
 
 Options:
-  --deploy-path <path>   Target app path (default: /Applications/KeeWeb-Codex.app)
+  --deploy-path <path>   Target app path (default: /Applications/KeeWeb.app)
   --skip-build           Skip build/sign, only deploy from existing tmp build app
   --skip-deploy          Build/sign only, do not copy to /Applications
   --backup               Back up the installed app before replacing it
@@ -24,7 +24,7 @@ require_cmd() {
     fi
 }
 
-DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb-Codex.app}"
+DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb.app}"
 DO_BUILD=1
 DO_DEPLOY=1
 BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-0}"

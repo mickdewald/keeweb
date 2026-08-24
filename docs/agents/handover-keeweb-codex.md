@@ -1,21 +1,21 @@
 # Übergabe KeeWeb-Codex
 
-Stand: 2026-08-18. Fork von KeeWeb (Electron 43, kein Rewrite): `mickdewald/keeweb` (origin), Upstream `keeweb/keeweb` (nur lesen, Fetch nur `master`, keine Tags). Ziel: schrittweise UX-Politur.
+Stand: 2026-08-24. KeeWeb-Codex ist Micks eigener Produkt-Fork von KeeWeb (Electron 43, kein Rewrite): `mickdewald/keeweb` (`origin`). Das ursprüngliche Projekt `keeweb/keeweb` ist als schreibgeschütztes `upstream` eingetragen (Fetch nur `master`, keine Tags). Ziel: schrittweise UX-Politur.
 
 ## Wo gearbeitet wird
 
 | Ort | Branch | Regel |
 |---|---|---|
-| `~/projects/external-repos/keeweb` | master | Nur lesen / `git pull --ff-only`. |
-| `~/projects/wt/keeweb-colorful-list-icons` | `grok/keeweb-colorful-list-icons` | Einzige Arbeitskopie; trackt eigene Remote-Branch. |
+| `~/projects/keeweb` | `master` | Kanonischer Checkout; nur lesen / `git pull --ff-only origin master`. |
+| `~/projects/wt/keeweb-<task>` | `codex/<task>` | Isolierte Arbeitskopie für die jeweilige Änderung, ausgehend von `origin/master`. |
 
-`node_modules` ist eine EIGENE Installation im Worktree (kein Symlink mehr — Electron 22 vs. master mit 13!). `keys/` bleibt lokal. **Nicht anfassen: mick.kdbx.**
+Jeder Worktree benötigt eine eigene `node_modules`-Installation (kein Symlink). `keys/` bleibt lokal. **Nicht anfassen: mick.kdbx.**
 
 ## Bauen / Testen / Deploy
 
 ```sh
 source ~/.nvm/nvm.sh && nvm use 20.5.1
-cd ~/projects/wt/keeweb-colorful-list-icons
+cd ~/projects/wt/keeweb-<task>
 NODE_OPTIONS=--openssl-legacy-provider \
   CHROME_BIN="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   npx grunt build-test && \
@@ -32,24 +32,24 @@ Deploy (beendet die App hart, ungespeicherte kdbx-Änderungen sind weg):
 ./scripts/dev/build-macos-touchid-agent.sh
 ```
 
-Nie nach `/Applications/KeeWeb.app`. Das Deploy-Skript ersetzt `/Applications/KeeWeb-Codex.app`
+Das Deploy-Skript ersetzt `/Applications/KeeWeb.app`
 standardmäßig ohne App-Bundle-Backup, lintet (Prettier) und bricht bei Fehlern ab. Ein Backup ist
 nur als bewusstes Opt-in mit `--backup` erlaubt.
 
 Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Datei im Browser öffnen.
 
-## Branch-Stand
+## Repository-Stand
 
-Arbeitsbranch: `grok/keeweb-colorful-list-icons` (nicht nach `origin/master` mergen, solange Mick das nicht will). Die echte App lebt auf dieser Branch.
+`origin/master` enthält den aktuellen Produktstand von KeeWeb-Codex. Der frühere Arbeitsbranch `grok/keeweb-colorful-list-icons` ist vollständig in `master` aufgegangen und existiert auf GitHub nicht mehr. Neue Änderungen erfolgen auf kurzlebigen `codex/*`-Branches in eigenen Worktrees und werden erst nach Micks Freigabe integriert.
 
-Darauf: Settings-Suche, bunte Listen-Icons, Details/Attachments, Trash+Restore, macOS-Chrome + Vibrancy, Ein-Sidebar-Layout, Such-Highlight, Auto-Backups, Copy-Hover, Cmd+K-Palette, farbige Passwort-Zeichen, Generator-Redesign, Electron 13→43 + safeStorage, Review-Fixes.
+In `master` enthalten: Settings-Suche, bunte Listen-Icons, Details/Attachments, Trash+Restore, macOS-Chrome + Vibrancy, Ein-Sidebar-Layout, Such-Highlight, Auto-Backups, Copy-Hover, Cmd+K-Palette, farbige Passwort-Zeichen, Generator-Redesign, Electron 13→43 + safeStorage, Review-Fixes.
 
 Abschluss 2026-08-18:
 
 - `06782863` Cmd+K: echtes Suchfeld, Palette bleibt bei 0 Treffern / leerem Passwort
 - `9782ad63` Devices/YubiKey aus Settings und Settings-Suche entfernt
 
-GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf origin liegen nur `master` und diese Feature-Branch; Release-Tags von Vanilla-KeeWeb sind runter. Lokal bleibt der Tag `pre-single-sidebar`. `upstream` zeigt nur noch `keeweb/keeweb` `master`.
+GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf `origin` liegt nur `master`; Release-Tags von Vanilla-KeeWeb sind entfernt. Der Tag `pre-single-sidebar` bleibt lokal und auf `origin`. `upstream` zeigt nur auf `keeweb/keeweb` `master` und wird ohne Tags gefetcht.
 
 ## Code-Pitfalls (mehrfach gebissen — zuerst lesen!)
 

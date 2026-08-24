@@ -216,7 +216,7 @@ class ListSearchView extends View {
     filterChanged(filter) {
         this.hideSearchOptions();
         if (filter.filter.text !== this.inputEl.val()) {
-            this.inputEl.val(filter.text || '');
+            this.inputEl.val(filter.filter.text || '');
         }
         const tagBtn = this.$el.find('.list__search-btn-tags');
         if (tagBtn.length) {

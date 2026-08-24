@@ -23,6 +23,7 @@ import { SelectEntryView } from 'views/select/select-entry-view';
 import { SelectEntryFilter } from 'comp/app/select-entry-filter';
 import { CopyPaste } from 'comp/browser/copy-paste';
 import { AppViewPanelsMixin } from 'views/app-view-panels';
+import { AppViewTransientNavigationMixin } from 'views/app-view-transient-navigation';
 import { AppViewLockMixin } from 'views/app-view-lock';
 import { Timeouts } from 'const/timeouts';
 import template from 'templates/app.hbs';
@@ -296,15 +297,6 @@ class AppView extends View {
         this.menuSelect({ item: this.model.menu.allItemsSection.items[0] });
     }
 
-    menuSelect(opt) {
-        this.model.menu.select(opt);
-        if (opt.item && opt.item.filterKey && this.views.settings) {
-            this.showEntries();
-        } else if (this.views.panel && !this.views.panel.isHidden()) {
-            this.showEntries();
-        }
-    }
-
     selectLastOpenFile() {
         const fileToShow = this.model.fileInfos[0];
         if (fileToShow) {
@@ -355,34 +347,6 @@ class AppView extends View {
                     keyFileData: e.keyFileData
                 }
             });
-        }
-    }
-
-    toggleSettings(page, section) {
-        let menuItem = page ? this.model.menu[page + 'Section'] : null;
-        if (menuItem) {
-            if (section) {
-                menuItem = menuItem.items.find((it) => it.section === section) || menuItem.items[0];
-            } else {
-                menuItem = menuItem.items[0];
-            }
-        }
-        if (this.views.settings) {
-            if (this.views.settings.page === page || !menuItem) {
-                if (this.model.files.hasOpenFiles()) {
-                    this.showEntries();
-                } else {
-                    this.showLastOpenFile();
-                    this.views.open.toggleMore();
-                }
-            } else {
-                this.model.menu.select({ item: menuItem });
-            }
-        } else {
-            this.showSettings();
-            if (menuItem) {
-                this.model.menu.select({ item: menuItem });
-            }
         }
     }
 
@@ -484,6 +448,7 @@ class AppView extends View {
 }
 
 Object.assign(AppView.prototype, AppViewPanelsMixin);
+Object.assign(AppView.prototype, AppViewTransientNavigationMixin);
 Object.assign(AppView.prototype, AppViewLockMixin);
 
 export { AppView };

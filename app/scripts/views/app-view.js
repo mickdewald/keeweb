@@ -193,7 +193,7 @@ class AppView extends View {
                 return;
             }
             if (result.select) {
-                this.selectCmdPaletteEntry(entry);
+                this.navigateToEntry(entry);
                 return;
             }
             const password = entry.password;
@@ -212,15 +212,6 @@ class AppView extends View {
         });
         view.render();
         this.views.cmdPalette = view;
-    }
-
-    selectCmdPaletteEntry(entry) {
-        const visible = this.model.getEntries();
-        if (!visible.get(entry.id)) {
-            // attachments must be reset explicitly: setFilter keeps it when undefined
-            this.model.setFilter({ attachments: false });
-        }
-        this.views.list.selectItem(entry);
     }
 
     fileListUpdated() {

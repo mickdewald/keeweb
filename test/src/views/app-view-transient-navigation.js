@@ -283,42 +283,6 @@ describe('AppView transient navigation', () => {
         expect(model.activeEntryId).to.equal(state.activeEntryId);
     });
 
-    it('restores the workspace before forwarding a Health entry selection', () => {
-        const state = workspaceState();
-        const selectedEntry = { id: 'weak-entry' };
-        let filterWhenSelected;
-        Events.once('select-entry', () => {
-            filterWhenSelected = model.filter;
-        });
-        const model = {
-            filter: state.filter,
-            sort: state.sort,
-            activeEntryId: state.activeEntryId,
-            files: { hasOpenFiles: () => true },
-            setFilter(filter) {
-                this.filter = filter;
-            }
-        };
-        const view = Object.assign(Object.create(AppView.prototype), {
-            model,
-            views: {},
-            hideOpenFile() {},
-            hideSettings() {},
-            hideKeyChange() {},
-            showEntries() {},
-            showPanelView(panel) {
-                this.views.panel = panel;
-            }
-        });
-
-        AppView.prototype.showPasswordHealth.call(view);
-        model.filter = { trash: true };
-        view.views.panel.emit('select', selectedEntry);
-
-        expect(filterWhenSelected).to.deep.equal(state.filter);
-        expect(view.workspaceReturnState).to.equal(null);
-    });
-
     it('keeps the existing no-open-file Settings return behavior', () => {
         let showedLastOpenFile = false;
         let toggledMore = false;

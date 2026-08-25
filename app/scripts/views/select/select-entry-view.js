@@ -216,14 +216,6 @@ class SelectEntryView extends View {
         }
     }
 
-    entryCopyText(entry) {
-        if (!entry) {
-            return '';
-        }
-        const password = entry.password;
-        return password && password.isProtected ? password.getText() : password || '';
-    }
-
     resizeMouseDown(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -280,17 +272,15 @@ class SelectEntryView extends View {
     }
 
     enterPressed() {
-        if (!this.model.isAutoType && !this.canCopyActiveEntry()) {
-            this.showPaletteHint(
-                this.result ? Locale.cmdPaletteNoPassword : Locale.cmdPaletteNoMatch
-            );
+        if (!this.model.isAutoType && !this.result) {
+            this.showPaletteHint(Locale.cmdPaletteNoMatch);
+            return;
+        }
+        if (!this.model.isAutoType) {
+            this.closeWithSelection();
             return;
         }
         this.closeWithResult();
-    }
-
-    canCopyActiveEntry() {
-        return !!this.entryCopyText(this.result);
     }
 
     actionEnterPressed() {

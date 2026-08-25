@@ -1,27 +1,41 @@
 import { expect } from 'chai';
 import { AppView } from 'views/app-view';
+import { SelectEntryView } from 'views/select/select-entry-view';
 
 describe('AppView command palette', () => {
-    it('selects an opened command-palette entry through the visible list', () => {
+    it('delegates an entry-selection result to the shared navigation path', () => {
         const entry = { id: 'target-entry' };
-        let selectedEntry;
+        const navigatedEntries = [];
         const view = {
             model: {
-                getEntries() {
-                    return { get: (id) => (id === entry.id ? entry : undefined) };
-                }
+                files: { hasOpenFiles: () => true }
             },
-            views: {
-                list: {
-                    selectItem(item) {
-                        selectedEntry = item;
-                    }
-                }
+            views: { cmdPalette: null },
+            selectCmdPaletteEntry() {},
+            navigateToEntry(selected) {
+                navigatedEntries.push(selected);
             }
         };
+        const previousRender = SelectEntryView.prototype.render;
+        const previousRemove = SelectEntryView.prototype.remove;
 
-        AppView.prototype.selectCmdPaletteEntry?.call(view, entry);
+        SelectEntryView.prototype.render = function () {
+            return this;
+        };
+        SelectEntryView.prototype.remove = function () {
+            this.emit('remove');
+            this.removed = true;
+        };
 
-        expect(selectedEntry).to.equal(entry);
+        try {
+            AppView.prototype.showCmdPalette.call(view);
+            view.views.cmdPalette.emit('result', { entry, select: true });
+        } finally {
+            SelectEntryView.prototype.render = previousRender;
+            SelectEntryView.prototype.remove = previousRemove;
+        }
+
+        expect(navigatedEntries).to.deep.equal([entry]);
+        expect(view.views.cmdPalette).to.equal(null);
     });
 });

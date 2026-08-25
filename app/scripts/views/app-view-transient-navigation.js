@@ -78,6 +78,23 @@ const AppViewTransientNavigationMixin = {
         this.restoreWorkspaceView();
     },
 
+    navigateToEntry(entry) {
+        entry = entry?.id && this.model.getEntriesByFilter({}, this.model.files).get(entry.id);
+        if (!entry) {
+            return;
+        }
+        this.showEntries();
+        this.restoreWorkspaceView();
+        if (!this.model.getEntries().get(entry.id)) {
+            this.model.menu.select({ item: this.model.menu.allItemsItem });
+            if (!this.model.getEntries().get(entry.id)) {
+                // All Items intentionally preserves the attachment filter.
+                this.model.setFilter({ attachments: false });
+            }
+        }
+        Events.emit('select-entry', entry);
+    },
+
     forgetWorkspaceView() {
         this.workspaceReturnState = null;
     },
@@ -151,11 +168,7 @@ const AppViewTransientNavigationMixin = {
         this.hideKeyChange();
         const view = new PasswordHealthView(this.model);
         view.on('close', () => this.returnToWorkspace());
-        view.on('select', (entry) => {
-            this.showEntries();
-            this.restoreWorkspaceView();
-            Events.emit('select-entry', entry);
-        });
+        view.on('select', (entry) => this.navigateToEntry(entry));
         this.showPanelView(view);
     }
 };

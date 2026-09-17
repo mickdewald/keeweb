@@ -321,28 +321,25 @@ function createOpenViewFileInputMixin({
         },
 
         inputKeydown(e) {
+            this.updateCapsLockWarning(e);
             const code = e.keyCode || e.which;
             if (code === Keys.DOM_VK_RETURN) {
                 this.openDb();
-            } else if (code === Keys.DOM_VK_CAPS_LOCK) {
-                this.toggleCapsLockWarning(false);
             }
         },
 
         inputKeyup(e) {
-            const code = e.keyCode || e.which;
-            if (code === Keys.DOM_VK_CAPS_LOCK) {
-                this.toggleCapsLockWarning(false);
-            }
+            this.updateCapsLockWarning(e);
         },
 
         inputKeypress(e) {
-            const charCode = e.keyCode || e.which;
-            const ch = String.fromCharCode(charCode);
-            const lower = ch.toLowerCase();
-            const upper = ch.toUpperCase();
-            if (lower !== upper && !e.shiftKey) {
-                this.toggleCapsLockWarning(ch !== lower);
+            this.updateCapsLockWarning(e);
+        },
+
+        updateCapsLockWarning(e) {
+            const event = e.originalEvent || e;
+            if (typeof event.getModifierState === 'function') {
+                this.toggleCapsLockWarning(event.getModifierState('CapsLock'));
             }
         },
 

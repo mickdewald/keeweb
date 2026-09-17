@@ -80,12 +80,16 @@
             <input type="text" name="username">
             <input type="password" name="password">
         </div>
-        <div class="open__pass-warn-wrap">
-            <div class="open__pass-warning muted-color invisible"><i class="fa fa-exclamation-triangle"></i> {{res 'openCaps'}}</div>
-        </div>
         <div class="open__pass-field-wrap">
+            <div id="open__caps-warning" class="open__pass-warning invisible" role="status" aria-live="polite" title="{{res 'openCaps'}}">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3 3.5 11.5H8v5h8v-5h4.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                    <path d="M8 20h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <span class="open__pass-warning-label">{{res 'openCaps'}}</span>
+            </div>
             <input class="open__pass-input" name="password" type="password" size="30" autocomplete="new-password" maxlength="1024"
-                   placeholder="{{#if canOpen}}{{res 'openClickToOpen'}}{{/if}}" readonly tabindex="23" />
+                   aria-describedby="open__caps-warning" placeholder="{{#if canOpen}}{{res 'openClickToOpen'}}{{/if}}" readonly tabindex="23" />
             <div class="open__pass-enter-btn" tabindex="24">
                 <i class="fa fa-level-down-alt rotate-90 open__pass-enter-btn-icon-enter"></i>
                 <i class="fa fa-fingerprint open__pass-enter-btn-icon-touch-id"></i>

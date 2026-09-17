@@ -48,6 +48,7 @@ class OpenView extends View {
         'click .open__icon-settings': 'openSettings',
         'click .open__pass-input[readonly]': 'openFile',
         'input .open__pass-input': 'inputInput',
+        'mousedown .open__pass-input': 'updateCapsLockWarning',
         'keydown .open__pass-input': 'inputKeydown',
         'keyup .open__pass-input': 'inputKeyup',
         'keypress .open__pass-input': 'inputKeypress',

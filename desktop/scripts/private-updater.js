@@ -64,4 +64,14 @@ function cancelPrivateUpdate() {
     updater?.cancelInstall();
 }
 
-module.exports = { startPrivateUpdater, updateMenuItems, finishPrivateUpdate, cancelPrivateUpdate };
+function isPrivateUpdateRequested() {
+    return updater?.installRequested === true;
+}
+
+module.exports = {
+    startPrivateUpdater,
+    updateMenuItems,
+    finishPrivateUpdate,
+    cancelPrivateUpdate,
+    isPrivateUpdateRequested
+};

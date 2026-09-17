@@ -40,7 +40,6 @@ cat <<'EOF'
 
 Next steps:
   1. Deploy: ./scripts/dev/build-macos-touchid-agent.sh
-     (use --backup only when an app-bundle backup is explicitly needed)
   2. Test in the app: Touch ID unlock, save, Cmd+K.
   3. macOS will re-ask keychain permissions once (new binary signature) - click "Always Allow".
   4. Commit package.json + package-lock.json.

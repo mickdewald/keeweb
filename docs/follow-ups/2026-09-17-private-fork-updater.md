@@ -13,7 +13,7 @@ metadata only. A user must approve downloading; Squirrel installs a downloaded
 update at the next app exit, even if the user postpones the immediate restart.
 The confirmation explains this behavior. Immediate restart goes through the
 existing renderer save/cancel workflow. Failed saves and editor vetoes clear
-restart intent. Background network failures remain quiet; manual failures show
+restart intent. Explicit update restarts also bypass minimize-on-close. Background network failures remain quiet; manual failures show
 a dialog. Unpackaged builds and other platforms do not enable this channel.
 
 ## Release preparation
@@ -69,6 +69,6 @@ fixture is built only via `--updater-smoke`, with its own `.updater-smoke` bundl
 ID and minimal entitlements; it never opens KeeWeb data or Keychain. Every deploy
 also rejects a smoke artifact, including `--skip-build`.
 
-Validation on 2026-09-17: 161 browser tests and 13 updater tests passed.
+Validation on 2026-09-17: 161 browser tests and 17 updater tests passed.
 A signed native upgrade with an isolated app ID succeeded; an invalid-signature
 archive was rejected and the old app preserved. Publication is a separate gate.

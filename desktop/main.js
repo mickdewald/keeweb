@@ -57,7 +57,8 @@ const { httpRequest } = require('./scripts/http-request');
 const {
     startPrivateUpdater,
     finishPrivateUpdate,
-    cancelPrivateUpdate
+    cancelPrivateUpdate,
+    isPrivateUpdateRequested
 } = require('./scripts/private-updater');
 
 pushPerfTimestamp('loading app requires');
@@ -214,7 +215,7 @@ main.on('web-contents-created', (event, contents) => {
         }
     });
 });
-main.cancelPrivateUpdate = cancelPrivateUpdate;
+Object.assign(main, { cancelPrivateUpdate, isPrivateUpdateRequested });
 main.restartAndUpdate = function (updateFilePath) {
     pendingUpdateFilePath = updateFilePath;
     context.mainWindow.close();

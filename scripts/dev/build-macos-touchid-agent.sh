@@ -12,7 +12,6 @@ Options:
   --skip-build           Skip build/sign, only deploy from existing tmp build app
   --skip-deploy          Build/sign only, do not copy to /Applications
   --updater-smoke        Build an isolated updater test fixture; never deploy
-  --backup               Back up the installed app before replacing it
   --no-open              Do not open app after deploy
   -h, --help             Show this help
 EOF
@@ -28,7 +27,6 @@ require_cmd() {
 DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb.app}"
 DO_BUILD=1
 DO_DEPLOY=1
-BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-0}"
 OPEN_AFTER_DEPLOY=1
 UPDATER_SMOKE=0
 
@@ -49,10 +47,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-deploy)
             DO_DEPLOY=0
-            shift
-            ;;
-        --backup)
-            BACKUP_ON_DEPLOY=1
             shift
             ;;
         --no-open)
@@ -137,24 +131,6 @@ if [[ "$UPDATER_SMOKE" -eq 1 ]]; then
     APP_BUNDLE_ID="${APP_BUNDLE_ID}.updater-smoke"
     SMOKE_ARGS=(--updater-smoke)
 fi
-
-next_backup_deploy_path() {
-    local app_path="$1"
-    local timestamp app_dir app_name candidate counter
-
-    timestamp="$(date +%Y-%m-%d-%H-%M)"
-    app_dir="$(dirname "$app_path")"
-    app_name="$(basename "$app_path" .app)"
-    candidate="${app_dir}/${app_name}-backup-${timestamp}.app"
-    counter=1
-
-    while [[ -e "$candidate" ]]; do
-        candidate="${app_dir}/${app_name}-backup-${timestamp}-$(printf '%02d' "$counter").app"
-        counter=$((counter + 1))
-    done
-
-    printf '%s\n' "$candidate"
-}
 
 stop_running_app() {
     /usr/bin/osascript -e "tell application id \"${APP_BUNDLE_ID}\" to quit" >/dev/null 2>&1 || true
@@ -255,13 +231,7 @@ if [[ "$DO_DEPLOY" -eq 1 ]]; then
         exit 1
     fi
 
-    if [[ "$BACKUP_ON_DEPLOY" -eq 1 && -d "$DEPLOY_PATH" ]]; then
-        BACKUP_PATH="$(next_backup_deploy_path "$DEPLOY_PATH")"
-        mv "$DEPLOY_PATH" "$BACKUP_PATH"
-        echo "Backup created: $BACKUP_PATH"
-    else
-        rm -rf "$DEPLOY_PATH"
-    fi
+    rm -rf "$DEPLOY_PATH"
 
     ditto "$APP_BUILD_PATH" "$DEPLOY_PATH"
     xattr -cr "$DEPLOY_PATH"

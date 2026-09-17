@@ -2,6 +2,7 @@ const electron = require('electron');
 
 const { context } = require('./context');
 const { locale } = require('./locale');
+const { updateMenuItems } = require('./private-updater');
 
 function setMenu() {
     if (process.platform === 'darwin') {
@@ -11,6 +12,7 @@ function setMenu() {
                 label: name,
                 submenu: [
                     { role: 'about', label: locale.sysMenuAboutKeeWeb?.replace('{}', 'KeeWeb') },
+                    ...updateMenuItems(),
                     { type: 'separator' },
                     { role: 'services', submenu: [], label: locale.sysMenuServices },
                     { type: 'separator' },

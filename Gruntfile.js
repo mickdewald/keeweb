@@ -37,10 +37,12 @@ module.exports = function (grunt) {
         grunt.option('app-bundle-id') || process.env.KEEWEB_APP_BUNDLE_ID || 'net.antelle.keeweb';
     const appleTeamId =
         grunt.option('apple-team-id') || process.env.KEEWEB_APPLE_TEAM_ID || '3LE7JZ657W';
-    const provisioningProfile =
-        grunt.option('provisioning-profile') ||
-        process.env.KEEWEB_PROVISIONING_PROFILE ||
-        './keys/keeweb.provisionprofile';
+    const updaterSmoke = !!grunt.option('updater-smoke');
+    const provisioningProfile = updaterSmoke
+        ? null
+        : grunt.option('provisioning-profile') ||
+          process.env.KEEWEB_PROVISIONING_PROFILE ||
+          './keys/keeweb.provisionprofile';
 
     let sha = grunt.option('commit-sha');
     if (!sha) {
@@ -123,6 +125,13 @@ module.exports = function (grunt) {
             linuxDependencies
         }),
         ...configDist({ pkg, sha, appdmgOptions, linuxDependencies }),
-        ...configSign({ pkg, sha, appBundleId, provisioningProfile, getCodeSignConfig })
+        ...configSign({
+            pkg,
+            sha,
+            appBundleId,
+            provisioningProfile,
+            getCodeSignConfig,
+            updaterSmoke
+        })
     });
 };

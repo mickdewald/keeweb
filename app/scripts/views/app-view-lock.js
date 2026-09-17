@@ -23,6 +23,7 @@ const AppViewLockMixin = {
         };
         Events.emit('main-window-will-close', exitEvent);
         if (exitEvent.prevented) {
+            Launcher?.cancelRestart();
             return Launcher ? Launcher.preventExit(e) : false;
         }
 
@@ -49,6 +50,8 @@ const AppViewLockMixin = {
                             (result) => {
                                 if (result) {
                                     exit();
+                                } else {
+                                    Launcher.cancelRestart();
                                 }
                             },
                             { appClosing: true }
@@ -70,6 +73,8 @@ const AppViewLockMixin = {
                                     (result) => {
                                         if (result) {
                                             exit();
+                                        } else {
+                                            Launcher.cancelRestart();
                                         }
                                     },
                                     { appClosing: true }

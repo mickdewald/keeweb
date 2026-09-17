@@ -186,6 +186,7 @@ const Launcher = {
         this.requestExit();
     },
     cancelRestart() {
+        this.remoteApp().cancelPrivateUpdate();
         this.pendingUpdateFile = undefined;
     },
     setClipboardText(text) {

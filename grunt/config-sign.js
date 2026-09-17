@@ -1,6 +1,13 @@
 /* eslint-env node */
 
-module.exports = function ({ pkg, sha, appBundleId, provisioningProfile, getCodeSignConfig }) {
+module.exports = function ({
+    pkg,
+    sha,
+    appBundleId,
+    provisioningProfile,
+    getCodeSignConfig,
+    updaterSmoke
+}) {
     return {
         'osx-sign': {
             options: {
@@ -8,8 +15,12 @@ module.exports = function ({ pkg, sha, appBundleId, provisioningProfile, getCode
                     return getCodeSignConfig().identities.app;
                 },
                 hardenedRuntime: true,
-                entitlements: 'package/osx/entitlements.plist',
-                'entitlements-inherit': 'package/osx/entitlements-inherit.plist',
+                entitlements: updaterSmoke
+                    ? 'package/osx/updater-smoke-entitlements.plist'
+                    : 'package/osx/entitlements.plist',
+                'entitlements-inherit': updaterSmoke
+                    ? 'package/osx/updater-smoke-entitlements.plist'
+                    : 'package/osx/entitlements-inherit.plist',
                 'gatekeeper-assess': false
             },
             'desktop-x64': {

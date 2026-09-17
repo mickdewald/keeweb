@@ -54,6 +54,12 @@ const {
 const { setGlobalShortcuts, subscribePowerEvents } = require('./scripts/global-shortcuts');
 const { setMenu, onContextMenu } = require('./scripts/app-menu');
 const { httpRequest } = require('./scripts/http-request');
+const {
+    startPrivateUpdater,
+    finishPrivateUpdate,
+    cancelPrivateUpdate,
+    isPrivateUpdateRequested
+} = require('./scripts/private-updater');
 
 pushPerfTimestamp('loading app requires');
 
@@ -152,7 +158,12 @@ main.on('ready', () => {
             subscribePowerEvents();
             hookRequestHeaders();
 
-            loadLocale().then(() => {
+            Promise.all([
+                loadLocale(),
+                startPrivateUpdater().catch((error) => {
+                    logStartupMessage(`Private updater initialization failed: ${error.message}`);
+                })
+            ]).then(() => {
                 setMenu();
             });
         })
@@ -179,6 +190,8 @@ main.on('before-quit', (e) => {
     if (main.hookBeforeQuitEvent && context.mainWindow) {
         e.preventDefault();
         emitRemoteEvent('launcher-before-quit');
+    } else {
+        finishPrivateUpdate(e);
     }
 });
 main.on('will-quit', () => {
@@ -202,6 +215,7 @@ main.on('web-contents-created', (event, contents) => {
         }
     });
 });
+Object.assign(main, { cancelPrivateUpdate, isPrivateUpdateRequested });
 main.restartAndUpdate = function (updateFilePath) {
     pendingUpdateFilePath = updateFilePath;
     context.mainWindow.close();

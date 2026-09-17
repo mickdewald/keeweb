@@ -33,8 +33,8 @@ Deploy (beendet die App hart, ungespeicherte kdbx-Änderungen sind weg):
 ```
 
 Das Deploy-Skript ersetzt `/Applications/KeeWeb.app`
-standardmäßig ohne App-Bundle-Backup, lintet (Prettier) und bricht bei Fehlern ab. Ein Backup ist
-nur als bewusstes Opt-in mit `--backup` erlaubt.
+ohne App-Bundle-Backup, lintet (Prettier) und bricht bei Fehlern ab.
+Es gibt keine Backup-Option; beim Deploy wird nur die Ziel-App ersetzt.
 
 Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Datei im Browser öffnen.
 

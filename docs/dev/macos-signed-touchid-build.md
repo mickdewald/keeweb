@@ -89,7 +89,7 @@ app backup behind:
 scripts/dev/build-macos-touchid-agent.sh
 ```
 
-For an exceptional recovery workflow, explicitly opt in with `--backup`.
+App-bundle backups are not supported; the deploy script always replaces the target app.
 
 ## Verification checklist
 

@@ -89,3 +89,5 @@ keys
 
 node_modules/
 
+
+.updater-artifacts/

@@ -11,7 +11,7 @@ Options:
   --deploy-path <path>   Target app path (default: /Applications/KeeWeb.app)
   --skip-build           Skip build/sign, only deploy from existing tmp build app
   --skip-deploy          Build/sign only, do not copy to /Applications
-  --backup               Back up the installed app before replacing it
+  --updater-smoke        Build an isolated updater test fixture; never deploy
   --no-open              Do not open app after deploy
   -h, --help             Show this help
 EOF
@@ -27,8 +27,8 @@ require_cmd() {
 DEPLOY_PATH="${DEPLOY_PATH:-/Applications/KeeWeb.app}"
 DO_BUILD=1
 DO_DEPLOY=1
-BACKUP_ON_DEPLOY="${BACKUP_ON_DEPLOY:-0}"
 OPEN_AFTER_DEPLOY=1
+UPDATER_SMOKE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -36,16 +36,17 @@ while [[ $# -gt 0 ]]; do
             DEPLOY_PATH="${2:-}"
             shift 2
             ;;
+        --updater-smoke)
+            UPDATER_SMOKE=1
+            DO_DEPLOY=0
+            shift
+            ;;
         --skip-build)
             DO_BUILD=0
             shift
             ;;
         --skip-deploy)
             DO_DEPLOY=0
-            shift
-            ;;
-        --backup)
-            BACKUP_ON_DEPLOY=1
             shift
             ;;
         --no-open)
@@ -125,24 +126,11 @@ fi
 
 TEAM_ID="${APP_ID_FULL%%.*}"
 APP_BUNDLE_ID="${APP_ID_FULL#*.}"
-
-next_backup_deploy_path() {
-    local app_path="$1"
-    local timestamp app_dir app_name candidate counter
-
-    timestamp="$(date +%Y-%m-%d-%H-%M)"
-    app_dir="$(dirname "$app_path")"
-    app_name="$(basename "$app_path" .app)"
-    candidate="${app_dir}/${app_name}-backup-${timestamp}.app"
-    counter=1
-
-    while [[ -e "$candidate" ]]; do
-        candidate="${app_dir}/${app_name}-backup-${timestamp}-$(printf '%02d' "$counter").app"
-        counter=$((counter + 1))
-    done
-
-    printf '%s\n' "$candidate"
-}
+SMOKE_ARGS=(--no-updater-smoke)
+if [[ "$UPDATER_SMOKE" -eq 1 ]]; then
+    APP_BUNDLE_ID="${APP_BUNDLE_ID}.updater-smoke"
+    SMOKE_ARGS=(--updater-smoke)
+fi
 
 stop_running_app() {
     /usr/bin/osascript -e "tell application id \"${APP_BUNDLE_ID}\" to quit" >/dev/null 2>&1 || true
@@ -206,6 +194,11 @@ if [[ "$DO_BUILD" -eq 1 ]]; then
         default \
         build-desktop-app-content
 
+    node scripts/dev/write-private-update-build.js tmp/desktop/app/private-update-build.json
+    if [[ "$UPDATER_SMOKE" -eq 1 ]]; then
+        cp scripts/dev/private-updater-smoke-entry.js tmp/desktop/app/main.js
+        node -e 'const fs=require("fs");const p="tmp/desktop/app/private-update-build.json";const data=JSON.parse(fs.readFileSync(p));data.smoke=true;fs.writeFileSync(p,JSON.stringify(data));'
+    fi
     rm -f tmp/desktop/app/scripts/update-installer.js
 
     npx grunt \
@@ -213,6 +206,7 @@ if [[ "$DO_BUILD" -eq 1 ]]; then
         copy:native-modules-darwin-arm64 \
         copy:native-messaging-host-darwin-arm64 \
         osx-sign:desktop-arm64 \
+        "${SMOKE_ARGS[@]}" \
         --app-bundle-id="$APP_BUNDLE_ID" \
         --provisioning-profile="./$PROVISIONING_PROFILE"
 fi
@@ -228,6 +222,7 @@ if [[ -e "$APP_BUILD_PATH/Contents/Installer" ]]; then
 fi
 
 if [[ "$DO_DEPLOY" -eq 1 ]]; then
+    node scripts/dev/check-private-update-deploy.js "$APP_BUILD_PATH"
     stop_running_app
 
     if [[ -d "$DEPLOY_PATH" && ! -w "$DEPLOY_PATH" ]]; then
@@ -236,13 +231,7 @@ if [[ "$DO_DEPLOY" -eq 1 ]]; then
         exit 1
     fi
 
-    if [[ "$BACKUP_ON_DEPLOY" -eq 1 && -d "$DEPLOY_PATH" ]]; then
-        BACKUP_PATH="$(next_backup_deploy_path "$DEPLOY_PATH")"
-        mv "$DEPLOY_PATH" "$BACKUP_PATH"
-        echo "Backup created: $BACKUP_PATH"
-    else
-        rm -rf "$DEPLOY_PATH"
-    fi
+    rm -rf "$DEPLOY_PATH"
 
     ditto "$APP_BUILD_PATH" "$DEPLOY_PATH"
     xattr -cr "$DEPLOY_PATH"

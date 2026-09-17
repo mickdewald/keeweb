@@ -186,6 +186,7 @@ const Launcher = {
         this.requestExit();
     },
     cancelRestart() {
+        this.remoteApp().cancelPrivateUpdate();
         this.pendingUpdateFile = undefined;
     },
     setClipboardText(text) {
@@ -202,7 +203,7 @@ const Launcher = {
         }
     },
     quitOnRealQuitEventIfMinimizeOnQuitIsEnabled() {
-        return !!this.pendingUpdateFile;
+        return !!this.pendingUpdateFile || this.remoteApp().isPrivateUpdateRequested();
     },
     minimizeApp() {
         this.remoteApp().minimizeApp({

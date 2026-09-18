@@ -11,7 +11,15 @@ The KeeWeb menu offers a manual check and a persisted automatic-check checkbox.
 Automatic checks run ten seconds after launch and every 24 hours. They fetch
 metadata only. A user must approve downloading; Squirrel installs a downloaded
 update at the next app exit, even if the user postpones the immediate restart.
-The confirmation explains this behavior. Immediate restart goes through the
+The confirmation explains this behavior. After approval a dedicated macOS-style
+window shows actual downloaded bytes, a percentage when the server provides the
+size, and a distinct verification phase. Downloads can be cancelled before native
+staging or hidden in the background; a manual check reopens ongoing progress.
+The archive is streamed to a private temporary directory, checked against the
+release SHA-256, then served through a random loopback URL to the native updater
+for signature verification. Errors and cancellations clean up the temporary files.
+A stalled download times out after 60 seconds without data.
+Immediate restart goes through the
 existing renderer save/cancel workflow. Failed saves and editor vetoes clear
 restart intent. Explicit update restarts also bypass minimize-on-close. Background network failures remain quiet; manual failures show
 a dialog. Unpackaged builds and other platforms do not enable this channel.
@@ -72,3 +80,7 @@ also rejects a smoke artifact, including `--skip-build`.
 Validation on 2026-09-17: 161 browser tests and 17 updater tests passed.
 A signed native upgrade with an isolated app ID succeeded; an invalid-signature
 archive was rejected and the old app preserved. Publication is a separate gate.
+
+Progress validation on 2026-09-18: 161 browser tests and 26 desktop tests passed.
+The signed isolated fixture displayed real byte/percentage progress during a
+throttled 117 MB download and successfully installed and launched the next build.

@@ -1,5 +1,16 @@
 class PrivateUpdaterController {
-    constructor({ app, autoUpdater, dialog, fetchRelease, settings, saveSettings, build, log }) {
+    constructor({
+        app,
+        autoUpdater,
+        dialog,
+        fetchRelease,
+        settings,
+        saveSettings,
+        build,
+        log,
+        prepareDownload,
+        progress
+    }) {
         Object.assign(this, {
             app,
             autoUpdater,
@@ -8,16 +19,17 @@ class PrivateUpdaterController {
             settings,
             saveSettings,
             build,
-            log
+            log,
+            prepareDownload,
+            progress
         });
         this.busy = false;
         this.ready = false;
         this.installRequested = false;
         autoUpdater.on('error', (error) => this.fail(error));
-        autoUpdater.on('update-not-available', () => {
-            this.busy = false;
-        });
+        autoUpdater.on('update-not-available', () => this.fail(new Error('Update not available')));
         autoUpdater.on('update-downloaded', () => {
+            this.clearProgress();
             this.busy = false;
             this.ready = true;
             this.offerRestart().catch((error) => this.fail(error));
@@ -38,9 +50,11 @@ class PrivateUpdaterController {
     }
 
     async check(manual = true) {
-        if (this.busy || (!manual && this.settings.automatic === false)) {
+        if (this.busy) {
+            if (manual && this.progressState) this.progress.open(this.progressState);
             return;
         }
+        if (!manual && this.settings.automatic === false) return;
         if (this.ready) {
             if (manual) {
                 await this.offerRestart();
@@ -76,11 +90,48 @@ class PrivateUpdaterController {
                 return;
             }
             this.manual = true;
-            this.autoUpdater.setFeedURL({ url: release.updateURL });
+            this.downloadAbort = new AbortController();
+            this.progressState = {
+                phase: 'downloading',
+                version: release.version,
+                received: 0,
+                total: 0
+            };
+            this.progress.open(this.progressState);
+            this.prepared = await this.prepareDownload(
+                release,
+                this.downloadAbort.signal,
+                (value) => {
+                    this.progressState = { ...this.progressState, ...value };
+                    this.progress.update(this.progressState);
+                }
+            );
+            this.downloadAbort = null;
+            this.progressState = { ...this.progressState, phase: 'verifying' };
+            this.progress.update(this.progressState);
+            this.autoUpdater.setFeedURL({ url: this.prepared.updateURL });
             this.autoUpdater.checkForUpdates();
         } catch (error) {
-            this.fail(error);
+            if (this.downloadAbort?.signal.aborted) {
+                this.busy = false;
+                this.clearProgress();
+            } else {
+                this.fail(error);
+            }
         }
+    }
+
+    cancelDownload() {
+        this.downloadAbort?.abort();
+    }
+
+    clearProgress() {
+        this.downloadAbort?.abort();
+        this.downloadAbort = null;
+        this.progressState = null;
+        this.progress.close();
+        this.prepared?.dispose().catch((error) => this.log(`Update cleanup: ${error.message}`));
+        this.prepared = null;
     }
 
     async offerRestart() {
@@ -123,6 +174,7 @@ class PrivateUpdaterController {
     }
 
     fail(error) {
+        this.clearProgress();
         this.busy = false;
         this.log(`Private updater: ${error.message}`);
         if (this.manual) {

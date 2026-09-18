@@ -1,10 +1,14 @@
 /* eslint-env node */
 // Build-only fixture, copied over the packaged entrypoint by --updater-smoke.
 // Does not load KeeWeb, password databases, Keychain or privacy-protected services.
-const { app, autoUpdater } = require('electron');
+const { app, autoUpdater, net } = require('electron');
+const crypto = require('crypto');
+const { prepareUpdateDownload } = require('./scripts/private-update-download');
+const { createUpdateProgress } = require('./scripts/private-update-progress');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const { Transform } = require('stream');
 const { PrivateUpdaterController } = require('./scripts/private-updater-controller');
 const { build, smoke } = require('./private-update-build.json');
 if (!smoke) {
@@ -31,7 +35,16 @@ app.whenReady().then(() => {
             );
         } else if (req.url === '/KeeWeb.zip') {
             res.setHeader('Content-Type', 'application/zip');
-            fs.createReadStream(config.archive).pipe(res);
+            res.setHeader('Content-Length', fs.statSync(config.archive).size);
+            fs.createReadStream(config.archive)
+                .pipe(
+                    new Transform({
+                        transform(chunk, encoding, next) {
+                            setTimeout(() => next(null, chunk), config.chunkDelayMs || 0);
+                        }
+                    })
+                )
+                .pipe(res);
         } else {
             res.writeHead(404);
             res.end();
@@ -50,15 +63,32 @@ app.whenReady().then(() => {
             fetchRelease: async () => ({
                 version: 'smoke',
                 build: config.toBuild,
-                updateURL: `http://127.0.0.1:${server.address().port}/update.json`
+                updateURL: `http://127.0.0.1:${server.address().port}/update.json`,
+                url: `http://127.0.0.1:${server.address().port}/KeeWeb.zip`,
+                sha256: crypto
+                    .createHash('sha256')
+                    .update(fs.readFileSync(config.archive))
+                    .digest('hex')
             }),
+            prepareDownload: (release, signal, onProgress) =>
+                prepareUpdateDownload({
+                    release,
+                    signal,
+                    tempRoot: app.getPath('temp'),
+                    fetch: (url, options) => net.fetch(url, options),
+                    onProgress: (value) => {
+                        report({ stage: 'progress', ...value });
+                        onProgress(value);
+                    }
+                }),
+            progress: createUpdateProgress(() => controller.cancelDownload()),
             settings: {},
             saveSettings: async () => {},
             build,
             log: (error) => report({ error })
         });
         app.on('before-quit', (event) => controller.finishInstall(event));
-        controller.check();
+        setTimeout(() => controller.check(), config.startDelayMs || 0);
     });
 });
 setTimeout(() => {

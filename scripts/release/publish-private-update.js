@@ -108,6 +108,7 @@ async function publish() {
     }
     const latest = fs.readFileSync(path.join(directory, 'latest.json'));
     const current = await fetch(FEED_URL, {
+        headers: { 'accept-encoding': 'identity' },
         cache: 'no-store',
         signal: AbortSignal.timeout(30000)
     });
@@ -126,8 +127,8 @@ async function publish() {
             throw new Error('Refusing non-increasing release');
         }
         const etag = current.headers.get('etag');
-        if (!etag) {
-            throw new Error('Current feed has no ETag; cannot publish safely');
+        if (!etag || etag.startsWith('W/')) {
+            throw new Error('Current feed has no strong ETag; cannot publish safely');
         }
         condition = { 'if-match': etag };
     } else if (current.status !== 404) {

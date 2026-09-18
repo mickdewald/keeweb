@@ -4,6 +4,9 @@ const { fetchRelease } = require('./private-update-feed');
 const { loadConfig, saveConfig } = require('./config-store');
 const { logStartupMessage } = require('./startup-profile');
 
+const { prepareUpdateDownload } = require('./private-update-download');
+const { createUpdateProgress } = require('./private-update-progress');
+
 let updater;
 
 async function startPrivateUpdater() {
@@ -26,6 +29,15 @@ async function startPrivateUpdater() {
     }
     updater = new PrivateUpdaterController({
         app,
+        prepareDownload: (release, signal, onProgress) =>
+            prepareUpdateDownload({
+                release,
+                signal,
+                onProgress,
+                fetch: (url, options) => net.fetch(url, options),
+                tempRoot: app.getPath('temp')
+            }),
+        progress: createUpdateProgress(() => updater.cancelDownload()),
         autoUpdater,
         dialog,
         fetchRelease: (build) => fetchRelease(net, build),
@@ -35,6 +47,7 @@ async function startPrivateUpdater() {
         log: logStartupMessage
     });
     updater.start();
+    app.on('will-quit', () => updater.clearProgress());
 }
 
 function updateMenuItems() {

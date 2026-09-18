@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'"
+        />
+        <title>KeeWeb aktualisieren</title>
+        <link rel="stylesheet" href="style.css" />
+        <script src="view.js" defer></script>
+    </head>
+    <body>
+        <main>
+            <div class="heading">
+                <img class="icon" src="../img/icon.png" alt="" />
+                <div>
+                    <h1 id="title">KeeWeb wird geladen …</h1>
+                    <p id="version">Softwareupdate</p>
+                </div>
+            </div>
+            <progress id="progress" aria-label="Download-Fortschritt"></progress>
+            <div class="details">
+                <span id="status" role="status">Verbindung wird hergestellt …</span
+                ><span id="percent"></span>
+            </div>
+            <p class="hint" id="hint">Du kannst KeeWeb währenddessen weiter benutzen.</p>
+            <footer>
+                <button id="cancel">Abbrechen</button><button id="hide">Im Hintergrund</button>
+            </footer>
+        </main>
+    </body>
+</html>

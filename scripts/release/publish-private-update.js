@@ -69,7 +69,11 @@ async function put(key, bytes, contentType, condition) {
                 response.on('end', () =>
                     response.statusCode >= 200 && response.statusCode < 300
                         ? resolve()
-                        : reject(new Error(`R2 HTTP ${response.statusCode}`))
+                        : reject(
+                              Object.assign(new Error(`R2 HTTP ${response.statusCode}`), {
+                                  statusCode: response.statusCode
+                              })
+                          )
                 );
             }
         );
@@ -85,15 +89,14 @@ async function verify(url, expected) {
     }
 }
 async function ensureArtifact(key, url, bytes, contentType) {
-    const existing = await fetch(url, {
-        method: 'HEAD',
-        cache: 'no-store',
-        signal: AbortSignal.timeout(30000)
-    });
-    if (existing.status === 404) {
+    // A public HEAD before upload can leave a cached 404 at the release URL.
+    // Conditional creation protects immutable artifacts without priming the CDN.
+    try {
         await put(key, bytes, contentType, { 'if-none-match': '*' });
-    } else if (!existing.ok) {
-        throw new Error(`Cannot inspect immutable artifact: HTTP ${existing.status}`);
+    } catch (error) {
+        if (error.statusCode !== 412) {
+            throw error;
+        }
     }
     await verify(url, bytes);
 }

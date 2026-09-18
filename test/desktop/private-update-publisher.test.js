@@ -69,3 +69,56 @@ test('publisher rejects a weak ETag before updating the feed', async () => {
     await assert.rejects(f.publish, /no strong ETag/);
     assert.equal(f.writes.length, 0);
 });
+
+function artifactFixture(statusCode) {
+    const calls = [];
+    const ensureArtifact = vm.runInNewContext(
+        source.slice(
+            source.indexOf('async function ensureArtifact('),
+            source.indexOf('async function publish()')
+        ) + '\nensureArtifact;',
+        {
+            AbortSignal,
+            put: async (...args) => {
+                calls.push(['put', ...args]);
+                if (statusCode) throw Object.assign(new Error('R2 failure'), { statusCode });
+            },
+            fetch: async () => {
+                throw new Error('Public preflight would cache a missing artifact');
+            },
+            verify: async (...args) => calls.push(['verify', ...args])
+        }
+    );
+    return { ensureArtifact, calls };
+}
+
+test('publisher uploads new artifacts before any public request can cache a 404', async () => {
+    const f = artifactFixture();
+    await f.ensureArtifact('key', 'url', 'bytes', 'application/zip');
+    assert.deepEqual(
+        f.calls.map((call) => call[0]),
+        ['put', 'verify']
+    );
+    assert.equal(f.calls[0][4]['if-none-match'], '*');
+});
+
+test('publisher verifies immutable existing artifacts after a conditional conflict', async () => {
+    const f = artifactFixture(412);
+    await f.ensureArtifact('key', 'url', 'bytes', 'application/zip');
+    assert.deepEqual(
+        f.calls.map((call) => call[0]),
+        ['put', 'verify']
+    );
+});
+
+test('publisher propagates upload failures without public verification', async () => {
+    const f = artifactFixture(403);
+    await assert.rejects(
+        () => f.ensureArtifact('key', 'url', 'bytes', 'application/zip'),
+        /R2 failure/
+    );
+    assert.deepEqual(
+        f.calls.map((call) => call[0]),
+        ['put']
+    );
+});

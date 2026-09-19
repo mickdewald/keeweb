@@ -8,6 +8,10 @@ module.exports = function ({
     getCodeSignConfig,
     updaterSmoke
 }) {
+    // Only an explicitly supplied profile is embedded; updater smoke fixtures have none.
+    const provisioningOptions = provisioningProfile
+        ? { 'provisioning-profile': provisioningProfile }
+        : {};
     return {
         'osx-sign': {
             options: {
@@ -24,15 +28,11 @@ module.exports = function ({
                 'gatekeeper-assess': false
             },
             'desktop-x64': {
-                options: {
-                    'provisioning-profile': provisioningProfile
-                },
+                options: provisioningOptions,
                 src: 'tmp/desktop/KeeWeb-darwin-x64/KeeWeb.app'
             },
             'desktop-arm64': {
-                options: {
-                    'provisioning-profile': provisioningProfile
-                },
+                options: provisioningOptions,
                 src: 'tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app'
             },
             'installer': {

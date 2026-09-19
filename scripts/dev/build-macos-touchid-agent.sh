@@ -194,7 +194,7 @@ if [[ "$DO_BUILD" -eq 1 ]]; then
         default \
         build-desktop-app-content
 
-    node scripts/dev/write-private-update-build.js tmp/desktop/app/private-update-build.json
+    node scripts/dev/write-update-build.js tmp/desktop/app/private-update-build.json --channel development
     if [[ "$UPDATER_SMOKE" -eq 1 ]]; then
         cp scripts/dev/private-updater-smoke-entry.js tmp/desktop/app/main.js
         node -e 'const fs=require("fs");const p="tmp/desktop/app/private-update-build.json";const data=JSON.parse(fs.readFileSync(p));data.smoke=true;fs.writeFileSync(p,JSON.stringify(data));'

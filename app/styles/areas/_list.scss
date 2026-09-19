@@ -55,10 +55,11 @@ mark.search-hl {
             align-self: stretch;
             position: relative;
             overflow-x: hidden;
-            @include mobile {
-                width: 100% !important;
-                max-width: 100% !important;
-            }
+            // Baron writes pixel widths on throttled geometry updates. Keep
+            // the content (and right-aligned markers) in sync with each drag frame.
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
         }
     }
 

@@ -1,4 +1,8 @@
 <div class="icon-select">
+    {{#if canAddBackground}}
+        <button class="icon-select__white">{{res 'iconWhiteBackgroundAdd'}}</button>
+        <p class="icon-select__background-error hide" role="alert">{{res 'iconWhiteBackgroundError'}}</p>
+    {{/if}}
     <div class="icon-select__items">
         {{#each icons as |icon ix|}}
         <i class="fa fa-{{icon}} icon-select__icon {{#ifeq ix ../sel}}icon-select__icon--active{{/ifeq}}" data-val="{{ix}}"></i>

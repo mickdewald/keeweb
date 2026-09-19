@@ -85,6 +85,14 @@
                 <option value="2" {{#ifeq fontSize 2}}selected{{/ifeq}}>{{res 'setGenFontSizeLargest'}}</option>
             </select>
         </div>
+        <div class="settings__field">
+            <label for="settings__general-list-item-spacing">{{res 'setGenListItemSpacing'}}:</label>
+            <div class="settings__field-controls">
+                <input type="range" id="settings__general-list-item-spacing" min="0" max="24" step="1" value="{{listItemSpacing}}" />
+                <output id="settings__general-list-item-spacing-value" for="settings__general-list-item-spacing">{{listItemSpacing}} px</output>
+                <span>({{res 'setGenFontSizeNormal'}}: 8 px)</span>
+            </div>
+        </div>
         {{#if supportsTitleBarStyles}}
         <div class="settings__field">
             <label for="settings__general-titlebar-style">{{res 'setGenTitlebarStyle'}}:</label>
@@ -113,6 +121,7 @@
             <input type="checkbox" class="settings__input input-base settings__general-colorful-icons" id="settings__general-colorful-icons" {{#if colorfulIcons}}checked{{/if}} />
             <label for="settings__general-colorful-icons">{{res 'setGenColorfulIcons'}}</label>
         </div>
+        <button class="settings__general-review-icons" {{#unless canReviewIcons}}disabled{{/unless}}>{{res 'iconReviewTitle'}}</button>
     </section>
 
     <section class="settings__section" id="function">

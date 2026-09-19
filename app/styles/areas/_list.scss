@@ -264,6 +264,10 @@ mark.search-hl {
         box-sizing: border-box;
         @include nomobile {
             @include area-selectable();
+            &:hover,
+            &.sel--active {
+                color: var(--text-color);
+            }
             &--active,
             &--active:hover {
                 @include area-selected();
@@ -279,13 +283,13 @@ mark.search-hl {
 
         &:not(.list__item--table) {
             display: grid;
-            grid-template-columns: 20px minmax(0, 1fr) auto;
+            grid-template-columns: 2.4em minmax(0, 1fr) auto;
             column-gap: 0.7em;
             align-items: center;
             @include nomobile {
                 border-radius: var(--block-border-radius);
             }
-            padding: $base-padding;
+            padding: calc(#{$base-padding-v} + var(--list-item-spacing, 8px) / 2) $base-padding-h;
             margin: 0 $small-spacing;
             width: calc(100% - #{$small-spacing * 2});
 
@@ -295,6 +299,18 @@ mark.search-hl {
                 margin-right: 0;
                 justify-self: center;
                 align-self: center;
+                width: 1em;
+                height: 1em;
+                font-size: 2.4em;
+                line-height: 1;
+                // Font glyphs can be 1.25em wide (e.g. Wi-Fi). Fit their advance
+                // inside the same square as custom images instead of overflowing it.
+                &.fa {
+                    width: 1.25em;
+                    height: 1.25em;
+                    font-size: 1.92em;
+                    line-height: 1.25;
+                }
             }
 
             .list__item-title,
@@ -385,12 +401,14 @@ mark.search-hl {
         }
 
         &-descr {
-            font-size: 0.8em;
-            color: var(--muted-color);
+            font-size: 0.9em;
+            color: var(--medium-color);
+            color: color-mix(in srgb, var(--text-color) 85%, var(--background-color));
+            font-weight: 400;
             display: block;
             text-overflow: ellipsis;
             overflow: hidden;
-            margin-bottom: $tiny-spacing;
+            margin-bottom: 0;
             .list__item--active & {
                 color: var(--selected-item-text-color);
             }

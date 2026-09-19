@@ -1,5 +1,6 @@
 import { Events } from 'framework/events';
 import { PasswordHealthView } from 'views/password-health-view';
+import { WebsiteIconReviewView } from 'views/website-icon-review-view';
 
 function cloneFilter(filter) {
     if (!filter) {
@@ -125,6 +126,12 @@ const AppViewTransientNavigationMixin = {
         }
     },
 
+    showSettingsIfNotThere() {
+        if (!this.views.settings) {
+            this.toggleSettings('general');
+        }
+    },
+
     toggleSettings(page, section) {
         let menuItem = page ? this.model.menu[page + 'Section'] : null;
         if (menuItem) {
@@ -152,6 +159,18 @@ const AppViewTransientNavigationMixin = {
                 this.model.menu.select({ item: menuItem });
             }
         }
+    },
+
+    reviewWebsiteIcons() {
+        if (!this.model.files.hasOpenFiles()) return;
+        if (this.views.panel instanceof WebsiteIconReviewView) return;
+        this.rememberWorkspaceView();
+        this.hideOpenFile();
+        this.hideSettings();
+        this.hideKeyChange();
+        const view = new WebsiteIconReviewView(this.model);
+        view.on('close', () => this.returnToWorkspace());
+        this.showPanelView(view);
     },
 
     showPasswordHealth() {

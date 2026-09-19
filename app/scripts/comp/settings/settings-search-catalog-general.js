@@ -48,6 +48,15 @@ const SettingsSearchCatalogGeneral = [
         ['font', 'schrift']
     ),
     item(
+        'list-item-spacing',
+        'general',
+        'appearance',
+        '#settings__general-list-item-spacing',
+        'setGenListItemSpacing',
+        'setGenAppearance',
+        ['spacing', 'density', 'list', 'abstand', 'einträge']
+    ),
+    item(
         'titlebar-style',
         'general',
         'appearance',
@@ -94,6 +103,15 @@ const SettingsSearchCatalogGeneral = [
             'symbole',
             'liste'
         ]
+    ),
+    item(
+        'review-website-icons',
+        'general',
+        'appearance',
+        '.settings__general-review-icons',
+        'iconReviewTitle',
+        'setGenAppearance',
+        ['icons', 'website', 'update', 'favicon', 'symbole', 'aktualisieren']
     ),
     item('function', 'general', 'function', '#function', 'setGenFunction', 'setGenTitle', [
         'function',

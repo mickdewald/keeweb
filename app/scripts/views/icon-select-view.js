@@ -1,6 +1,7 @@
 import { View } from 'framework/views/view';
 import { IconMap } from 'const/icon-map';
 import { Logger } from 'util/logger';
+import { withWhiteIconBackground } from 'comp/icons/website-icon';
 import template from 'templates/icon-select.hbs';
 
 const logger = new Logger('icon-select-view');
@@ -12,7 +13,8 @@ class IconSelectView extends View {
         'click .icon-select__icon': 'iconClick',
         'click .icon-select__icon-download': 'downloadIcon',
         'click .icon-select__icon-select': 'selectIcon',
-        'change .icon-select__file-input': 'iconSelected'
+        'change .icon-select__file-input': 'iconSelected',
+        'click .icon-select__white': 'addWhiteBackground'
     };
 
     special = {
@@ -28,6 +30,7 @@ class IconSelectView extends View {
             icons: IconMap,
             canDownloadFavicon: !!this.model.url,
             customIcons,
+            canAddBackground: !!customIcons[this.model.iconId],
             hasCustomIcons
         });
     }
@@ -46,6 +49,23 @@ class IconSelectView extends View {
         } else if (iconId) {
             const isCustomIcon = target.hasClass('icon-select__icon-custom');
             this.emit('select', { id: iconId, custom: isCustomIcon });
+        }
+    }
+
+    async addWhiteBackground(event) {
+        const button = event.currentTarget.querySelector('.icon-select__white');
+        if (button.disabled) return;
+        button.disabled = true;
+        try {
+            const source = this.model.file.getCustomIcons()[this.model.iconId];
+            const image = await withWhiteIconBackground(source);
+            if (this.removed || !this.model.file.active) return;
+            const id = this.model.file.addCustomIcon(image.split(',')[1]);
+            this.emit('select', { id, custom: true });
+        } catch {
+            this.$el.find('.icon-select__background-error').removeClass('hide');
+        } finally {
+            button.disabled = false;
         }
     }
 

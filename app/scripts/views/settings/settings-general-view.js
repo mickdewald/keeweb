@@ -19,6 +19,7 @@ import { SettingsPrvView } from 'views/settings/settings-prv-view';
 import { mapObject } from 'util/fn';
 import { ThemeWatcher } from 'comp/browser/theme-watcher';
 import { SettingsGeneralAuditLockMixin } from 'views/settings/settings-general-view-audit-lock';
+import { normalizeListItemSpacing } from 'util/ui/list-item-spacing';
 import template from 'templates/settings/settings-general.hbs';
 
 class SettingsGeneralView extends View {
@@ -29,6 +30,8 @@ class SettingsGeneralView extends View {
         'click .settings__general-auto-switch-theme': 'changeAuthSwitchTheme',
         'change .settings__general-locale': 'changeLocale',
         'change .settings__general-font-size': 'changeFontSize',
+        'input #settings__general-list-item-spacing': 'changeListItemSpacing',
+        'click .settings__general-review-icons': 'reviewWebsiteIcons',
         'change .settings__general-expand': 'changeExpandGroups',
         'change .settings__general-auto-update': 'changeAutoUpdate',
         'change .settings__general-idle-minutes': 'changeIdleMinutes',
@@ -93,6 +96,8 @@ class SettingsGeneralView extends View {
             locales: SettingsManager.allLocales,
             activeLocale: SettingsManager.activeLocale,
             fontSize: AppSettingsModel.fontSize,
+            listItemSpacing: normalizeListItemSpacing(AppSettingsModel.listItemSpacing),
+            canReviewIcons: this.appModel.files.hasOpenFiles(),
             expandGroups: AppSettingsModel.expandGroups,
             canClearClipboard: !!Launcher,
             clipboardSeconds: AppSettingsModel.clipboardSeconds,
@@ -302,6 +307,16 @@ class SettingsGeneralView extends View {
     changeFontSize(e) {
         const fontSize = +e.target.value;
         AppSettingsModel.fontSize = fontSize;
+    }
+
+    reviewWebsiteIcons() {
+        Events.emit('review-website-icons');
+    }
+
+    changeListItemSpacing(e) {
+        const spacing = normalizeListItemSpacing(+e.target.value);
+        AppSettingsModel.listItemSpacing = spacing;
+        this.$el.find('#settings__general-list-item-spacing-value').text(`${spacing} px`);
     }
 
     changeTitlebarStyle(e) {

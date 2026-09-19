@@ -86,6 +86,8 @@ class AppView extends View {
         this.listenTo(Events, 'remote-key-changed', this.remoteKeyChanged);
         this.listenTo(Events, 'key-change-pending', this.keyChangePending);
         this.listenTo(Events, 'toggle-settings', this.toggleSettings);
+        this.listenTo(Events, 'show-settings', this.showSettingsIfNotThere);
+        this.listenTo(Events, 'review-website-icons', this.reviewWebsiteIcons);
         this.listenTo(Events, 'toggle-menu', this.toggleMenu);
         this.listenTo(Events, 'toggle-details', this.toggleDetails);
         this.listenTo(Events, 'show-open-view', this.showOpenIfNotThere);

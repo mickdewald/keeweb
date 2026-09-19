@@ -1,7 +1,7 @@
-const FEED_URL = 'https://downloads.michaeldewald.com/keeweb/arm64/latest.json';
-const RELEASE_ROOT = 'https://downloads.michaeldewald.com/keeweb/arm64/';
+const { getUpdateChannel } = require('./update-channels');
 
-function validateRelease(value, currentBuild) {
+function validateRelease(value, currentBuild, channelName) {
+    const channel = getUpdateChannel(channelName);
     if (
         !value ||
         value.schema !== 1 ||
@@ -13,15 +13,16 @@ function validateRelease(value, currentBuild) {
     ) {
         throw new Error('Invalid KeeWeb release metadata');
     }
-    const base = `${RELEASE_ROOT}${value.build}/`;
+    const base = `${channel.releaseRoot}${value.build}/`;
     if (value.updateURL !== `${base}update.json` || value.url !== `${base}KeeWeb.zip`) {
-        throw new Error('Release must belong to the private KeeWeb channel');
+        throw new Error(`Release must belong to the ${channel.name} KeeWeb channel`);
     }
     return value.build > currentBuild ? value : null;
 }
 
-async function fetchRelease(net, currentBuild) {
-    const response = await net.fetch(FEED_URL, {
+async function fetchRelease(net, currentBuild, channelName) {
+    const channel = getUpdateChannel(channelName);
+    const response = await net.fetch(channel.feedURL, {
         cache: 'no-store',
         redirect: 'error',
         signal: AbortSignal.timeout(30000)
@@ -33,7 +34,7 @@ async function fetchRelease(net, currentBuild) {
     if (body.length > 16384) {
         throw new Error('Update feed is too large');
     }
-    return validateRelease(JSON.parse(body), currentBuild);
+    return validateRelease(JSON.parse(body), currentBuild, channel.name);
 }
 
-module.exports = { FEED_URL, validateRelease, fetchRelease };
+module.exports = { validateRelease, fetchRelease };

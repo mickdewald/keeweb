@@ -1,5 +1,15 @@
 # KeeWeb Public macOS Distribution Design
 
+
+> Acceptance correction (2026-09-19): Website manifests must reference immutable
+> `keeweb/public/arm64/<build>/KeeWeb-<build>-macos-arm64.dmg` and its `.sha256`,
+> with `<build>` matching the manifest. This supersedes all stable-alias website
+> URL examples below. Stable aliases may still be published for convenience,
+> but are not used by the website. Otherwise cached manifests advertise stale
+> checksums when a subsequent release replaces the alias, even on success.
+> Failure-injection tests cover interruption after each mutable write and verify
+> both the cached and current manifest still identify matching immutable bytes.
+
 **Status:** Approved in conversation on 2026-09-19
 
 ## Goal
@@ -67,12 +77,24 @@ environment/config boundary rather than overwriting the maintainer's gitignored
 development `keys/codesign.json`.
 
 The public lane uses `xcrun notarytool` with the existing `mick-notary`
-Keychain profile. The release artifact is a drag-install DMG generated from the
-existing KeeWeb DMG layout. The workflow verifies:
+Keychain profile. The release artifact is a drag-install DMG (the app plus an
+`/Applications` link) built with `hdiutil`. The decorated upstream layout is not
+used: its `grunt-appdmg` optional dependency cannot be installed from the
+lockfile on the required Node 20 runtime, and a release lane must not depend on
+unlocked tooling. The DMG may contain nothing but the app and the link.
+
+KeeWeb's Touch ID entitlements (`com.apple.application-identifier`,
+`com.apple.developer.team-identifier`, `keychain-access-groups`) are restricted.
+macOS only honours them when the app embeds a provisioning profile issued for
+its signing certificate, so the public lane requires a Developer ID provisioning
+profile for `com.mickdewald.keeweb` and rejects the device-bound development
+profile. The workflow verifies:
 
 - every nested executable and framework has a valid signature
 - the outer app is signed by the expected Developer ID team
 - the app has Hardened Runtime and the expected entitlements
+- the embedded provisioning profile is the validated Developer ID profile
+- the declared minimum macOS version is 12.0
 - the notarization request is accepted
 - the notarization ticket is stapled and validates
 - Gatekeeper accepts both the DMG and the app copied from it
@@ -142,6 +164,10 @@ The publisher must:
 7. advance the stable DMG and checksum aliases,
 8. advance `updates.json`, and
 9. advance website-facing `latest.json` last.
+
+If publication fails after a stable alias advanced, the website manifest still
+describes the previous build until the run is repeated. The publisher is
+idempotent; an interrupted publication must be repeated immediately.
 
 Publishing `latest.json` last ensures the website cannot advertise a release
 whose download or update metadata is incomplete. Secret values must be supplied

@@ -1,6 +1,7 @@
 const { app, autoUpdater, dialog, net } = require('electron');
 const { PrivateUpdaterController } = require('./private-updater-controller');
 const { fetchRelease } = require('./private-update-feed');
+const { channelForBuild } = require('./update-channels');
 const { loadConfig, saveConfig } = require('./config-store');
 const { logStartupMessage } = require('./startup-profile');
 
@@ -14,7 +15,9 @@ async function startPrivateUpdater() {
         return;
     }
     const buildInfo = require('../private-update-build.json');
-    if (!/^\d{14}$/.test(buildInfo.build)) {
+    const channel = channelForBuild(buildInfo);
+    if (!channel) {
+        logStartupMessage('Build metadata has no valid update channel; updates disabled');
         return;
     }
     let settings = {};
@@ -40,7 +43,7 @@ async function startPrivateUpdater() {
         progress: createUpdateProgress(() => updater.cancelDownload()),
         autoUpdater,
         dialog,
-        fetchRelease: (build) => fetchRelease(net, build),
+        fetchRelease: (build) => fetchRelease(net, build, channel.name),
         settings,
         saveSettings: (value) => saveConfig('private-updater', JSON.stringify(value)),
         build: buildInfo.build,

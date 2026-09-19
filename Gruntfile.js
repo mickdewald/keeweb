@@ -1,6 +1,7 @@
 /* eslint-env node */
 
 const { execSync } = require('child_process');
+const path = require('path');
 const debug = require('debug');
 
 const webpackConfig = require('./build/webpack.config');
@@ -31,8 +32,13 @@ module.exports = function (grunt) {
     const year = date.getFullYear();
     const electronVersion = pkg.dependencies.electron.replace(/^\D/, '');
     const skipSign = grunt.option('skip-sign');
-    const getCodeSignConfig = () =>
-        skipSign ? { identities: {} } : require('./keys/codesign.json');
+    // The public release lane injects its own Developer ID signing config so the
+    // maintainer's development config under keys/ is never overwritten.
+    const codeSignConfigPath = path.resolve(
+        __dirname,
+        process.env.KEEWEB_CODESIGN_CONFIG || './keys/codesign.json'
+    );
+    const getCodeSignConfig = () => (skipSign ? { identities: {} } : require(codeSignConfigPath));
     const appBundleId =
         grunt.option('app-bundle-id') || process.env.KEEWEB_APP_BUNDLE_ID || 'net.antelle.keeweb';
     const appleTeamId =

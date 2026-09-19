@@ -22,11 +22,11 @@ if (info !== 'com.mickdewald.keeweb') {
     throw new Error('Unexpected bundle identifier');
 }
 const { verifyUpdateApp } = require('./verify-update-app');
-verifyUpdateApp(appPath);
+verifyUpdateApp(appPath, 'development');
 const archive = path.join(appPath, 'Contents/Resources/app.asar');
 const buildInfo = JSON.parse(asar.extractFile(archive, 'private-update-build.json'));
-if (buildInfo.smoke || !/^\d{14}$/.test(buildInfo.build)) {
-    throw new Error('Not a production updater build');
+if (buildInfo.smoke || !/^\d{14}$/.test(buildInfo.build) || buildInfo.channel !== 'development') {
+    throw new Error('Not a production development-channel updater build');
 }
 const version = JSON.parse(asar.extractFile(archive, 'package.json')).version;
 const output = path.resolve(outputRoot, buildInfo.build);
@@ -46,7 +46,7 @@ const release = {
     sourceSha: buildInfo.sourceSha,
     clean: buildInfo.clean === true
 };
-validateRelease(release, '00000000000000');
+validateRelease(release, '00000000000000', 'development');
 fs.writeFileSync(path.join(output, 'latest.json'), JSON.stringify(release, null, 2) + '\n');
 fs.writeFileSync(
     path.join(output, 'update.json'),

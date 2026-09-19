@@ -1,5 +1,15 @@
 # KeeWeb Public macOS Distribution Implementation Plan
 
+
+> Acceptance correction (2026-09-19): Website manifests must reference immutable
+> `keeweb/public/arm64/<build>/KeeWeb-<build>-macos-arm64.dmg` and its `.sha256`,
+> with `<build>` matching the manifest. This supersedes all stable-alias website
+> URL examples below. Stable aliases may still be published for convenience,
+> but are not used by the website. Otherwise cached manifests advertise stale
+> checksums when a subsequent release replaces the alias, even on success.
+> Failure-injection tests cover interruption after each mutable write and verify
+> both the cached and current manifest still identify matching immutable bytes.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build, verify, publish, and install a Developer-ID-signed, notarized KeeWeb fork DMG with a separate public Squirrel update channel and a strict website release manifest.
@@ -202,7 +212,7 @@ Only set the `provisioning-profile` option when a non-null path was explicitly s
 
 - [ ] **Step 4: Implement the public build sequence**
 
-Use a temporary JSON signing config containing only the exact Developer ID identity and team ID. Run the established web/Electron/native-module build tasks with `write-update-build.js --channel public`, then sign. Submit a ZIP of the signed app to `notarytool`, staple and validate the app, generate the DMG via `appdmg:arm64`, submit/staple/validate the DMG, and assess both with `spctl`. Finally call `prepare-public-release.js`.
+Use a temporary JSON signing config containing only the exact Developer ID identity and team ID. Run the established web/Electron/native-module build tasks with `write-update-build.js --channel public`, then sign with the validated Developer ID provisioning profile (the restricted Touch ID entitlements require it). Submit a ZIP of the signed app to `notarytool`, staple and validate the app, build the drag-install DMG with `hdiutil` (`grunt-appdmg` cannot be installed from the lockfile on Node 20), sign/submit/staple/validate the DMG, and assess both with `spctl`. Finally call `prepare-public-release.js`.
 
 The script must clean its temporary signing config on exit and must not install or launch the app during preparation.
 

@@ -43,9 +43,11 @@ Apple Development channel identity. It creates `KeeWeb.zip`, immutable
 local-draft even when prepared later from a clean checkout. Smoke fixtures are
 rejected. No passwords or user configuration are packaged.
 
-This is the existing private Apple Development distribution, not a general
-Developer ID/notarized public macOS release. Switching certificates later needs
-an explicit migration; Squirrel checks the installed app's signing requirement.
+This is the private Apple Development channel, not the general public macOS
+release. The public Developer ID lane is separate (see "Public Developer ID
+distribution" below). Squirrel checks the installed app's signing requirement,
+so there is no automatic cross-certificate migration: a development-signed
+installation moves to the public channel once, by installing the public DMG.
 
 ## Publication
 
@@ -84,3 +86,93 @@ archive was rejected and the old app preserved. Publication is a separate gate.
 Progress validation on 2026-09-18: 161 browser tests and 26 desktop tests passed.
 The signed isolated fixture displayed real byte/percentage progress during a
 throttled 117 MB download and successfully installed and launched the next build.
+
+## Public Developer ID distribution
+
+Every packaged build embeds `{ build, sourceSha, clean, channel }`. The channel
+(`development` or `public`) selects the only feed the build will ever use:
+
+- `development`: `https://downloads.michaeldewald.com/keeweb/arm64/latest.json`
+- `public`: `https://downloads.michaeldewald.com/keeweb/public/arm64/updates.json`
+
+Feed validation binds release URLs to the embedded channel. Missing or unknown
+channel metadata disables updates; nothing falls back to another feed.
+
+### Build
+
+```
+npm run build:public-macos            # clean tree only
+npm run build:public-macos -- --local-draft   # dirty tree, acceptance only
+```
+
+`scripts/release/build-public-macos.sh` fails closed unless all of these hold:
+clean tree, exactly one `Developer ID Application: Michael Dewald (GGYLL32K99)`
+keychain identity, a valid Developer ID provisioning profile, and the
+`mick-notary` notarytool keychain profile. It signs through an injected
+`KEEWEB_CODESIGN_CONFIG` (the development `keys/codesign.json` is never touched),
+verifies every nested Mach-O signature, Hardened Runtime and the exact
+entitlements, notarizes and staples the app, builds a drag-install DMG with
+`hdiutil`, signs, notarizes and staples it, and lets Gatekeeper assess the DMG
+and the app copied out of the mounted DMG. It never uploads, installs or launches.
+
+KeeWeb's Touch ID entitlements (`com.apple.application-identifier`,
+`com.apple.developer.team-identifier`, `keychain-access-groups`) are restricted.
+macOS only honours them with an embedded provisioning profile issued for the
+signing certificate, so the public lane requires a **Developer ID** profile for
+`com.mickdewald.keeweb` at `keys/keeweb-developer-id.provisionprofile` (or
+`KEEWEB_PUBLIC_PROVISIONING_PROFILE`). The device-bound development profile is
+rejected.
+
+A clean build ends with `.release-artifacts/public/<build>/` containing the DMG,
+checksum, `KeeWeb.zip` (stapled app), `update.json`, `release.json`,
+`updates.json` and the website `latest.json`. A `--local-draft` build yields only
+a DMG marked `LOCAL-DRAFT` without any release metadata; it cannot be published.
+
+### Publish
+
+```
+npm run publish:public-macos -- .release-artifacts/public/BUILD --publish
+```
+
+The publisher regenerates every document from the artifact bytes, requires the
+clean checkout of exactly the embedded source SHA, and reads current pointers
+through the authenticated S3 API. Order: immutable DMG, checksum, ZIP,
+`update.json`, `release.json` (`If-None-Match: *`; an existing object is reused
+only when its public bytes are identical) -> stable DMG alias -> stable checksum
+alias -> `updates.json` -> website `latest.json` last. Mutable objects use
+strong-ETag compare-and-swap, and every write is byte-verified publicly before
+the next pointer advances. The archive's embedded build metadata must match the
+release. The website manifest references immutable build-specific DMG/checksum objects,
+so cached manifests remain consistent even if a later run stops after advancing
+a stable convenience alias. Retry an interrupted publication with the same artifacts.
+Credentials come from the Keychain-backed R2 handoff
+and are never printed.
+
+### Updater acceptance
+
+`npm run test:public-updater` builds two Developer ID smoke fixtures (N, N+1)
+with the isolated `.updater-smoke` bundle ID through the same signing code and
+proves over loopback: discovery through public-channel validation, SHA-256
+verification, rejection by Squirrel's code signature validation of both a
+tampered archive and a validly signed build of another certificate (build N
+preserved each time), and installation plus launch of build N+1. Evidence is written to
+`.updater-smoke/public/<build>/evidence.json`. The fixture never loads KeeWeb,
+databases, the Keychain, or `/Applications`.
+
+
+### Public distribution acceptance — 2026-09-19
+
+- The Developer ID profile `KeeWebForkDeveloperID2026` was created for
+  `com.mickdewald.keeweb` with the existing Developer ID Application certificate.
+  Its decoded expiry is 2044-09-14; the portal's 2027-02-01 date is the download
+  availability boundary. It is stored only in ignored `keys/` directories.
+- Local draft build `20260919115223` passed app and DMG notarization, stapling,
+  nested-signature checks, exact profile/certificate matching and Gatekeeper.
+- The notarized app launched with a fresh isolated portable profile, leaving the
+  existing production process and database untouched. This does not yet prove a
+  real biometric unlock or installation of the final clean release.
+- Independent reviews accepted immutable website download URLs, exact profile
+  certificate binding and actual archive/DMG app signature checks before release
+  metadata is trusted. Desktop regression suite: 82 passing tests.
+- Final clean-commit build, publication, installed release smoke, website deploy
+  and live download validation are still required.

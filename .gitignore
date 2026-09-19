@@ -91,3 +91,5 @@ node_modules/
 
 
 .updater-artifacts/
+.release-artifacts/
+.updater-smoke/

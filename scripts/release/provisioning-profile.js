@@ -186,6 +186,7 @@ module.exports = {
     validateDeveloperIdProfile,
     verifyDeveloperIdProfile,
     verifyEmbeddedProfile,
+    readProfile,
     readAppLeafFingerprint,
     readSelectedIdentityFingerprint
 };

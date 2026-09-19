@@ -104,7 +104,7 @@ ensure_node_runtime
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 cd "$ROOT_DIR"
 
-APP_BUILD_PATH="tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app"
+APP_BUILD_PATH="${KEEWEB_APP_BUILD_PATH:-tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app}"
 CODESIGN_JSON="keys/codesign.json"
 PROVISIONING_PROFILE="keys/keeweb.provisionprofile"
 ENTITLEMENTS_FILE="package/osx/entitlements.plist"
@@ -133,18 +133,10 @@ if [[ "$UPDATER_SMOKE" -eq 1 ]]; then
 fi
 
 stop_running_app() {
-    /usr/bin/osascript -e "tell application id \"${APP_BUNDLE_ID}\" to quit" >/dev/null 2>&1 || true
-    pkill -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1 || true
-
-    local attempt
-    for attempt in {1..20}; do
-        if ! pgrep -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1; then
-            return 0
-        fi
-        sleep 0.1
-    done
-
-    pkill -9 -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1 || true
+    if /usr/bin/pgrep -f "$DEPLOY_PATH/Contents/MacOS/KeeWeb" >/dev/null 2>&1; then
+        echo "KeeWeb is still running at $DEPLOY_PATH. Close it normally (save or cancel) before replacing the app." >&2
+        exit 1
+    fi
 }
 
 if [[ ! -d node_modules ]]; then
@@ -152,20 +144,21 @@ if [[ ! -d node_modules ]]; then
     npm ci
 fi
 
-mkdir -p keys
+if [[ "$DO_BUILD" -eq 1 ]]; then
+    mkdir -p keys
 
-if [[ ! -f "$CODESIGN_JSON" ]]; then
-    IDENTITY_NAME="$(
-        security find-identity -v -p codesigning \
-        | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p' \
-        | head -n1
-    )"
-    if [[ -z "$IDENTITY_NAME" ]]; then
-        echo "No Apple Development signing identity found in keychain." >&2
-        exit 1
-    fi
+    if [[ ! -f "$CODESIGN_JSON" ]]; then
+        IDENTITY_NAME="$(
+            security find-identity -v -p codesigning \
+            | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p' \
+            | head -n1
+        )"
+        if [[ -z "$IDENTITY_NAME" ]]; then
+            echo "No Apple Development signing identity found in keychain." >&2
+            exit 1
+        fi
 
-    cat > "$CODESIGN_JSON" <<EOF
+        cat > "$CODESIGN_JSON" <<EOF
 {
   "identities": {
     "app": "$IDENTITY_NAME"
@@ -174,21 +167,30 @@ if [[ ! -f "$CODESIGN_JSON" ]]; then
   "appleId": ""
 }
 EOF
-    echo "Created $CODESIGN_JSON"
-fi
-
-if [[ ! -f "$PROVISIONING_PROFILE" ]]; then
-    FALLBACK_PROVISIONING_PROFILE="$DEPLOY_PATH/Contents/embedded.provisionprofile"
-    if [[ -f "$FALLBACK_PROVISIONING_PROFILE" ]]; then
-        cp "$FALLBACK_PROVISIONING_PROFILE" "$PROVISIONING_PROFILE"
-        echo "Copied provisioning profile to $PROVISIONING_PROFILE"
-    else
-        echo "Missing $PROVISIONING_PROFILE and no fallback profile at $FALLBACK_PROVISIONING_PROFILE" >&2
-        exit 1
+        echo "Created $CODESIGN_JSON"
     fi
-fi
 
-if [[ "$DO_BUILD" -eq 1 ]]; then
+    if [[ ! -f "$PROVISIONING_PROFILE" ]]; then
+        FALLBACK_PROVISIONING_PROFILE="$DEPLOY_PATH/Contents/embedded.provisionprofile"
+        INSTALLED_CHANNEL=""
+        if [[ -f "$FALLBACK_PROVISIONING_PROFILE" ]]; then
+            INSTALLED_CHANNEL="$(
+                node scripts/dev/check-installed-app-compatibility.js inspect "$DEPLOY_PATH" 2>/dev/null \
+                    | sed -n 's/^Installed channel: //p'
+            )" || true
+        fi
+        if [[ "$INSTALLED_CHANNEL" == "development" && -f "$FALLBACK_PROVISIONING_PROFILE" ]]; then
+            cp "$FALLBACK_PROVISIONING_PROFILE" "$PROVISIONING_PROFILE"
+            echo "Copied provisioning profile to $PROVISIONING_PROFILE"
+        elif [[ -f "$FALLBACK_PROVISIONING_PROFILE" ]]; then
+            echo "Missing $PROVISIONING_PROFILE; will not copy a non-development installed profile." >&2
+            exit 1
+        else
+            echo "Missing $PROVISIONING_PROFILE and no fallback profile at $FALLBACK_PROVISIONING_PROFILE" >&2
+            exit 1
+        fi
+    fi
+
     export NODE_OPTIONS=--openssl-legacy-provider
     npx grunt \
         default \
@@ -222,7 +224,20 @@ if [[ -e "$APP_BUILD_PATH/Contents/Installer" ]]; then
 fi
 
 if [[ "$DO_DEPLOY" -eq 1 ]]; then
+    SNAPSHOT_FILE="$(mktemp -t keeweb-install-snapshot)"
+    chmod 600 "$SNAPSHOT_FILE"
+    cleanup_deploy_guard() {
+        rm -f "$SNAPSHOT_FILE"
+    }
+    trap cleanup_deploy_guard EXIT
+
+    node scripts/dev/check-installed-app-compatibility.js inspect "$DEPLOY_PATH" --write-snapshot "$SNAPSHOT_FILE"
     node scripts/dev/check-private-update-deploy.js "$APP_BUILD_PATH"
+    node scripts/dev/check-installed-app-compatibility.js verify-candidate "$APP_BUILD_PATH"
+    node scripts/dev/check-installed-app-compatibility.js compatibility "$DEPLOY_PATH" "$APP_BUILD_PATH"
+    node scripts/dev/check-installed-app-compatibility.js session "$DEPLOY_PATH"
+    node scripts/dev/check-installed-app-compatibility.js recheck "$DEPLOY_PATH" "$SNAPSHOT_FILE"
+
     stop_running_app
 
     if [[ -d "$DEPLOY_PATH" && ! -w "$DEPLOY_PATH" ]]; then

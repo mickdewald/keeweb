@@ -1,0 +1,37 @@
+<div class="icon-review">
+    <div class="back-button"><i class="fa fa-chevron-left"></i><span>{{res 'retToApp'}}</span></div>
+    <h1>{{res 'iconReviewTitle'}}</h1>
+    {{#if ready}}
+        <p>{{res 'iconReviewIntro'}}</p>
+        <p>{{res 'iconReviewPrivacy'}}</p>
+        <p>{{res 'iconReviewEligible'}}: {{total}} · {{res 'iconReviewSkipped'}}: {{skipped}}</p>
+        <button id="icon-review-start" class="icon-review__start" {{#unless canStart}}disabled{{/unless}}>{{res 'iconReviewStart'}}</button>
+    {{/if}}
+    {{#if scanning}}
+        <p role="status">{{res 'iconReviewChecking'}}: <span class="icon-review__checked">{{checked}}</span> / {{total}}</p>
+        <button id="icon-review-cancel" class="icon-review__cancel">{{res 'alertCancel'}}</button>
+    {{/if}}
+    {{#unless ready}}{{#unless scanning}}{{#unless done}}
+        {{#if cancelled}}<p>{{res 'iconReviewCancelled'}}</p>{{/if}}
+        <p role="status">{{res 'iconReviewFound'}}: {{proposals.length}} · {{res 'iconReviewUnchanged'}}: {{unchanged}} · {{res 'iconReviewFailed'}}: {{failed}}</p>
+        {{#if proposals.length}}
+            <p>{{res 'iconReviewChoose'}}</p>
+            <p class="icon-review__background-error hide" role="alert">{{res 'iconWhiteBackgroundError'}}</p>
+            <div class="icon-review__actions">
+                <button class="icon-review__all">{{res 'iconReviewAll'}}</button>
+                <button class="icon-review__none">{{res 'iconReviewNone'}}</button>
+                <button class="icon-review__apply">{{res 'iconReviewApply'}} (<span class="icon-review__selected">0</span>)</button>
+            </div>
+            <div class="icon-review__head"><span>{{res 'iconReviewEntry'}}</span><span>{{res 'iconReviewBefore'}}</span><span>{{res 'iconReviewAfter'}}</span></div>
+            {{#each proposals}}
+            <div class="icon-review__row">
+                <span class="icon-review__entry"><input id="icon-review-choice-{{index}}" class="icon-review__choice" type="checkbox" data-index="{{index}}" {{#if selected}}checked{{/if}}><label for="icon-review-choice-{{index}}"><strong>{{title}}</strong><small>{{host}} · {{fileName}}</small></label></span>
+                <span class="icon-review__icon">{{#if oldIcon}}<img src="{{oldIcon}}" alt="">{{else}}<i class="fa fa-{{icon}}"></i>{{/if}}</span>
+                <span class="icon-review__icon"><img class="icon-review__new-image" src="{{image}}" alt=""></span>
+                <span class="icon-review__background"><input id="icon-review-white-{{index}}" class="icon-review__white" type="checkbox" data-index="{{index}}" {{#if whiteBackground}}checked{{/if}}><label for="icon-review-white-{{index}}">{{res 'iconWhiteBackground'}}</label></span>
+            </div>
+            {{/each}}
+        {{else}}<p>{{res 'iconReviewEmpty'}}</p>{{/if}}
+    {{/unless}}{{/unless}}{{/unless}}
+    {{#if done}}<p role="status">{{res 'iconReviewApplied'}}: {{applied}} · {{res 'iconReviewStale'}}: {{skipped}}</p>{{/if}}
+</div>

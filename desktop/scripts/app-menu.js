@@ -3,6 +3,8 @@ const electron = require('electron');
 const { context } = require('./context');
 const { locale } = require('./locale');
 const { updateMenuItems } = require('./private-updater');
+const { emitRemoteEvent } = require('./remote-events');
+const { restoreMainWindow } = require('./tray');
 
 function setMenu() {
     if (process.platform === 'darwin') {
@@ -13,6 +15,28 @@ function setMenu() {
                 submenu: [
                     { role: 'about', label: locale.sysMenuAboutKeeWeb?.replace('{}', 'KeeWeb') },
                     ...updateMenuItems(),
+                    { type: 'separator' },
+                    {
+                        id: 'settings',
+                        label: locale.sysMenuSettings || 'Settings…',
+                        accelerator: 'Command+,',
+                        click: () => {
+                            if (!context.mainWindow || context.mainWindow.isDestroyed()) {
+                                return;
+                            }
+                            restoreMainWindow();
+                            emitRemoteEvent('show-settings');
+                        }
+                    },
+                    {
+                        id: 'review-website-icons',
+                        label: locale.sysMenuCheckWebsiteIcons || 'Check Website Icons…',
+                        click: () => {
+                            if (!context.mainWindow || context.mainWindow.isDestroyed()) return;
+                            restoreMainWindow();
+                            emitRemoteEvent('review-website-icons');
+                        }
+                    },
                     { type: 'separator' },
                     { role: 'services', submenu: [], label: locale.sysMenuServices },
                     { type: 'separator' },

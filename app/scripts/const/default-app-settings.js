@@ -36,6 +36,7 @@ const DefaultAppSettings = {
     skipHttpsWarning: false, // disable the non-HTTPS warning
     demoOpened: false, // hide the demo button inside the More... menu
     fontSize: 0, // font size: 0, 1, 2
+    listItemSpacing: 8, // extra vertical space per entry row, in CSS pixels (0..24)
     tableViewColumns: null, // columns displayed in the table view
     generatorPresets: null, // presets used in the password generator
     generatorHidePassword: false, // hide password in the generator

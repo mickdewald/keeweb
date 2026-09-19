@@ -13,6 +13,7 @@ import { Scrollable } from 'framework/views/scrollable';
 import { DropdownView } from 'views/dropdown-view';
 import { MenuWorkspaceView } from 'views/menu/menu-workspace-view';
 import { ListSearchView } from 'views/list-search-view';
+import { normalizeListItemSpacing } from 'util/ui/list-item-spacing';
 import throttle from 'lodash/throttle';
 import template from 'templates/list.hbs';
 import emptyTemplate from 'templates/list-empty.hbs';
@@ -68,6 +69,7 @@ class ListView extends View {
         this.listenTo(Events, 'refresh', this.invalidatePasswordIssueIds);
 
         this.listenTo(this.model.settings, 'change:tableView', this.setTableView);
+        this.listenTo(this.model.settings, 'change:listItemSpacing', this.render);
 
         this.readTableColumnsEnabled();
 
@@ -102,6 +104,10 @@ class ListView extends View {
                 bar: this.$el.find('.scroller__bar')[0]
             });
         }
+        this.el.style.setProperty(
+            '--list-item-spacing',
+            `${normalizeListItemSpacing(this.model.settings.listItemSpacing)}px`
+        );
         if (this.items.length) {
             const itemsTemplate = this.getItemsTemplate();
             const noColor = AppSettingsModel.colorfulIcons ? '' : 'grayscale';

@@ -91,6 +91,19 @@ scripts/dev/build-macos-touchid-agent.sh
 
 App-bundle backups are not supported; the deploy script always replaces the target app.
 
+Before it stops or replaces anything, the script inspects the installed target, verifies the
+staged development candidate (metadata, signature, Touch ID entitlements, provisioning profile),
+checks that candidate against the installed designated requirement, refuses an active KeeWeb
+session, and rechecks the installed snapshot. Close KeeWeb normally (save or cancel) first; the
+script will not force-quit a live session.
+
+This remains a development command:
+
+- First install (no app at the deploy path) uses the development signing policy.
+- A compatible installed Apple Development app may be replaced by a compatible development candidate.
+- A public Developer ID install is refused, even when the team ID matches. Same team is not
+  signing compatibility, and this script will not migrate public installs to development.
+
 ## Verification checklist
 
 ```bash

@@ -7,6 +7,9 @@ const { spawnSync } = require('node:child_process');
 const asar = require('asar');
 
 const check = path.join(__dirname, '../../scripts/dev/check-private-update-deploy.js');
+const {
+    assertDevelopmentDeployMetadata
+} = require('../../scripts/dev/check-private-update-deploy');
 
 async function appWith(metadata) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'keeweb-deploy-check-'));
@@ -32,4 +35,18 @@ test('only development-channel production builds may be deployed locally', async
     ]) {
         assert.notEqual(run(await appWith(metadata)), 0, `deployed ${JSON.stringify(metadata)}`);
     }
+});
+
+test('the local deploy metadata checker stays metadata-only', () => {
+    const source = fs.readFileSync(check, 'utf8');
+    assert.equal(typeof assertDevelopmentDeployMetadata, 'function');
+    assert.doesNotMatch(source, /codesign|Applications\/KeeWeb|pkill|ditto|osascript/);
+    assert.throws(
+        () =>
+            assertDevelopmentDeployMetadata('/unused.app', () => ({
+                build: '20260919120000',
+                channel: 'public'
+            })),
+        /non-development|smoke/i
+    );
 });

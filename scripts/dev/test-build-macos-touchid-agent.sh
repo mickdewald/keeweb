@@ -47,6 +47,81 @@ if [[ "$BUILD_SCRIPT" != *'Run once: sudo chown -R'* ]]; then
     exit 1
 fi
 
+if [[ "$BUILD_SCRIPT" == *'pkill -9'* ]]; then
+    echo "The deploy script must not force-kill a KeeWeb session" >&2
+    exit 1
+fi
+
+if [[ "$BUILD_SCRIPT" == *'--force'* || "$BUILD_SCRIPT" == *'--kill'* ]]; then
+    echo "The deploy script must not add a kill override" >&2
+    exit 1
+fi
+
+python3 - "$SCRIPT_DIR/build-macos-touchid-agent.sh" <<'PY'
+import sys
+script = open(sys.argv[1], encoding='utf-8').read()
+deploy = script.split('if [[ "$DO_DEPLOY" -eq 1 ]]; then', 1)
+if len(deploy) != 2:
+    raise SystemExit('deploy section is missing')
+body = deploy[1]
+steps = [
+    'check-installed-app-compatibility.js inspect',
+    'check-private-update-deploy.js',
+    'check-installed-app-compatibility.js verify-candidate',
+    'check-installed-app-compatibility.js compatibility',
+    'check-installed-app-compatibility.js session',
+    'check-installed-app-compatibility.js recheck',
+    'stop_running_app',
+    'rm -rf "$DEPLOY_PATH"',
+    'ditto "$APP_BUILD_PATH" "$DEPLOY_PATH"',
+    'open -n "$DEPLOY_PATH"',
+]
+positions = []
+for step in steps:
+    index = body.find(step)
+    if index < 0:
+        raise SystemExit(f'missing deploy step: {step}')
+    positions.append(index)
+if positions != sorted(positions):
+    raise SystemExit('deploy guard order is wrong: inspect/verify/compat/session/recheck must precede stop/delete/copy/open')
+if 'pkill' in body.split('stop_running_app', 1)[0]:
+    raise SystemExit('session detection must not pkill KeeWeb')
+PY
+
+fail() {
+    echo "FAIL: $1" >&2
+    exit 1
+}
+
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/keeweb-deploy-guard.XXXXXX")"
+trap 'rm -rf "$WORK"' EXIT
+mkdir -p "$WORK/build/KeeWeb.app/Contents/Resources" "$WORK/KeeWeb.app/Contents"
+printf 'sentinel\n' > "$WORK/KeeWeb.app/Contents/sentinel"
+set +e
+TRACE="$(
+    KEEWEB_APP_BUILD_PATH="$WORK/build/KeeWeb.app" \
+        bash -x "$SCRIPT_DIR/build-macos-touchid-agent.sh" \
+            --skip-build --no-open --deploy-path "$WORK/KeeWeb.app" 2>&1
+)"
+STATUS=$?
+set -e
+[[ "$STATUS" -ne 0 ]] || fail "an invalid candidate must be rejected"
+[[ -f "$WORK/KeeWeb.app/Contents/sentinel" ]] || fail "rejection deleted the installed target"
+printf '%s\n' "$TRACE" | grep -Fq 'check-installed-app-compatibility.js inspect' ||
+    fail "rejection must inspect the installed target first"
+executed_stop="$(printf '%s\n' "$TRACE" | grep -E '^\++ stop_running_app$' || true)"
+executed_rm="$(printf '%s\n' "$TRACE" | grep -E '^\++ rm -rf ' || true)"
+executed_ditto="$(printf '%s\n' "$TRACE" | grep -E '^\++ ditto ' || true)"
+executed_open="$(printf '%s\n' "$TRACE" | grep -E '^\++ open ' || true)"
+executed_osascript="$(printf '%s\n' "$TRACE" | grep -E '^\++ (/usr/bin/)?osascript ' || true)"
+executed_pkill="$(printf '%s\n' "$TRACE" | grep -E '^\++ pkill ' || true)"
+[[ -z "$executed_stop" ]] || fail "rejection called stop_running_app"
+[[ -z "$executed_rm" ]] || fail "rejection deleted the target: $executed_rm"
+[[ -z "$executed_ditto" ]] || fail "rejection copied the candidate: $executed_ditto"
+[[ -z "$executed_open" ]] || fail "rejection launched KeeWeb: $executed_open"
+[[ -z "$executed_osascript" ]] || fail "rejection sent Apple Events: $executed_osascript"
+[[ -z "$executed_pkill" ]] || fail "rejection killed KeeWeb: $executed_pkill"
+
 if [[ "$APP_SOURCE" == *"AppRightsChecker"* ]]; then
     echo "The private fork must not start KeeWeb's root ownership checker" >&2
     exit 1

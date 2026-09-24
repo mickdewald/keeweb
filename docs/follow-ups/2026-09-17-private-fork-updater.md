@@ -123,6 +123,30 @@ signing certificate, so the public lane requires a **Developer ID** profile for
 `KEEWEB_PUBLIC_PROVISIONING_PROFILE`). The device-bound development profile is
 rejected.
 
+Notarization credentials come from exactly one source, chosen with
+`KEEWEB_NOTARY_AUTH`; there is no fallback between the modes, and an unknown
+value stops the build before any work:
+
+- `keychain-profile` (default): `xcrun notarytool --keychain-profile`, profile
+  from `KEEWEB_NOTARY_PROFILE` (default `mick-notary`).
+- `openbao-machine`: the ops-platform notary runner
+  (`scripts/spark_release/notary_exec.py`, machine identity `release-signing`)
+  fetches the App Store Connect key from OpenBao for `history` (preflight) and
+  `submit <absolute path> --json`. `KEEWEB_NOTARY_PROFILE` must be unset. The
+  runner is loaded with `python3 -I` from `OPS_PLATFORM_DIR` (absolute, default
+  `$HOME/projects/ops-platform`), which must be a clean checkout whose origin is
+  `github.com/mickdewald/ops-platform` and whose HEAD is contained in
+  `origin/main`. Runner exit codes 10-13 (login required, denied, missing or
+  malformed secret, offline), 20/21 (notarytool not startable, temporary key
+  cleanup unconfirmed) and 1 abort the build with an explanation.
+
+```
+KEEWEB_NOTARY_AUTH=openbao-machine npm run build:public-macos -- --preflight-only
+```
+
+`scripts/release/test-notary-openbao.sh` (part of
+`npm run test:macos-deploy-target`) covers both modes with a fake runner.
+
 A clean build ends with `.release-artifacts/public/<build>/` containing the DMG,
 checksum, `KeeWeb.zip` (stapled app), `update.json`, `release.json`,
 `updates.json` and the website `latest.json`. A `--local-draft` build yields only

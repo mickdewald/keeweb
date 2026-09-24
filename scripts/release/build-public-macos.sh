@@ -22,10 +22,10 @@ Environment:
   KEEWEB_PUBLIC_PROVISIONING_PROFILE  Developer ID provisioning profile for
       com.mickdewald.keeweb (default: keys/keeweb-developer-id.provisionprofile)
   KEEWEB_NOTARY_AUTH                  Notary credential source, no fallback between modes
-      (default: keychain-profile):
-        keychain-profile  xcrun notarytool with KEEWEB_NOTARY_PROFILE
+      (default: openbao-machine):
         openbao-machine   ops-platform notary runner, machine identity
                           release-signing; KEEWEB_NOTARY_PROFILE must be unset
+        keychain-profile  legacy: xcrun notarytool with KEEWEB_NOTARY_PROFILE
   KEEWEB_NOTARY_PROFILE               notarytool keychain profile for keychain-profile
                                       (default: mick-notary)
   OPS_PLATFORM_DIR                    Absolute path of a clean ops-platform checkout on

@@ -243,14 +243,10 @@ jobs:
     #   Job › Test
     # #
 
-    # Pinned to the MBA runner: on keeweb-mbp-2024-1 (macOS 15.8, LaunchDaemon
-    # without a GUI session) every Chrome build aborts in AppKit's
-    # WindowManagement XPC setup (xpc_connection_set_target_uid misuse) before
-    # puppeteer can connect. Unpin once the MBP runner has a GUI session.
     job-test:
         name: >-
             🧪 Tests
-        runs-on: [self-hosted, macOS, general-ci, mba-2026]
+        runs-on: [self-hosted, macOS, general-ci, mbp-2024]
         needs: [job-initialize]
         env:
             PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}
@@ -297,9 +293,9 @@ jobs:
             # #
             #   Test › Headless Browser
             #
-            #   Runners run as a LaunchDaemon without a GUI session; full Chrome in
-            #   new-headless mode dies there on launch ("Target closed").
-            #   chrome-headless-shell does not need a window server.
+            #   macOS 15.8 runners: full Chrome crashes outside a GUI session even
+            #   in gha-ci's user launchd domain; chrome-headless-shell works there
+            #   (ops-platform launchd_domain: user).
             # #
 
             - name: '🌐 Chrome › Headless Shell'

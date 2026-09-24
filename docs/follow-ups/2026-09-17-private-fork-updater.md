@@ -127,9 +127,9 @@ Notarization credentials come from exactly one source, chosen with
 `KEEWEB_NOTARY_AUTH`; there is no fallback between the modes, and an unknown
 value stops the build before any work:
 
-- `keychain-profile` (default): `xcrun notarytool --keychain-profile`, profile
+- `keychain-profile` (legacy, explicit only): `xcrun notarytool --keychain-profile`, profile
   from `KEEWEB_NOTARY_PROFILE` (default `mick-notary`).
-- `openbao-machine`: the ops-platform notary runner
+- `openbao-machine` (default since 2026-09-24): the ops-platform notary runner
   (`scripts/spark_release/notary_exec.py`, machine identity `release-signing`)
   fetches the App Store Connect key from OpenBao for `history` (preflight) and
   `submit <absolute path> --json`. `KEEWEB_NOTARY_PROFILE` must be unset. The

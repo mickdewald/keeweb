@@ -14,7 +14,7 @@ NOTARY_RUNNER_IDENTITY="release-signing"
 # Resolves and validates NOTARY_AUTH (and NOTARY_PROFILE for the Keychain mode).
 # Pure environment checks, so it can run before any other work.
 resolve_notary_auth() {
-    NOTARY_AUTH="${KEEWEB_NOTARY_AUTH:-keychain-profile}"
+    NOTARY_AUTH="${KEEWEB_NOTARY_AUTH:-openbao-machine}"
     case "$NOTARY_AUTH" in
         keychain-profile)
             NOTARY_PROFILE="${KEEWEB_NOTARY_PROFILE:-mick-notary}"

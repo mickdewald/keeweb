@@ -81,8 +81,10 @@ logged() {
     grep -qxF -- "$1" "$LOG" || fail "$2 (missing: $1)$(printf '\n%s' "$(cat "$LOG")")"
 }
 
-# --- default stays keychain-profile / mick-notary ---------------------------
-OUTPUT="$(unset KEEWEB_NOTARY_AUTH KEEWEB_NOTARY_PROFILE
+# --- explicit keychain-profile / mick-notary (legacy mode) -------------------
+[[ "$(unset KEEWEB_NOTARY_AUTH KEEWEB_NOTARY_PROFILE; lib 'resolve_notary_auth; echo "$NOTARY_AUTH"')" == openbao-machine ]] ||
+    fail "the default mode must be openbao-machine"
+OUTPUT="$(unset KEEWEB_NOTARY_PROFILE; export KEEWEB_NOTARY_AUTH=keychain-profile
     lib 'resolve_notary_auth; echo "mode=$NOTARY_AUTH profile=$NOTARY_PROFILE"; notary_preflight; notarize_and_staple "'"$DMG"'" "'"$WORK"'"')" ||
     fail "default keychain-profile notarization must succeed: $OUTPUT"
 [[ "$OUTPUT" == *"mode=keychain-profile profile=mick-notary"* ]] || fail "default mode changed: $OUTPUT"

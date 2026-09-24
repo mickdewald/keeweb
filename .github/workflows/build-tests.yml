@@ -246,7 +246,7 @@ jobs:
     job-test:
         name: >-
             🧪 Tests
-        runs-on: [self-hosted, macOS, general-ci, mbp-2024]
+        runs-on: [self-hosted, macOS, general-ci]
         needs: [job-initialize]
         env:
             PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}

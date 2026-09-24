@@ -243,10 +243,14 @@ jobs:
     #   Job › Test
     # #
 
+    # Pinned to the MBA runner: on keeweb-mbp-2024-1 (macOS 15.8, LaunchDaemon
+    # without a GUI session) every Chrome build aborts in AppKit's
+    # WindowManagement XPC setup (xpc_connection_set_target_uid misuse) before
+    # puppeteer can connect. Unpin once the MBP runner has a GUI session.
     job-test:
         name: >-
             🧪 Tests
-        runs-on: [self-hosted, macOS, general-ci]
+        runs-on: [self-hosted, macOS, general-ci, mba-2026]
         needs: [job-initialize]
         env:
             PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}

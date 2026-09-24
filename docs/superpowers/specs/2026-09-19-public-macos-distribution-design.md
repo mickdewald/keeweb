@@ -77,7 +77,9 @@ environment/config boundary rather than overwriting the maintainer's gitignored
 development `keys/codesign.json`.
 
 The public lane uses `xcrun notarytool` with the existing `mick-notary`
-Keychain profile. The release artifact is a drag-install DMG (the app plus an
+Keychain profile. (Later addition: `KEEWEB_NOTARY_AUTH=openbao-machine` notarizes
+through the ops-platform OpenBao notary runner instead; the Keychain profile
+stays the default. See `docs/follow-ups/2026-09-17-private-fork-updater.md`.) The release artifact is a drag-install DMG (the app plus an
 `/Applications` link) built with `hdiutil`. The decorated upstream layout is not
 used: its `grunt-appdmg` optional dependency cannot be installed from the
 lockfile on the required Node 20 runtime, and a release lane must not depend on

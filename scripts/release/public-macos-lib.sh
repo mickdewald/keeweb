@@ -8,6 +8,9 @@ PUBLIC_TEAM_ID="GGYLL32K99"
 PUBLIC_BUNDLE_ID="com.mickdewald.keeweb"
 PUBLIC_APP_BUILD_PATH="tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app"
 
+# shellcheck source=scripts/release/notary-openbao.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/notary-openbao.sh"
+
 die() {
     echo "$1" >&2
     exit 1
@@ -84,14 +87,16 @@ build_public_app() {
         die "Public KeeWeb build unexpectedly contains the privileged installer"
 }
 
-# notarize_and_staple <app-or-dmg> <keychain profile> <scratch directory>
+# notarize_and_staple <app-or-dmg> <scratch directory>
+# Submits with the backend chosen by resolve_notary_auth (KEEWEB_NOTARY_AUTH).
 notarize_and_staple() {
-    local target="$1" keychain_profile="$2" scratch="$3" submission="$1" result status
+    local target="$1" scratch="$2" submission="$1" result status
     if [[ -d "$target" ]]; then
         submission="$scratch/$(basename "$target").notarize.zip"
         ditto -c -k --sequesterRsrc --keepParent "$target" "$submission"
     fi
-    result="$(xcrun notarytool submit "$submission" --keychain-profile "$keychain_profile" --wait --output-format json)"
+    result="$(notary_submit_json "$submission")" ||
+        die "Notarization submission failed for $(basename "$target") (KEEWEB_NOTARY_AUTH=$NOTARY_AUTH)."
     status="$(node -p 'JSON.parse(process.argv[1]).status' "$result")"
     if [[ "$status" != "Accepted" ]]; then
         echo "$result" >&2

@@ -21,7 +21,16 @@ Options:
 Environment:
   KEEWEB_PUBLIC_PROVISIONING_PROFILE  Developer ID provisioning profile for
       com.mickdewald.keeweb (default: keys/keeweb-developer-id.provisionprofile)
-  KEEWEB_NOTARY_PROFILE               notarytool keychain profile (default: mick-notary)
+  KEEWEB_NOTARY_AUTH                  Notary credential source, no fallback between modes
+      (default: keychain-profile):
+        keychain-profile  xcrun notarytool with KEEWEB_NOTARY_PROFILE
+        openbao-machine   ops-platform notary runner, machine identity
+                          release-signing; KEEWEB_NOTARY_PROFILE must be unset
+  KEEWEB_NOTARY_PROFILE               notarytool keychain profile for keychain-profile
+                                      (default: mick-notary)
+  OPS_PLATFORM_DIR                    Absolute path of a clean ops-platform checkout on
+                                      origin/main for openbao-machine
+                                      (default: $HOME/projects/ops-platform)
   KEEWEB_RELEASE_BUILD                Optional pinned UTC build ID (YYYYMMDDhhmmss)
 USAGE
 }
@@ -48,14 +57,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$SCRIPT_DIR/public-macos-lib.sh"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 cd "$ROOT_DIR"
+resolve_notary_auth
 
 [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]] || die "The public lane requires an Apple silicon Mac."
 for cmd in git node npm npx security xcrun ditto hdiutil spctl /usr/bin/codesign; do
     require_cmd "$cmd"
 done
 ensure_node_runtime
+require_notary_backend
 
-NOTARY_PROFILE="${KEEWEB_NOTARY_PROFILE:-mick-notary}"
 PROFILE="${KEEWEB_PUBLIC_PROVISIONING_PROFILE:-keys/keeweb-developer-id.provisionprofile}"
 [[ "$PROFILE" == /* ]] || PROFILE="$ROOT_DIR/$PROFILE"
 
@@ -68,8 +78,7 @@ require_public_identity
     die "Missing Developer ID provisioning profile: $PROFILE (KeeWeb's Touch ID entitlements are restricted and need it)."
 node scripts/release/provisioning-profile.js "$PROFILE" ||
     die "The provisioning profile is not a valid Developer ID profile for $PUBLIC_BUNDLE_ID."
-xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 ||
-    die "notarytool keychain profile '$NOTARY_PROFILE' is missing or unusable."
+notary_preflight
 if [[ "$PREFLIGHT_ONLY" -eq 1 ]]; then
     echo "Public release preflight passed"
     exit 0
@@ -101,7 +110,7 @@ MINIMUM_MACOS="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$AP
 [[ "$MINIMUM_MACOS" == "12.0" ]] || die "Public builds must declare macOS 12.0 as minimum, found: $MINIMUM_MACOS"
 
 # --- app: notarize, staple, Gatekeeper ---------------------------------------
-notarize_and_staple "$APP" "$NOTARY_PROFILE" "$WORK"
+notarize_and_staple "$APP" "$WORK"
 verify_public_app "$APP" "$PROFILE"
 assess_gatekeeper app "$APP"
 
@@ -115,7 +124,7 @@ DMG="$WORK/KeeWeb-macos-arm64.dmg"
 hdiutil create -volname "KeeWeb Michael Dewald Fork" -srcfolder "$WORK/dmg-root" \
     -fs HFS+ -format UDZO -ov -quiet "$DMG"
 /usr/bin/codesign --sign "$PUBLIC_IDENTITY" --timestamp --identifier "$PUBLIC_BUNDLE_ID.dmg" "$DMG"
-notarize_and_staple "$DMG" "$NOTARY_PROFILE" "$WORK"
+notarize_and_staple "$DMG" "$WORK"
 /usr/bin/codesign --verify --strict --verbose=2 "$DMG"
 assess_gatekeeper dmg "$DMG"
 

@@ -7,13 +7,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 BUILD="$SCRIPT_DIR/build-public-macos.sh"
 LIB="$SCRIPT_DIR/public-macos-lib.sh"
+NOTARY="$SCRIPT_DIR/notary-openbao.sh"
 fail() {
     echo "FAIL: $1" >&2
     exit 1
 }
 
-[[ -f "$BUILD" && -f "$LIB" ]] || fail "public build lane is missing"
-SOURCE="$(cat "$BUILD" "$LIB")"
+[[ -f "$BUILD" && -f "$LIB" && -f "$NOTARY" ]] || fail "public build lane is missing"
+SOURCE="$(cat "$BUILD" "$LIB" "$NOTARY")"
 
 require_text() {
     [[ "$SOURCE" == *"$1"* ]] || fail "$2"
@@ -40,7 +41,7 @@ require_text 'provisioning-profile.js' "the Developer ID provisioning profile mu
 require_text 'prepare-public-release.js' "release metadata must come from the reviewed generator"
 require_text 'Contents/Installer' "the privileged installer must be rejected"
 require_text "trap " "temporary signing configuration must be cleaned on exit"
-[[ "$(grep -c 'notarytool submit' "$BUILD" "$LIB" | awk -F: '{s+=$2} END {print s}')" -ge 1 ]] || fail "notarization missing"
+[[ "$(grep -c 'notarytool submit' "$BUILD" "$LIB" "$NOTARY" | awk -F: '{s+=$2} END {print s}')" -ge 1 ]] || fail "notarization missing"
 [[ "$(grep -c 'notarize_and_staple' "$BUILD")" -ge 2 ]] || fail "both the app and the DMG must be notarized and stapled"
 
 forbid_text 'Apple Development' "no Apple Development fallback is allowed"

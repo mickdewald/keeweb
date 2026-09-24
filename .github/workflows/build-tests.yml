@@ -291,6 +291,24 @@ jobs:
                   npm ci
 
             # #
+            #   Test › Headless Browser
+            #
+            #   macOS 15.8 runners: full Chrome crashes outside a GUI session even
+            #   in gha-ci's user launchd domain; chrome-headless-shell works there
+            #   (ops-platform launchd_domain: user).
+            # #
+
+            - name: '🌐 Chrome › Headless Shell'
+              id: task_test_chrome_install
+              run: |
+                  CHROME_BIN=$(npx -y @puppeteer/browsers@2.13.2 install \
+                      chrome-headless-shell@153.0.8010.12 \
+                      --path "$HOME/.cache/keeweb-ci-browsers" | tail -n 1 | awk '{print $2}')
+                  test -x "$CHROME_BIN"
+                  "$CHROME_BIN" --version
+                  echo "CHROME_BIN=$CHROME_BIN" >> $GITHUB_ENV
+
+            # #
             #   Test › Run
             # #
 

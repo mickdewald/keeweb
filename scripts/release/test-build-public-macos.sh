@@ -78,8 +78,10 @@ exec /usr/bin/git "$@"
 STUB
 chmod +x "$WORK/bin/security" "$WORK/bin/git"
 
+# Pinned to the Keychain backend so these gates do not depend on a host
+# ops-platform checkout; test-notary-openbao.sh covers the OpenBao backend.
 preflight() {
-    PATH="$WORK/bin:$PATH" bash "$BUILD" --preflight-only 2>&1
+    PATH="$WORK/bin:$PATH" KEEWEB_NOTARY_AUTH=keychain-profile bash "$BUILD" --preflight-only 2>&1
 }
 DEVELOPER_ID='  1) 0000000000000000000000000000000000000000 "Developer ID Application: Michael Dewald (GGYLL32K99)"'
 DEVELOPMENT='  1) 1111111111111111111111111111111111111111 "Apple Development: Michael Dewald (UUCWA5MCLV)"'

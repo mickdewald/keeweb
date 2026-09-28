@@ -107,8 +107,8 @@ npm run build:public-macos -- --local-draft   # dirty tree, acceptance only
 
 `scripts/release/build-public-macos.sh` fails closed unless all of these hold:
 clean tree, exactly one `Developer ID Application: Michael Dewald (GGYLL32K99)`
-keychain identity, a valid Developer ID provisioning profile, and the
-`mick-notary` notarytool keychain profile. It signs through an injected
+keychain identity, a valid Developer ID provisioning profile, and a usable
+OpenBao notary runner (see below). It signs through an injected
 `KEEWEB_CODESIGN_CONFIG` (the development `keys/codesign.json` is never touched),
 verifies every nested Mach-O signature, Hardened Runtime and the exact
 entitlements, notarizes and staples the app, builds a drag-install DMG with
@@ -123,16 +123,15 @@ signing certificate, so the public lane requires a **Developer ID** profile for
 `KEEWEB_PUBLIC_PROVISIONING_PROFILE`). The device-bound development profile is
 rejected.
 
-Notarization credentials come from exactly one source, chosen with
-`KEEWEB_NOTARY_AUTH`; there is no fallback between the modes, and an unknown
-value stops the build before any work:
+Notarization credentials come only from OpenBao. `KEEWEB_NOTARY_AUTH` accepts
+only `openbao-machine` (the default); an unknown value, the removed
+`keychain-profile` (the per-Mac `mick-notary` profile was retired on 2026-09-27)
+and any `KEEWEB_NOTARY_PROFILE` stop the build before any work:
 
-- `keychain-profile` (legacy, explicit only): `xcrun notarytool --keychain-profile`, profile
-  from `KEEWEB_NOTARY_PROFILE` (default `mick-notary`).
-- `openbao-machine` (default since 2026-09-24): the ops-platform notary runner
+- `openbao-machine` (default since 2026-09-24, only mode since 2026-09-27): the ops-platform notary runner
   (`scripts/spark_release/notary_exec.py`, machine identity `release-signing`)
   fetches the App Store Connect key from OpenBao for `history` (preflight) and
-  `submit <absolute path> --json`. `KEEWEB_NOTARY_PROFILE` must be unset. The
+  `submit <absolute path> --json`. The
   runner is loaded with `python3 -I` from `OPS_PLATFORM_DIR` (absolute, default
   `$HOME/projects/ops-platform`), which must be a clean checkout whose origin is
   `github.com/mickdewald/ops-platform` and whose HEAD is contained in

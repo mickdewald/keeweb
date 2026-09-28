@@ -1,33 +1,30 @@
 #!/usr/bin/env bash
-# Notarization credential backends of the public Developer ID lane. Sourced by
-# public-macos-lib.sh. KEEWEB_NOTARY_AUTH selects exactly one backend and there
-# is no fallback between them:
-#   keychain-profile  xcrun notarytool with a Keychain profile (KEEWEB_NOTARY_PROFILE,
-#                     default mick-notary)
-#   openbao-machine   the ops-platform notary runner, which fetches the App Store
-#                     Connect API key through the release-signing machine identity
+# Notarization of the public Developer ID lane. Sourced by public-macos-lib.sh.
+# The only backend (KEEWEB_NOTARY_AUTH=openbao-machine, the default) is the
+# ops-platform notary runner, which fetches the App Store Connect API key through
+# the release-signing machine identity. The per-Mac notarytool Keychain profile
+# (keychain-profile, KEEWEB_NOTARY_PROFILE) was retired; a leftover setting stops
+# the build before any work instead of being used or ignored.
 # Relies on die/require_cmd from public-macos-lib.sh.
 
 OPS_PLATFORM_ORIGIN_PATTERN='^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)mickdewald/ops-platform(\.git)?$'
 NOTARY_RUNNER_IDENTITY="release-signing"
 
-# Resolves and validates NOTARY_AUTH (and NOTARY_PROFILE for the Keychain mode).
-# Pure environment checks, so it can run before any other work.
+# Resolves and validates NOTARY_AUTH. Pure environment checks, so it can run
+# before any other work.
 resolve_notary_auth() {
     NOTARY_AUTH="${KEEWEB_NOTARY_AUTH:-openbao-machine}"
     case "$NOTARY_AUTH" in
+        openbao-machine) ;;
         keychain-profile)
-            NOTARY_PROFILE="${KEEWEB_NOTARY_PROFILE:-mick-notary}"
-            ;;
-        openbao-machine)
-            [[ -z "${KEEWEB_NOTARY_PROFILE:-}" ]] ||
-                die "KEEWEB_NOTARY_PROFILE must not be set with KEEWEB_NOTARY_AUTH=openbao-machine; the modes do not mix."
-            NOTARY_PROFILE=""
+            die "KEEWEB_NOTARY_AUTH=keychain-profile was removed; notarization runs only through OpenBao (openbao-machine). Unset KEEWEB_NOTARY_AUTH."
             ;;
         *)
-            die "Unknown KEEWEB_NOTARY_AUTH '$NOTARY_AUTH' (expected keychain-profile or openbao-machine)."
+            die "Unknown KEEWEB_NOTARY_AUTH '$NOTARY_AUTH' (expected openbao-machine)."
             ;;
     esac
+    [[ -z "${KEEWEB_NOTARY_PROFILE+set}" ]] ||
+        die "KEEWEB_NOTARY_PROFILE is no longer supported (notarization runs only through OpenBao); unset it."
 }
 
 # Validates the ops-platform checkout the runner is loaded from and sets OPS_PLATFORM.
@@ -49,12 +46,11 @@ require_ops_platform_checkout() {
     OPS_PLATFORM="$ops"
 }
 
-# Checks everything the selected backend needs locally, before any work.
+# Checks everything the notary runner needs locally, before any work.
 require_notary_backend() {
-    if [[ "$NOTARY_AUTH" == "openbao-machine" ]]; then
-        require_cmd python3
-        require_ops_platform_checkout
-    fi
+    [[ "$NOTARY_AUTH" == "openbao-machine" ]] || die "Notary auth mode is not resolved"
+    require_cmd python3
+    require_ops_platform_checkout
 }
 
 notary_runner_failure() {
@@ -86,36 +82,21 @@ run_notary_runner() {
     return "$rc"
 }
 
-# Confirms that Apple accepts the selected notary credentials.
+# Confirms that Apple accepts the notary key.
 notary_preflight() {
     local rc=0
-    case "$NOTARY_AUTH" in
-        keychain-profile)
-            xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 ||
-                die "notarytool keychain profile '$NOTARY_PROFILE' is missing or unusable."
-            ;;
-        openbao-machine)
-            run_notary_runner history >/dev/null || rc=$?
-            [[ "$rc" -eq 0 ]] ||
-                die "OpenBao notary credentials are unusable ($(notary_runner_failure "$rc"))."
-            ;;
-        *) die "Notary auth mode is not resolved" ;;
-    esac
+    [[ "$NOTARY_AUTH" == "openbao-machine" ]] || die "Notary auth mode is not resolved"
+    run_notary_runner history >/dev/null || rc=$?
+    [[ "$rc" -eq 0 ]] ||
+        die "OpenBao notary credentials are unusable ($(notary_runner_failure "$rc"))."
 }
 
 # notary_submit_json <absolute .zip|.dmg|.pkg>: waits and prints notarytool's JSON.
 notary_submit_json() {
     local submission="$1" rc=0
     [[ "$submission" == /* ]] || die "Notary submissions must use an absolute path: $submission"
-    case "$NOTARY_AUTH" in
-        keychain-profile)
-            xcrun notarytool submit "$submission" --keychain-profile "$NOTARY_PROFILE" --wait --output-format json
-            ;;
-        openbao-machine)
-            run_notary_runner submit "$submission" --json || rc=$?
-            [[ "$rc" -eq 0 ]] ||
-                die "Notarization of $(basename "$submission") failed ($(notary_runner_failure "$rc"))."
-            ;;
-        *) die "Notary auth mode is not resolved" ;;
-    esac
+    [[ "$NOTARY_AUTH" == "openbao-machine" ]] || die "Notary auth mode is not resolved"
+    run_notary_runner submit "$submission" --json || rc=$?
+    [[ "$rc" -eq 0 ]] ||
+        die "Notarization of $(basename "$submission") failed ($(notary_runner_failure "$rc"))."
 }

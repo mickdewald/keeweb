@@ -81,21 +81,23 @@ logged() {
     grep -qxF -- "$1" "$LOG" || fail "$2 (missing: $1)$(printf '\n%s' "$(cat "$LOG")")"
 }
 
-# --- explicit keychain-profile / mick-notary (legacy mode) -------------------
+# --- default mode --------------------------------------------------------------
 [[ "$(unset KEEWEB_NOTARY_AUTH KEEWEB_NOTARY_PROFILE; lib 'resolve_notary_auth; echo "$NOTARY_AUTH"')" == openbao-machine ]] ||
     fail "the default mode must be openbao-machine"
-OUTPUT="$(unset KEEWEB_NOTARY_PROFILE; export KEEWEB_NOTARY_AUTH=keychain-profile
-    lib 'resolve_notary_auth; echo "mode=$NOTARY_AUTH profile=$NOTARY_PROFILE"; notary_preflight; notarize_and_staple "'"$DMG"'" "'"$WORK"'"')" ||
-    fail "default keychain-profile notarization must succeed: $OUTPUT"
-[[ "$OUTPUT" == *"mode=keychain-profile profile=mick-notary"* ]] || fail "default mode changed: $OUTPUT"
-logged "xcrun notarytool history --keychain-profile mick-notary" "default preflight must use the mick-notary profile"
-logged "xcrun notarytool submit $DMG --keychain-profile mick-notary --wait --output-format json" "default submission changed"
-logged "xcrun stapler staple $DMG" "default mode must staple"
-! grep -q '^python3' "$LOG" || fail "keychain-profile mode must not start the OpenBao runner"
 
-OUTPUT="$(KEEWEB_NOTARY_AUTH=keychain-profile KEEWEB_NOTARY_PROFILE=other lib 'resolve_notary_auth; notary_submit_json "'"$DMG"'"')" ||
-    fail "a custom keychain profile must still work: $OUTPUT"
-logged "xcrun notarytool submit $DMG --keychain-profile other --wait --output-format json" "KEEWEB_NOTARY_PROFILE must be honoured"
+# --- the retired Keychain profile mode is refused before any work -------------
+for profile in unset mick-notary; do
+    if OUTPUT="$(if [[ "$profile" == unset ]]; then unset KEEWEB_NOTARY_PROFILE; else export KEEWEB_NOTARY_PROFILE="$profile"; fi
+        KEEWEB_NOTARY_AUTH=keychain-profile OPS_PLATFORM_DIR="$OPS" preflight)"; then
+        fail "KEEWEB_NOTARY_AUTH=keychain-profile must stop the build (profile $profile)"
+    fi
+    [[ "$OUTPUT" == *"KEEWEB_NOTARY_AUTH=keychain-profile was removed"* ]] || fail "keychain-profile refusal must explain itself: $OUTPUT"
+    [[ ! -s "$LOG" ]] || fail "the retired mode must stop before any work: $(cat "$LOG")"
+done
+if OUTPUT="$(KEEWEB_NOTARY_AUTH=keychain-profile lib 'resolve_notary_auth; notary_submit_json "'"$DMG"'"')"; then
+    fail "the library must not submit with the retired keychain-profile mode"
+fi
+! grep -q 'notarytool\|^python3' "$LOG" || fail "the retired mode must not reach notarytool or the runner: $(cat "$LOG")"
 
 # --- invalid mode selections fail closed before any work ---------------------
 if OUTPUT="$(KEEWEB_NOTARY_AUTH=vault preflight)"; then
@@ -104,11 +106,17 @@ fi
 [[ "$OUTPUT" == *"Unknown KEEWEB_NOTARY_AUTH 'vault'"* ]] || fail "unknown mode refusal must explain itself: $OUTPUT"
 [[ ! -s "$LOG" ]] || fail "an unknown mode must stop before any work: $(cat "$LOG")"
 
-if OUTPUT="$(KEEWEB_NOTARY_AUTH=openbao-machine KEEWEB_NOTARY_PROFILE=mick-notary OPS_PLATFORM_DIR="$OPS" preflight)"; then
-    fail "KEEWEB_NOTARY_PROFILE with openbao-machine must stop the build"
-fi
-[[ "$OUTPUT" == *"must not be set with KEEWEB_NOTARY_AUTH=openbao-machine"* ]] || fail "mixed mode refusal must explain itself: $OUTPUT"
-[[ ! -s "$LOG" ]] || fail "mixed modes must stop before any work: $(cat "$LOG")"
+# Any KEEWEB_NOTARY_PROFILE, also an empty one and with the default mode, is refused.
+for auth in "" openbao-machine; do
+    for profile in mick-notary ""; do
+        if OUTPUT="$(if [[ -n "$auth" ]]; then export KEEWEB_NOTARY_AUTH="$auth"; else unset KEEWEB_NOTARY_AUTH; fi
+            KEEWEB_NOTARY_PROFILE="$profile" OPS_PLATFORM_DIR="$OPS" preflight)"; then
+            fail "KEEWEB_NOTARY_PROFILE='$profile' must stop the build (${auth:-default mode})"
+        fi
+        [[ "$OUTPUT" == *"KEEWEB_NOTARY_PROFILE is no longer supported"* ]] || fail "profile refusal must explain itself: $OUTPUT"
+        [[ ! -s "$LOG" ]] || fail "a leftover profile must stop before any work: $(cat "$LOG")"
+    done
+done
 
 # --- ops-platform checkout gate ----------------------------------------------
 checkout_rejected() {
@@ -153,7 +161,7 @@ RUNNER_ARGS="$(grep '^python3 arg=' "$LOG" | sed 's/^python3 arg=//' | grep -v '
 grep -qF "from scripts.spark_release.notary_exec import main" "$LOG" || fail "the runner entry point changed"
 logged "xcrun stapler staple $DMG" "openbao-machine mode must staple"
 logged "xcrun stapler validate $DMG" "openbao-machine mode must validate the ticket"
-! grep -q 'notarytool' "$LOG" || fail "openbao-machine mode must not fall back to the keychain profile"
+! grep -q 'notarytool' "$LOG" || fail "notarytool must only run inside the runner"
 [[ -z "$(ls -A "$WORK/tmp")" ]] || fail "the temporary pycache must be removed"
 
 if OUTPUT="$(openbao 'notary_submit_json KeeWeb.dmg')"; then
@@ -172,7 +180,7 @@ if OUTPUT="$(STUB_RUNNER_RC=11 openbao 'notarize_and_staple "'"$DMG"'" "'"$WORK"
 fi
 [[ "$OUTPUT" == *"denied"* ]] || fail "submission failure must explain itself: $OUTPUT"
 ! grep -q 'stapler' "$LOG" || fail "a failed submission must not be stapled"
-! grep -q 'notarytool' "$LOG" || fail "a failed runner must not fall back to the keychain profile"
+! grep -q 'notarytool' "$LOG" || fail "a failed runner must not fall back to notarytool"
 [[ -z "$(ls -A "$WORK/tmp")" ]] || fail "the temporary pycache must be removed after a failure"
 
 if OUTPUT="$(STUB_STATUS=Invalid openbao 'notarize_and_staple "'"$DMG"'" "'"$WORK"'"')"; then

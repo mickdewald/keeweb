@@ -88,7 +88,7 @@ build_public_app() {
 }
 
 # notarize_and_staple <app-or-dmg> <scratch directory>
-# Submits with the backend chosen by resolve_notary_auth (KEEWEB_NOTARY_AUTH).
+# Submits through the OpenBao notary runner (resolve_notary_auth, KEEWEB_NOTARY_AUTH).
 notarize_and_staple() {
     local target="$1" scratch="$2" submission="$1" result status
     if [[ -d "$target" ]]; then

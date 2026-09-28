@@ -28,7 +28,7 @@ require_text 'KEEWEB_CODESIGN_CONFIG' "signing config must be injected, not writ
 require_text 'write-update-build.js' "public build metadata must be embedded"
 require_text '--channel public' "public builds must embed the public channel"
 require_text 'git status --porcelain' "a clean tree is required"
-require_text 'notarytool submit' "app and DMG must be notarized"
+require_text 'run_notary_runner submit' "app and DMG must be notarized through the OpenBao runner"
 require_text 'stapler staple' "tickets must be stapled"
 require_text 'stapler validate' "stapled tickets must validate"
 require_text 'hdiutil create' "the DMG must be built without unlocked tooling"
@@ -41,7 +41,7 @@ require_text 'provisioning-profile.js' "the Developer ID provisioning profile mu
 require_text 'prepare-public-release.js' "release metadata must come from the reviewed generator"
 require_text 'Contents/Installer' "the privileged installer must be rejected"
 require_text "trap " "temporary signing configuration must be cleaned on exit"
-[[ "$(grep -c 'notarytool submit' "$BUILD" "$LIB" "$NOTARY" | awk -F: '{s+=$2} END {print s}')" -ge 1 ]] || fail "notarization missing"
+[[ "$(grep -c 'run_notary_runner submit' "$BUILD" "$LIB" "$NOTARY" | awk -F: '{s+=$2} END {print s}')" -ge 1 ]] || fail "notarization missing"
 [[ "$(grep -c 'notarize_and_staple' "$BUILD")" -ge 2 ]] || fail "both the app and the DMG must be notarized and stapled"
 
 forbid_text 'Apple Development' "no Apple Development fallback is allowed"
@@ -55,6 +55,7 @@ if grep -Eq '(^|[;&|[:space:]])open[[:space:]]+(-[[:alpha:]]|"|\$)' "$BUILD" "$L
     fail "preparation must not launch the app"
 fi
 forbid_text 'R2_' "the build lane must not handle publication credentials"
+forbid_text '--keychain-profile' "the retired notarytool Keychain profile must not be used"
 
 # --- exercised preflight, with stubbed tools -------------------------------
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/keeweb-public-policy.XXXXXX")"
@@ -78,10 +79,19 @@ exec /usr/bin/git "$@"
 STUB
 chmod +x "$WORK/bin/security" "$WORK/bin/git"
 
-# Pinned to the Keychain backend so these gates do not depend on a host
-# ops-platform checkout; test-notary-openbao.sh covers the OpenBao backend.
+# A throwaway clean ops-platform checkout on origin/main, so these gates do not
+# depend on the host checkout; test-notary-openbao.sh covers the runner itself.
+OPS="$WORK/ops-platform"
+mkdir -p "$OPS/scripts/spark_release"
+echo "# stub" > "$OPS/scripts/spark_release/notary_exec.py"
+G=(/usr/bin/git -C "$OPS" -c user.name=test -c user.email=test@example.invalid -c commit.gpgsign=false)
+"${G[@]}" init -q
+"${G[@]}" remote add origin git@github.com:mickdewald/ops-platform.git
+"${G[@]}" add -A
+"${G[@]}" commit -q -m init
+"${G[@]}" update-ref refs/remotes/origin/main HEAD
 preflight() {
-    PATH="$WORK/bin:$PATH" KEEWEB_NOTARY_AUTH=keychain-profile bash "$BUILD" --preflight-only 2>&1
+    PATH="$WORK/bin:$PATH" OPS_PLATFORM_DIR="$OPS" bash "$BUILD" --preflight-only 2>&1
 }
 DEVELOPER_ID='  1) 0000000000000000000000000000000000000000 "Developer ID Application: Michael Dewald (GGYLL32K99)"'
 DEVELOPMENT='  1) 1111111111111111111111111111111111111111 "Apple Development: Michael Dewald (UUCWA5MCLV)"'

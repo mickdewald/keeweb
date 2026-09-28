@@ -21,15 +21,11 @@ Options:
 Environment:
   KEEWEB_PUBLIC_PROVISIONING_PROFILE  Developer ID provisioning profile for
       com.mickdewald.keeweb (default: keys/keeweb-developer-id.provisionprofile)
-  KEEWEB_NOTARY_AUTH                  Notary credential source, no fallback between modes
-      (default: openbao-machine):
-        openbao-machine   ops-platform notary runner, machine identity
-                          release-signing; KEEWEB_NOTARY_PROFILE must be unset
-        keychain-profile  legacy: xcrun notarytool with KEEWEB_NOTARY_PROFILE
-  KEEWEB_NOTARY_PROFILE               notarytool keychain profile for keychain-profile
-                                      (default: mick-notary)
+  KEEWEB_NOTARY_AUTH                  openbao-machine (default and only value): the
+      ops-platform notary runner with machine identity release-signing. The
+      removed keychain-profile value and any KEEWEB_NOTARY_PROFILE stop the build.
   OPS_PLATFORM_DIR                    Absolute path of a clean ops-platform checkout on
-                                      origin/main for openbao-machine
+                                      origin/main for the notary runner
                                       (default: $HOME/projects/ops-platform)
   KEEWEB_RELEASE_BUILD                Optional pinned UTC build ID (YYYYMMDDhhmmss)
 USAGE

@@ -1,11 +1,16 @@
 import { Events } from 'framework/events';
 import { Launcher } from 'comp/launcher';
 import { AppSettingsModel } from 'models/app-settings-model';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { AndroidClipboard } from 'comp/platform/android/android-clipboard';
 
 const CopyPaste = {
-    simpleCopy: !!(Launcher && Launcher.clipboardSupported),
+    simpleCopy: !!(Launcher && Launcher.clipboardSupported) || AndroidPlatform.isAndroid,
 
     copy(text) {
+        if (AndroidPlatform.isAndroid) {
+            return AndroidClipboard.copy(text, AppSettingsModel.clipboardSeconds);
+        }
         if (this.simpleCopy) {
             Launcher.setClipboardText(text);
             const clipboardSeconds = AppSettingsModel.clipboardSeconds;

@@ -205,6 +205,8 @@
         }
         @include mobile {
             width: calc(100vw - 20px);
+            padding-right: 3em;
+            text-overflow: ellipsis;
         }
     }
 

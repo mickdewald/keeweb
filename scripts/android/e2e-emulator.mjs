@@ -55,6 +55,17 @@ async function openFixture(c) {
     await waitFor(c, `document.querySelectorAll('.list__item').length > 0`);
 }
 
+async function closeModalAndOpenEntry(c, sleep) {
+    await sleep(800);
+    await c.evaluate(`(() => { const m = document.querySelector('.modal:not(.modal--hidden) .modal__buttons button');
+        if (m) { m.click(); } return true; })()`);
+    await sleep(300);
+    if (!(await c.evaluate(`!!document.querySelector('.app--details-visible')`))) {
+        await c.evaluate(`document.querySelector('.list__item').click(), true`);
+        await sleep(500);
+    }
+}
+
 const Steps = [
     {
         name: 'unlock',
@@ -82,6 +93,34 @@ const Steps = [
             await sleep(700);
             assert(await c.evaluate(`!document.querySelector('.app--details-visible')`), 'back returns to the list');
             assert(await c.evaluate(`document.querySelectorAll('.list__item').length > 0`), 'file still open');
+        }
+    },
+    {
+        name: 'layout',
+        async run(c, { assert, sleep }) {
+            await closeModalAndOpenEntry(c, sleep);
+            const ratio = await c.evaluate(`(() => { const t = document.querySelector('.details__header-title');
+                const h = document.querySelector('.details__header');
+                return t.getBoundingClientRect().width / h.getBoundingClientRect().width; })()`);
+            assert(ratio > 0.5, `detail title uses more than half the header (got ${ratio.toFixed(2)})`);
+            const top = await c.evaluate(`document.querySelector('.app').getBoundingClientRect().top`);
+            assert(top >= 0, 'app is not pushed under the status bar');
+        }
+    },
+    {
+        name: 'tap-copies',
+        async run(c, { adb, assert, sleep }) {
+            await closeModalAndOpenEntry(c, sleep);
+            await c.evaluate(`(() => { const v = [...document.querySelectorAll('.details__field')]
+                .find((f) => f.querySelector('.details__field-label').textContent.trim() === 'Password')
+                .querySelector('.details__field-value'); v.click(); return true; })()`);
+            await sleep(300);
+            const tip = await c.evaluate(`(document.querySelector('.tip') || {}).textContent || ''`);
+            assert(tip.startsWith('Copied'), `a single tap shows the copied tip (got "${tip}")`);
+            assert(!(await c.evaluate(`!!document.querySelector('.details__field-mobile-actions')`)),
+                'a single tap does not open the action bar');
+            adb('shell', 'input', 'keyevent', '4');
+            await sleep(700);
         }
     },
     {

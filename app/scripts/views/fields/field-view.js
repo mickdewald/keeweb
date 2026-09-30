@@ -12,6 +12,7 @@ import { highlightDom } from 'hbs-helpers/highlight';
 import { DropdownView } from 'views/dropdown-view';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { Timeouts } from 'const/timeouts';
+import { touchValueAction, touchLongPressAction } from 'comp/platform/android/touch-field-actions';
 import template from 'templates/details/fields/field.hbs';
 
 class FieldView extends View {
@@ -21,6 +22,7 @@ class FieldView extends View {
         'click .details__field-label': 'fieldLabelClick',
         'dblclick .details__field-label': 'fieldLabelDblClick',
         'click .details__field-value': 'fieldValueClick',
+        'contextmenu .details__field-value': 'fieldValueLongPress',
         'click .details__field-copy': 'copyBtnClick',
         'dragstart .details__field-label': 'fieldLabelDrag',
         'click .details__field-options': 'fieldOptionsClick'
@@ -140,17 +142,29 @@ class FieldView extends View {
 
     fieldValueClick(e) {
         this.hideOptionsDropdown();
-        if (['a', 'input', 'textarea'].indexOf(e.target.tagName.toLowerCase()) >= 0) {
-            return;
+        const action = touchValueAction({
+            isMobile: Features.isMobile,
+            readonly: this.readonly,
+            hasValue: !!this.value,
+            targetTag: e.target.tagName.toLowerCase(),
+            hasSelection: !!window.getSelection().toString()
+        });
+        if (action === 'copy') {
+            e.stopPropagation();
+            this.copyValue();
+        } else if (action === 'edit') {
+            this.edit();
         }
-        const sel = window.getSelection().toString();
-        if (!sel) {
-            if (Features.isMobile) {
-                e.stopPropagation();
-                this.showMobileActions();
-            } else {
-                this.edit();
-            }
+    }
+
+    fieldValueLongPress(e) {
+        if (
+            touchLongPressAction({ isMobile: Features.isMobile, readonly: this.readonly }) ===
+            'actions'
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showMobileActions();
         }
     }
 

@@ -1,0 +1,9 @@
+{
+    "appId": "com.mickdewald.keeweb",
+    "appName": "KeeWeb",
+    "webDir": "tmp/android-www",
+    "android": {
+        "allowMixedContent": false,
+        "captureInput": false
+    }
+}

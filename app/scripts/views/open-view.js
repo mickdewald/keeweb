@@ -88,6 +88,7 @@ class OpenView extends View {
             this.passwordInput.reset();
         });
         this.listenTo(Events, 'user-idle', this.userIdle);
+        this.listenTo(Events, 'android-resumed', this.androidResumed.bind(this));
     }
 
     render() {

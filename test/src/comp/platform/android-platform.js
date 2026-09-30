@@ -31,6 +31,14 @@ describe('AndroidPlatform', () => {
         expect(registered).to.eql(['App']);
     });
 
+    it('falls back to Capacitor.Plugins when the bridge has no registerPlugin', () => {
+        const app = { addListener() {} };
+        const win = { Capacitor: { getPlatform: () => 'android', Plugins: { App: app } } };
+        const platform = createAndroidPlatform(win);
+        expect(platform.plugin('App')).to.equal(app);
+        expect(() => platform.plugin('Missing')).to.throw('not available');
+    });
+
     it('refuses plugin access outside Android', () => {
         expect(() => createAndroidPlatform({}).plugin('App')).to.throw('outside Android');
     });

@@ -158,6 +158,11 @@ function createOpenViewFileInputMixin({
                 .toggleClass('open__settings-yubikey--active', !!this.params.chalResp);
         },
 
+        androidResumed() {
+            this.autoUnlockAttemptedRef = null;
+            this.displayOpenDeviceOwnerAuth();
+        },
+
         displayOpenDeviceOwnerAuth() {
             const available = !!this.encryptedPassword;
             const passEmpty = !this.passwordInput.length;

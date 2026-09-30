@@ -63,6 +63,41 @@ const Steps = [
             await openFixture(c);
             console.log(`  unlocked in ${Date.now() - t} ms`);
         }
+    },
+    {
+        name: 'back-from-details',
+        async run(c, { adb, sleep, assert }) {
+            await sleep(1500);
+            // The "Local file" notice is open after the unlock: back must close it first.
+            const modal = `!!document.querySelector('.modal:not(.modal--hidden)')`;
+            if (await c.evaluate(modal)) {
+                adb('shell', 'input', 'keyevent', '4');
+                await sleep(700);
+                assert(!(await c.evaluate(modal)), 'back closes the open modal');
+            }
+            await c.evaluate(`document.querySelector('.list__item').click(), true`);
+            await sleep(500);
+            assert(await c.evaluate(`!!document.querySelector('.app--details-visible')`), 'details visible');
+            adb('shell', 'input', 'keyevent', '4');
+            await sleep(700);
+            assert(await c.evaluate(`!document.querySelector('.app--details-visible')`), 'back returns to the list');
+            assert(await c.evaluate(`document.querySelectorAll('.list__item').length > 0`), 'file still open');
+        }
+    },
+    {
+        name: 'back-to-background',
+        async run(c, { adb, sleep, assert, reconnect }) {
+            adb('shell', 'input', 'keyevent', '4');
+            await sleep(1500);
+            const focus = adb('shell', 'dumpsys', 'window').split('\n').find((l) => l.includes('mCurrentFocus')) || '';
+            assert(!focus.includes('keeweb'), 'app moved to the background');
+            assert(adb('shell', 'pidof', appId).trim() !== '', 'app process still alive (not finished)');
+            adb('shell', 'am', 'start', '-n', `${appId}/com.mickdewald.keeweb.MainActivity`);
+            await sleep(1500);
+            const c2 = await reconnect();
+            assert(!(await c2.evaluate(`document.body.innerText.includes('Too many tabs')`)), 'no multi-tab error');
+            return { connection: c2 };
+        }
     }
 ];
 

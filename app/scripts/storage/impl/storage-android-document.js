@@ -2,9 +2,12 @@
 import * as kdbxweb from 'kdbxweb';
 import { StorageBase } from 'storage/storage-base';
 import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { Events } from 'framework/events';
 import { Locale } from 'util/locale';
 
-function toError(e) {
+// path: the document the failed call was about; an unreachable one is announced so the
+// Android layer can offer to choose the file again.
+function toError(e, path) {
     const code = e && e.code;
     const err = { message: (e && e.message) || String(e), code };
     if (code === 'NOT_FOUND' || code === 'PERMISSION_LOST') {
@@ -12,6 +15,9 @@ function toError(e) {
     }
     // Sync shows errors via toString(); keep provider details (URIs) out of the UI for these.
     err.toString = () => (err.notFound ? Locale.openErrorFileNotFound : err.message);
+    if (err.notFound && path) {
+        Events.emit('android-document-unreachable', { path });
+    }
     return err;
 }
 
@@ -54,7 +60,7 @@ class StorageAndroidDocument extends StorageBase {
             },
             (e) => {
                 this.logger.error('Load error', e);
-                callback(toError(e));
+                callback(toError(e, path));
             }
         );
     }
@@ -63,15 +69,21 @@ class StorageAndroidDocument extends StorageBase {
         this._settle(
             this.plugin.stat({ uri: path }),
             ({ rev }) => callback(null, { rev }),
-            (e) => callback(toError(e))
+            (e) => callback(toError(e, path))
         );
     }
 
     save(path, opts, data, callback, rev) {
-        const payload = { uri: path, data: kdbxweb.ByteUtils.bytesToBase64(data) };
-        if (rev) {
-            payload.expectedRev = rev;
+        if (!rev) {
+            // A picked document always exists and was loaded first; never truncate it blindly.
+            callback(toError({ code: 'REV_REQUIRED', message: 'No revision to compare with' }));
+            return;
         }
+        const payload = {
+            uri: path,
+            data: kdbxweb.ByteUtils.bytesToBase64(data),
+            expectedRev: rev
+        };
         this._settle(
             this.plugin.write(payload),
             (res) => callback(null, { rev: res.rev }),
@@ -83,8 +95,17 @@ class StorageAndroidDocument extends StorageBase {
                     return;
                 }
                 this.logger.error('Save error', e);
-                callback(toError(e));
+                callback(toError(e, path));
             }
+        );
+    }
+
+    // Releases the persisted grant of a document the app no longer uses.
+    forget(path) {
+        this._settle(
+            this.plugin.release({ uri: path }),
+            () => {},
+            (e) => this.logger.info('Release failed', e && e.code)
         );
     }
 

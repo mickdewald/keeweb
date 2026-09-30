@@ -418,9 +418,19 @@ const AppModelFileOpenMixin = {
     },
 
     removeFileInfo(id) {
+        const fileInfo = this.fileInfos.get(id);
         Storage.cache.remove(id);
         this.fileInfos.remove(id);
         this.fileInfos.save();
+        const storage = fileInfo && Storage[fileInfo.storage];
+        if (storage && storage.forget) {
+            const stillUsed = this.fileInfos.find(
+                (fi) => fi.storage === fileInfo.storage && fi.path === fileInfo.path
+            );
+            if (!stillUsed) {
+                storage.forget(fileInfo.path);
+            }
+        }
     },
 
     getFileInfo(file) {

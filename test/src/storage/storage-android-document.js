@@ -2,6 +2,7 @@
 import { expect } from 'chai';
 import { StorageAndroidDocument } from 'storage/impl/storage-android-document';
 import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { Events } from 'framework/events';
 
 function storageWith(plugin) {
     const s = new StorageAndroidDocument(plugin);
@@ -110,5 +111,49 @@ describe('StorageAndroidDocument', () => {
         expect(pendingDuringPick).to.equal(true);
         expect(err.code).to.equal('CANCELED');
         expect(AndroidPlatform.nativeFlowPending).to.equal(false);
+    });
+
+    it('refuses to save without a known rev and never writes blindly', async () => {
+        let writes = 0;
+        const s = storageWith({ write: () => writes++ && Promise.resolve({ rev: 'x' }) });
+        const c = cb();
+        s.save('content://doc', {}, new Uint8Array([1]).buffer, c.fn, null);
+        const [err] = await c.p;
+        expect(err.code).to.equal('REV_REQUIRED');
+        expect(writes).to.equal(0);
+    });
+
+    it('announces an unreachable document with its path', async () => {
+        const seen = [];
+        const listener = (e) => seen.push(e.path);
+        Events.on('android-document-unreachable', listener);
+        try {
+            const s = storageWith({
+                stat: () => Promise.reject({ code: 'NOT_FOUND', message: 'gone' }),
+                read: () => Promise.reject({ code: 'IO', message: 'disk' })
+            });
+            const c1 = cb();
+            s.stat('content://gone', {}, c1.fn);
+            await c1.p;
+            const c2 = cb();
+            s.load('content://io', {}, c2.fn);
+            await c2.p;
+        } finally {
+            Events.off('android-document-unreachable', listener);
+        }
+        expect(seen).to.eql(['content://gone']);
+    });
+
+    it('forgets a document by releasing its grant and ignores failures', async () => {
+        const released = [];
+        const s = storageWith({
+            release: ({ uri }) => {
+                released.push(uri);
+                return Promise.reject({ code: 'IO', message: 'not held' });
+            }
+        });
+        s.forget('content://old');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        expect(released).to.eql(['content://old']);
     });
 });

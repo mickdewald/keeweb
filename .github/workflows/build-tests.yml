@@ -54,6 +54,15 @@ on:
     pull_request:
 
 # #
+#   Permissions
+#
+#   Read-only token for every job; nothing here writes to the repository.
+# #
+
+permissions:
+    contents: read
+
+# #
 #   Environment Vars
 #
 #   PLUGIN_NAME                 This is the project name used in Cloudflare.
@@ -78,7 +87,7 @@ jobs:
         runs-on: macos-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
               with:
                   fetch-depth: 0
             - name: File size ratchet
@@ -97,9 +106,6 @@ jobs:
             package_version: ${{ steps.task_init_pkg_ver_get.outputs.PACKAGE_VERSION }}
             guid: ${{ steps.task_init_dotenv_get.outputs.GUID }}
             uuid: ${{ steps.task_init_dotenv_get.outputs.UUID }}
-        permissions:
-            contents: write
-            packages: write
         steps:
 
             # #
@@ -117,7 +123,7 @@ jobs:
 
             - name: '☑️ Checkout'
               id: task_init_checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
               with:
                   fetch-depth: 0
 
@@ -127,7 +133,7 @@ jobs:
 
             - name: '⚙️ Setup Node'
               id: task_init_node_setup
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
               with:
                   node-version-file: '.nvmrc'
 
@@ -172,7 +178,7 @@ jobs:
             - name: '🪪 .ENV › Get'
               id: task_init_dotenv_get
               if: steps.task_init_pkg_env_generate.outcome == 'success'
-              uses: falti/dotenv-action@v1
+              uses: falti/dotenv-action@fff81fa3263fb96221c521b5e526e57c0c56d760 # v1.2.1
 
             # #
             #   Initialize › read back guid and uuid
@@ -209,7 +215,7 @@ jobs:
 
             - name: '☑️ Checkout'
               id: task_lint_checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
             # #
             #   Lint › Setup Node
@@ -217,7 +223,7 @@ jobs:
 
             - name: '⚙️ Setup Node'
               id: task_lint_node_setup
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
               with:
                   node-version-file: '.nvmrc'
 
@@ -269,7 +275,7 @@ jobs:
 
             - name: '☑️ Checkout'
               id: task_test_checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
             # #
             #   Test › Setup Node
@@ -277,7 +283,7 @@ jobs:
 
             - name: '⚙️ Setup Node'
               id: task_test_node_setup
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
               with:
                   node-version-file: '.nvmrc'
 

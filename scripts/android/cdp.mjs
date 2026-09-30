@@ -32,8 +32,15 @@ export async function connect() {
     return {
         async evaluate(expression) {
             const msgId = ++id;
-            const res = await new Promise((resolve) => {
-                pending.set(msgId, resolve);
+            const res = await new Promise((resolve, reject) => {
+                const timer = setTimeout(() => {
+                    pending.delete(msgId);
+                    reject(new Error(`evaluate timed out after 30s: ${String(expression).slice(0, 80)}`));
+                }, 30000);
+                pending.set(msgId, (msg) => {
+                    clearTimeout(timer);
+                    resolve(msg);
+                });
                 ws.send(JSON.stringify({ id: msgId, method: 'Runtime.evaluate',
                     params: { expression, awaitPromise: true, returnByValue: true } }));
             });

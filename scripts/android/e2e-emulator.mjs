@@ -1,10 +1,11 @@
 // scripts/android/e2e-emulator.mjs
 // Usage: node scripts/android/e2e-emulator.mjs [--only <step>]
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { connect, adb } from './cdp.mjs';
 
 const appId = process.env.KEEWEB_APP_ID || 'com.mickdewald.keeweb.dev';
-const fixture = fs.readFileSync('test/android/fixtures/e2e-fixture.kdbx').toString('base64');
+const fixture = fs.readFileSync(fileURLToPath(new URL('../../test/android/fixtures/e2e-fixture.kdbx', import.meta.url))).toString('base64');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function assert(cond, message) {
@@ -21,7 +22,7 @@ async function waitFor(c, expression, timeoutMs = 15000) {
         }
         await sleep(200);
     }
-    throw new Error(`timeout waiting for: ${expression}`);
+    throw new Error(`timeout waiting for: ${expression.slice(0, 120)}`);
 }
 
 // Loads the fixture through KeeWeb's own file input, without the system picker.
@@ -65,21 +66,46 @@ const Steps = [
     }
 ];
 
-const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
-adb('shell', 'am', 'force-stop', appId);
-adb('shell', 'pm', 'clear', appId);
-adb('shell', 'am', 'start', '-W', '-n', `${appId}/com.mickdewald.keeweb.MainActivity`);
-await sleep(4000);
-let c = await connect();
-for (const step of Steps) {
-    if (only && step.name !== only && step.name !== 'unlock') {
-        continue;
+const onlyIdx = process.argv.indexOf('--only');
+const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
+const names = Steps.map((st) => st.name);
+if (onlyIdx >= 0 && (!only || !names.includes(only))) {
+    console.error(`--only needs one of: ${names.join(', ')}`);
+    process.exit(2);
+}
+
+let c = null;
+let current = '(setup)';
+try {
+    adb('shell', 'am', 'force-stop', appId);
+    adb('shell', 'pm', 'clear', appId);
+    adb('shell', 'am', 'start', '-W', '-n', `${appId}/com.mickdewald.keeweb.MainActivity`);
+    await sleep(4000);
+    c = await connect();
+    for (const step of Steps) {
+        if (only && step.name !== only && step.name !== 'unlock') {
+            continue;
+        }
+        current = step.name;
+        process.stdout.write(`- ${step.name}\n`);
+        const reconnect = async () => {
+            c.close();
+            c = await connect();
+            return c;
+        };
+        const result = await step.run(c, { adb, sleep, waitFor, assert, openFixture, reconnect });
+        if (result && result.connection) {
+            c = result.connection;
+        }
     }
-    process.stdout.write(`- ${step.name}\n`);
-    const result = await step.run(c, { adb, sleep, waitFor, assert, openFixture, reconnect: async () => { c.close(); c = await connect(); return c; } });
-    if (result && result.connection) {
-        c = result.connection;
+    console.log('E2E OK');
+} catch (e) {
+    console.error(`FAILED: ${current}: ${e.message}`);
+    process.exitCode = 1;
+} finally {
+    try {
+        c?.close();
+    } catch {
+        // ignore
     }
 }
-c.close();
-console.log('E2E OK');

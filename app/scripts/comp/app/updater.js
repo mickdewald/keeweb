@@ -3,6 +3,7 @@ import { Events } from 'framework/events';
 import { RuntimeInfo } from 'const/runtime-info';
 import { Transport } from 'comp/browser/transport';
 import { Launcher } from 'comp/launcher';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 import { Links } from 'const/links';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { UpdateModel } from 'models/update-model';
@@ -40,7 +41,13 @@ const Updater = {
 
     init() {
         this.scheduleNextCheck();
-        if (!Launcher && navigator.serviceWorker && !RuntimeInfo.beta && !RuntimeInfo.devMode) {
+        if (
+            !Launcher &&
+            !AndroidPlatform.isAndroid &&
+            navigator.serviceWorker &&
+            !RuntimeInfo.beta &&
+            !RuntimeInfo.devMode
+        ) {
             navigator.serviceWorker
                 .register('service-worker.js')
                 .then((reg) => {

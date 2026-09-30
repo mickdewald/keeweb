@@ -1,5 +1,6 @@
 import { Events } from 'framework/events';
 import { Launcher } from 'comp/launcher';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 
 const LocalStorageKeyName = 'instanceCheck';
 const LocalStorageResponseKeyName = 'instanceMaster';
@@ -7,8 +8,8 @@ const LocalStorageResponseKeyName = 'instanceMaster';
 const instanceKey = Date.now().toString();
 
 const SingleInstanceChecker = {
-    init() {
-        if (Launcher) {
+    init(platform = AndroidPlatform) {
+        if (Launcher || platform.isAndroid) {
             return;
         }
         window.addEventListener('storage', SingleInstanceChecker.storageChanged);

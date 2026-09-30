@@ -7,14 +7,18 @@ import android.security.keystore.KeyProperties;
 import java.nio.ByteBuffer;
 import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
@@ -43,20 +47,34 @@ final class HybridCrypto {
         return ks;
     }
 
-    /**
-     * Makes sure a usable key pair exists. A key that was permanently invalidated (new fingerprint,
-     * screen lock removed) or whose biometric requirement differs is replaced, so a password
-     * encrypted after a password unlock is never wrapped for a key that can no longer decrypt.
-     */
+    /** Thrown when the RSA unwrap fails: the blob was wrapped for a key that no longer exists. */
+    static final class StaleBlobException extends GeneralSecurityException {
+        StaleBlobException(Throwable cause) {
+            super("Encrypted password belongs to a replaced key", cause);
+        }
+    }
+
     static void ensureKey(boolean requireBiometrics) throws Exception {
-        if (keyStore().containsAlias(ALIAS)) {
-            if (requiresUserAuthentication() == requireBiometrics && !isInvalidated()) {
+        ensureKey(ALIAS, requireBiometrics);
+    }
+
+    /**
+     * Makes sure a usable key pair exists. A key that is missing its private part, was permanently
+     * invalidated (new fingerprint, screen lock removed) or whose biometric requirement differs is
+     * replaced, so a password encrypted after a password unlock is never wrapped for a dead key.
+     */
+    static void ensureKey(String alias, boolean requireBiometrics) throws Exception {
+        if (keyStore().containsAlias(alias)) {
+            PrivateKey existing = privateKey(alias);
+            if (existing != null
+                    && requiresUserAuthentication(existing) == requireBiometrics
+                    && !isInvalidated(alias)) {
                 return;
             }
-            deleteKey();
+            deleteKey(alias);
         }
         KeyGenParameterSpec.Builder spec = new KeyGenParameterSpec.Builder(
-                        ALIAS, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                        alias, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setKeySize(2048)
                 .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA1)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP);
@@ -70,15 +88,26 @@ final class HybridCrypto {
         gen.generateKeyPair();
     }
 
-    static boolean requiresUserAuthentication() throws Exception {
-        PrivateKey key = (PrivateKey) keyStore().getKey(ALIAS, null);
+    private static PrivateKey privateKey(String alias) throws Exception {
+        try {
+            return (PrivateKey) keyStore().getKey(alias, null);
+        } catch (UnrecoverableKeyException e) {
+            return null;
+        }
+    }
+
+    static boolean requiresUserAuthentication(String alias) throws Exception {
+        return requiresUserAuthentication(privateKey(alias));
+    }
+
+    private static boolean requiresUserAuthentication(PrivateKey key) throws Exception {
         KeyInfo info = KeyFactory.getInstance(key.getAlgorithm(), "AndroidKeyStore").getKeySpec(key, KeyInfo.class);
         return info.isUserAuthenticationRequired();
     }
 
-    private static boolean isInvalidated() throws Exception {
+    private static boolean isInvalidated(String alias) throws Exception {
         try {
-            decryptCipher();
+            decryptCipher(alias);
             return false;
         } catch (KeyPermanentlyInvalidatedException e) {
             return true;
@@ -86,11 +115,19 @@ final class HybridCrypto {
     }
 
     static void deleteKey() throws Exception {
-        keyStore().deleteEntry(ALIAS);
+        deleteKey(ALIAS);
+    }
+
+    static void deleteKey(String alias) throws Exception {
+        keyStore().deleteEntry(alias);
     }
 
     static byte[] encrypt(byte[] plain) throws Exception {
-        PublicKey stored = keyStore().getCertificate(ALIAS).getPublicKey();
+        return encrypt(ALIAS, plain);
+    }
+
+    static byte[] encrypt(String alias, byte[] plain) throws Exception {
+        PublicKey stored = keyStore().getCertificate(alias).getPublicKey();
         PublicKey pub = KeyFactory.getInstance(stored.getAlgorithm())
                 .generatePublic(new X509EncodedKeySpec(stored.getEncoded()));
         KeyGenerator kg = KeyGenerator.getInstance("AES");
@@ -117,9 +154,14 @@ final class HybridCrypto {
 
     /** Returns an RSA cipher ready for decryption; the caller authenticates it via BiometricPrompt. */
     static Cipher decryptCipher() throws Exception {
-        PrivateKey key = (PrivateKey) keyStore().getKey(ALIAS, null);
+        return decryptCipher(ALIAS);
+    }
+
+    /** Throws KeyPermanentlyInvalidatedException for an invalidated, unrecoverable or missing key. */
+    static Cipher decryptCipher(String alias) throws Exception {
+        PrivateKey key = privateKey(alias);
         if (key == null) {
-            throw new KeyPermanentlyInvalidatedException("No key under " + ALIAS);
+            throw new KeyPermanentlyInvalidatedException("No usable key under the alias");
         }
         Cipher rsa = Cipher.getInstance(RSA);
         rsa.init(Cipher.DECRYPT_MODE, key, OAEP);
@@ -138,7 +180,12 @@ final class HybridCrypto {
         in.get(iv);
         byte[] body = new byte[in.remaining()];
         in.get(body);
-        byte[] rawKey = authenticatedRsa.doFinal(wrapped);
+        byte[] rawKey;
+        try {
+            rawKey = authenticatedRsa.doFinal(wrapped);
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            throw new StaleBlobException(e);
+        }
         SecretKeySpec aes;
         try {
             aes = new SecretKeySpec(rawKey, "AES");

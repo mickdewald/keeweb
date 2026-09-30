@@ -746,5 +746,8 @@
   "yubiKeyDisabledErrorHeader": "USB ist deaktiviert",
   "yubiKeyDisabledErrorBody": "YubiKey ist zum Öffnen dieser Datei erforderlich. Bitte USB-Geräte in den Einstellungen aktivieren.",
   "yubiKeyErrorWithCode": "YubiKey-Fehler, Code {}.",
-  "bioOpenAuthPrompt": "„{}“ öffnen"
+  "bioOpenAuthPrompt": "„{}“ öffnen",
+  "bioUsePassword": "Passwort verwenden",
+  "bioChangedHeader": "Biometrie geändert",
+  "bioChangedBody": "Gib einmal das Master-Passwort ein, um den Fingerabdruck wieder zu nutzen."
 }

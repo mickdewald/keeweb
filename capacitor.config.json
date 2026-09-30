@@ -6,5 +6,11 @@
         "allowMixedContent": false,
         "captureInput": false
     },
-    "loggingBehavior": "none"
+    "loggingBehavior": "none",
+    "plugins": {
+        "Keyboard": {
+            "resize": "native",
+            "resizeOnFullScreen": false
+        }
+    }
 }

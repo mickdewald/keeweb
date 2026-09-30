@@ -1,4 +1,5 @@
 import * as kdbxweb from 'kdbxweb';
+import { Locale } from 'util/locale';
 
 // Android implementation of the NativeModules hardware-crypto API (Touch ID on macOS),
 // backed by the BiometricCrypto Capacitor plugin. Values cross the bridge as base64.
@@ -23,7 +24,15 @@ function createAndroidNativeModules(plugin) {
         },
         async hardwareDecrypt(value, prompt) {
             try {
-                return fromB64((await plugin.decrypt({ data: b64(value), prompt })).data);
+                return fromB64(
+                    (
+                        await plugin.decrypt({
+                            data: b64(value),
+                            prompt,
+                            negativeButton: Locale.bioUsePassword
+                        })
+                    ).data
+                );
             } catch (e) {
                 throw toError(e);
             }

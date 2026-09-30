@@ -1,3 +1,6 @@
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { AndroidBiometricFeedback } from 'comp/platform/android/android-biometric-feedback';
+
 function createOpenViewOperationsMixin({
     kdbxweb,
     Events,
@@ -62,7 +65,10 @@ function createOpenViewOperationsMixin({
                     })
                     .catch((err) => {
                         Events.emit('hardware-decrypt-finished');
-                        if (err.message.includes('User refused') || err.code === 'USER_CANCELED') {
+                        if (
+                            err.message.includes('User refused') ||
+                            AndroidBiometricFeedback.isSoftError(err)
+                        ) {
                             err.userCanceled = true;
                         } else if (TouchIdRecovery.handleDecryptionError(err, this.params.id)) {
                             err.touchIdRecoveryRequired = true;
@@ -92,7 +98,9 @@ function createOpenViewOperationsMixin({
                 if (err.code === 'InvalidKey') {
                     InputFx.shake(this.inputEl);
                 } else if (err.userCanceled) {
-                    // nothing to do
+                    if (AndroidPlatform.isAndroid) {
+                        AndroidBiometricFeedback.show(this.el, err);
+                    }
                 } else if (err.touchIdRecoveryRequired) {
                     this.displayOpenDeviceOwnerAuth();
                     TouchIdRecovery.showRequiredAlert(() => this.focusInput(true));

@@ -16,7 +16,7 @@ import javax.crypto.Cipher;
 
 /**
  * Bridge for NativeModules.hardwareEncrypt / hardwareDecrypt / hardwareCryptoDeleteKey.
- * Rejection codes: USER_CANCELED, KEY_INVALIDATED, LOCKOUT, NO_BIOMETRICS, FAILED.
+ * Rejection codes: USER_CANCELED, KEY_INVALIDATED, LOCKOUT, NO_BIOMETRICS, UNAVAILABLE, FAILED.
  * Never log call data or results: they carry the master password.
  */
 @CapacitorPlugin(name = "BiometricCrypto")
@@ -56,11 +56,11 @@ public class BiometricCryptoPlugin extends Plugin {
         try {
             cipher = HybridCrypto.decryptCipher();
         } catch (KeyPermanentlyInvalidatedException e) {
+            // Also covers a missing or unrecoverable key (reinstall, data clear).
             call.reject("Biometric key invalidated", "KEY_INVALIDATED");
             return;
         } catch (Exception e) {
-            // A missing or unusable key after a reinstall or data clear behaves like an invalidated key.
-            call.reject("Biometric key unavailable: " + e.getClass().getSimpleName(), "KEY_INVALIDATED");
+            call.reject("Biometric key unavailable: " + e.getClass().getSimpleName(), "FAILED");
             return;
         }
         FragmentActivity activity = getActivity();
@@ -77,6 +77,9 @@ public class BiometricCryptoPlugin extends Plugin {
                             try {
                                 plain = HybridCrypto.decrypt(r.getCryptoObject().getCipher(), blob);
                                 call.resolve(result(plain));
+                            } catch (HybridCrypto.StaleBlobException e) {
+                                // Wrapped for a key that was replaced since: recover like an invalidated key.
+                                call.reject("Biometric key replaced", "KEY_INVALIDATED");
                             } catch (Exception e) {
                                 call.reject("Decryption failed: " + e.getClass().getSimpleName(), "FAILED");
                             } finally {
@@ -88,17 +91,12 @@ public class BiometricCryptoPlugin extends Plugin {
 
                         @Override
                         public void onAuthenticationError(int code, CharSequence msg) {
-                            boolean canceled = code == BiometricPrompt.ERROR_USER_CANCELED
-                                    || code == BiometricPrompt.ERROR_NEGATIVE_BUTTON
-                                    || code == BiometricPrompt.ERROR_CANCELED;
-                            boolean lockout = code == BiometricPrompt.ERROR_LOCKOUT
-                                    || code == BiometricPrompt.ERROR_LOCKOUT_PERMANENT;
-                            call.reject(msg.toString(), canceled ? "USER_CANCELED" : lockout ? "LOCKOUT" : "FAILED");
+                            call.reject(msg.toString(), errorCode(code));
                         }
                     });
             BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
                     .setTitle(call.getString("prompt", "Unlock"))
-                    .setNegativeButtonText("Use password")
+                    .setNegativeButtonText(call.getString("negativeButton", "Use password"))
                     .setAllowedAuthenticators(STRONG)
                     .build();
             prompt.authenticate(info, new BiometricPrompt.CryptoObject(cipher));
@@ -112,6 +110,27 @@ public class BiometricCryptoPlugin extends Plugin {
             call.resolve(new JSObject());
         } catch (Exception e) {
             call.reject("Deleting the key failed: " + e.getClass().getSimpleName(), "FAILED");
+        }
+    }
+
+    /** Maps BiometricPrompt errors to the codes the web app understands. */
+    static String errorCode(int code) {
+        switch (code) {
+            case BiometricPrompt.ERROR_USER_CANCELED:
+            case BiometricPrompt.ERROR_NEGATIVE_BUTTON:
+            case BiometricPrompt.ERROR_CANCELED:
+            case BiometricPrompt.ERROR_TIMEOUT:
+                return "USER_CANCELED";
+            case BiometricPrompt.ERROR_LOCKOUT:
+            case BiometricPrompt.ERROR_LOCKOUT_PERMANENT:
+                return "LOCKOUT";
+            case BiometricPrompt.ERROR_NO_BIOMETRICS:
+                return "NO_BIOMETRICS";
+            case BiometricPrompt.ERROR_HW_UNAVAILABLE:
+            case BiometricPrompt.ERROR_HW_NOT_PRESENT:
+                return "UNAVAILABLE";
+            default:
+                return "FAILED";
         }
     }
 

@@ -6,7 +6,7 @@ cd "$(dirname "$0")/../.."
 [ -f "$APK" ] || { echo "APK not found: $APK" >&2; exit 1; }
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-unzip -q "$APK" -d "$WORK"
+unzip -qo "$APK" 'assets/*' -d "$WORK" </dev/null  # res/ has case-colliding names on macOS and is not scanned
 [ -d "$WORK/assets" ] || { echo "APK has no assets directory" >&2; exit 1; }
 PATTERN='(password|passwd|secret|token|api[_-]?key|client[_-]?secret)["'"'"' ]*[:=]["'"'"' ]*[A-Za-z0-9+/_-]{12,}'
 # Known non-secret constants that match the pattern. The web bundle is inlined into a single index.html, so a
@@ -38,7 +38,7 @@ if grep -vxFf "$WORK.allowed" "$MATCHES" | sed 's/^\(.\{0,6\}\).*/unexpected mat
     echo "credential-shaped value found" >&2
     exit 1
 fi
-if find "$WORK" -name '*.kdbx' | grep -q .; then
+if unzip -Z1 "$APK" | grep -qi '\.kdbx$'; then
     echo "a KeePass database is inside the APK" >&2
     exit 1
 fi

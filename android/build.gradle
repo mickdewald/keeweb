@@ -23,7 +23,7 @@ allprojects {
         mavenCentral()
     }
     // androidTest resolves kotlin-stdlib 1.8.22 next to the 1.6.21 jdk7/jdk8 shims: use the merged stdlib.
-    configurations.configureEach {
+    configurations.matching { it.name.contains('AndroidTest') }.configureEach {
         exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
         exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
     }

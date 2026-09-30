@@ -27,7 +27,11 @@ public class SecureClipboardPlugin extends Plugin {
             return;
         }
         copySensitive(getContext(), text);
+        // Only the newest copy may be cleared; drop timers of earlier copies.
+        handler.removeCallbacksAndMessages(null);
         if (clearAfterSeconds > 0) {
+            // Limitation: this timer lives in the app process. If Android kills the process
+            // before it fires, the clipboard is not cleared (no WorkManager on purpose).
             handler.postDelayed(() -> clearIfUnchanged(getContext(), text), clearAfterSeconds * 1000L);
         }
         call.resolve(new JSObject());
@@ -44,11 +48,20 @@ public class SecureClipboardPlugin extends Plugin {
         cm.setPrimaryClip(clip);
     }
 
-    /** Clears the clipboard only when it still holds the value this app put there. */
+    /**
+     * Clears the clipboard when it still holds the value this app put there.
+     *
+     * When the clip is readable and differs, something else was copied meanwhile: keep it.
+     * On Android 10+ a background app cannot read the clipboard (getPrimaryClip returns null),
+     * and this timer usually fires while the user is in another app. An unreadable clip is
+     * therefore cleared unconditionally. Accepted cost: a value another app copied within the
+     * clear window may be removed, as in other password managers.
+     */
     static void clearIfUnchanged(Context context, String text) {
         ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData current = cm.getPrimaryClip();
         if (current == null || current.getItemCount() == 0) {
+            cm.clearPrimaryClip();
             return;
         }
         CharSequence value = current.getItemAt(0).getText();

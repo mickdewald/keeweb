@@ -1,6 +1,8 @@
 import { Locale } from 'util/locale';
 import { ModalView } from 'views/modal-view';
 
+const openAlerts = new Set();
+
 const Alerts = {
     alertDisplayed: false,
 
@@ -61,10 +63,20 @@ const Alerts = {
                 config.complete(res, check);
             }
         });
+        openAlerts.add(view);
         view.on('will-close', () => {
+            openAlerts.delete(view);
             Alerts.alertDisplayed = false;
         });
         return view;
+    },
+
+    // Dismisses every open alert as if canceled (used when Android backgrounds the app, so
+    // an open dialog cannot keep the workspace from locking).
+    closeAll() {
+        for (const view of [...openAlerts]) {
+            view.closeImmediate();
+        }
     },
 
     notImplemented() {

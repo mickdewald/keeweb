@@ -16,11 +16,20 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile System.getenv("KEEWEB_ANDROID_KEYSTORE") ? file(System.getenv("KEEWEB_ANDROID_KEYSTORE")) : null
+            storePassword System.getenv("KEEWEB_ANDROID_KEYSTORE_PASSWORD")
+            keyAlias "keeweb"
+            keyPassword System.getenv("KEEWEB_ANDROID_KEYSTORE_PASSWORD")
+        }
+    }
     buildTypes {
         debug {
             applicationIdSuffix ".dev"
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

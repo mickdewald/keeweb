@@ -3,6 +3,8 @@ import { Events } from 'framework/events';
 import { Logger } from 'util/logger';
 import { Launcher } from 'comp/launcher';
 import { Timeouts } from 'const/timeouts';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { createAndroidNativeModules } from 'comp/platform/android/android-native-modules';
 
 let NativeModules;
 
@@ -245,6 +247,10 @@ if (Launcher) {
     };
 
     global.NativeModules = NativeModules;
+}
+
+if (!NativeModules && AndroidPlatform.isAndroid) {
+    NativeModules = createAndroidNativeModules(AndroidPlatform.plugin('BiometricCrypto'));
 }
 
 export { NativeModules };

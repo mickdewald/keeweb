@@ -6,13 +6,17 @@ let recoveryPromise = null;
 
 const TouchIdRecovery = {
     handleDecryptionError(error, fileId) {
-        const isInvalidatedKey = /SecKeyCreateDecryptedData: OSStatus -1(?:\s|$)/.test(
-            error?.message || ''
-        );
+        const isInvalidatedKey =
+            error?.code === 'KEY_INVALIDATED' ||
+            /SecKeyCreateDecryptedData: OSStatus -1(?:\s|$)/.test(error?.message || '');
         if (isInvalidatedKey) {
             recoveryFileIds.add(fileId);
         }
         return isInvalidatedKey;
+    },
+
+    resetForTests() {
+        recoveryFileIds.clear();
     },
 
     isRequired(fileId) {

@@ -46,11 +46,20 @@ describe('AndroidPlatform', () => {
 
 describe('AndroidDefaults', () => {
     it('applies the Android defaults exactly once', () => {
-        const values = { deviceOwnerAuth: null, clipboardSeconds: 0 };
+        const values = {
+            deviceOwnerAuth: null,
+            deviceOwnerAuthTimeoutMinutes: 0,
+            clipboardSeconds: 0
+        };
         const settings = { set: (v) => Object.assign(values, v) };
         const runtimeData = {};
         expect(AndroidDefaults.apply(settings, runtimeData)).to.equal(true);
-        expect(values).to.eql({ deviceOwnerAuth: 'file', clipboardSeconds: 30 });
+        // Timeout 0 would expire the biometric password immediately; 1 week is a settings option.
+        expect(values).to.eql({
+            deviceOwnerAuth: 'file',
+            deviceOwnerAuthTimeoutMinutes: 10080,
+            clipboardSeconds: 30
+        });
 
         values.deviceOwnerAuth = null; // the user switched biometrics off later
         expect(AndroidDefaults.apply(settings, runtimeData)).to.equal(false);

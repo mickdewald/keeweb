@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(SecureClipboardPlugin.class);
+        registerPlugin(BiometricCryptoPlugin.class);
         super.onCreate(savedInstanceState);
         // No screenshots and a blank recent-apps thumbnail.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);

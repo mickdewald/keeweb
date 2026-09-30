@@ -418,7 +418,7 @@ class AppModel {
 
     hardwareDecryptFinished() {
         this.hardwareDecryptInProgress = false;
-        if (!Launcher.isAppFocused()) {
+        if (Launcher && !Launcher.isAppFocused()) {
             this.rejectPendingFileUnlockPromise('App is not focused after hardware decrypt');
         }
     }

@@ -62,7 +62,7 @@ function createOpenViewOperationsMixin({
                     })
                     .catch((err) => {
                         Events.emit('hardware-decrypt-finished');
-                        if (err.message.includes('User refused')) {
+                        if (err.message.includes('User refused') || err.code === 'USER_CANCELED') {
                             err.userCanceled = true;
                         } else if (TouchIdRecovery.handleDecryptionError(err, this.params.id)) {
                             err.touchIdRecoveryRequired = true;

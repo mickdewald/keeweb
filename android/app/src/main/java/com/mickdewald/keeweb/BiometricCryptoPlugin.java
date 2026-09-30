@@ -23,6 +23,11 @@ import javax.crypto.Cipher;
 public class BiometricCryptoPlugin extends Plugin {
     private static final int STRONG = BiometricManager.Authenticators.BIOMETRIC_STRONG;
 
+    // The decrypt call waiting for its prompt, and that prompt. Touched on the UI thread only;
+    // each call is settled exactly once (by the prompt or by the stop safety net below).
+    private PluginCall pendingDecrypt;
+    private BiometricPrompt activePrompt;
+
     @PluginMethod
     public void encrypt(PluginCall call) {
         byte[] plain = null;
@@ -69,10 +74,15 @@ public class BiometricCryptoPlugin extends Plugin {
             return;
         }
         activity.runOnUiThread(() -> {
+            // A prompt that never reported back must not keep an earlier call pending.
+            cancelPendingDecrypt("Superseded by a new biometric prompt");
             BiometricPrompt prompt = new BiometricPrompt(activity, ContextCompat.getMainExecutor(activity),
                     new BiometricPrompt.AuthenticationCallback() {
                         @Override
                         public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult r) {
+                            if (!settle(call)) {
+                                return;
+                            }
                             byte[] plain = null;
                             try {
                                 plain = HybridCrypto.decrypt(r.getCryptoObject().getCipher(), blob);
@@ -91,7 +101,9 @@ public class BiometricCryptoPlugin extends Plugin {
 
                         @Override
                         public void onAuthenticationError(int code, CharSequence msg) {
-                            call.reject(msg.toString(), errorCode(code));
+                            if (settle(call)) {
+                                call.reject(msg.toString(), errorCode(code));
+                            }
                         }
                     });
             BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
@@ -99,8 +111,45 @@ public class BiometricCryptoPlugin extends Plugin {
                     .setNegativeButtonText(call.getString("negativeButton", "Use password"))
                     .setAllowedAuthenticators(STRONG)
                     .build();
+            pendingDecrypt = call;
+            activePrompt = prompt;
             prompt.authenticate(info, new BiometricPrompt.CryptoObject(cipher));
         });
+    }
+
+    /**
+     * Safety net: a prompt that never calls back would leave the open view busy forever. When
+     * the activity stops (app left), the pending call ends as a cancel, which the web app
+     * treats like "Use password".
+     */
+    @Override
+    protected void handleOnStop() {
+        super.handleOnStop();
+        cancelPendingDecrypt("Biometric prompt interrupted");
+    }
+
+    private void cancelPendingDecrypt(String message) {
+        PluginCall call = pendingDecrypt;
+        BiometricPrompt prompt = activePrompt;
+        if (call == null) {
+            return;
+        }
+        pendingDecrypt = null;
+        activePrompt = null;
+        if (prompt != null) {
+            prompt.cancelAuthentication();
+        }
+        call.reject(message, "USER_CANCELED");
+    }
+
+    /** True for the one caller allowed to settle this call. */
+    private boolean settle(PluginCall call) {
+        if (pendingDecrypt != call) {
+            return false;
+        }
+        pendingDecrypt = null;
+        activePrompt = null;
+        return true;
     }
 
     @PluginMethod

@@ -6,8 +6,24 @@ function createAndroidPlatform(win) {
         capacitor.getPlatform() === 'android'
     );
     const plugins = {};
+    let pendingFlows = 0;
     return {
         isAndroid,
+        // True while a native screen started by the app (e.g. the document picker) covers it.
+        get nativeFlowPending() {
+            return pendingFlows > 0;
+        },
+        withNativeFlow(start) {
+            pendingFlows++;
+            let flow;
+            try {
+                flow = Promise.resolve(start());
+            } catch (e) {
+                pendingFlows--;
+                throw e;
+            }
+            return flow.finally(() => pendingFlows--);
+        },
         plugin(name) {
             if (!isAndroid) {
                 throw new Error(`Android plugin ${name} requested outside Android`);

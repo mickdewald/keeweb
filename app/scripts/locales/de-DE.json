@@ -69,6 +69,7 @@
   "webdav": "WebDAV",
   "dropbox": "Dropbox",
   "gdrive": "Google Drive",
+  "androiddoc": "Datei öffnen (Drive, Gerät)",
   "onedrive": "OneDrive",
   "menuAllItems": "Alle Einträge",
   "menuColors": "Farben",

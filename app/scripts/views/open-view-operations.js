@@ -159,6 +159,20 @@ function createOpenViewOperationsMixin({
             }
             if (storage.needShowOpenConfig && storage.needShowOpenConfig()) {
                 this.showConfig(storage);
+            } else if (storage.pick) {
+                storage.pick((err, file) => {
+                    if (err) {
+                        if (err.code !== 'CANCELED') {
+                            Alerts.error({
+                                header: Locale.openError,
+                                body: Locale.openErrorDescription,
+                                pre: err.message
+                            });
+                        }
+                    } else if (file) {
+                        this.openStorageFile(storage, file);
+                    }
+                });
             } else if (storage.list) {
                 this.listStorage(storage);
             } else {

@@ -39,6 +39,28 @@ describe('AndroidPlatform', () => {
         expect(() => platform.plugin('Missing')).to.throw('not available');
     });
 
+    it('marks a native flow as pending until it settles', async () => {
+        const platform = createAndroidPlatform({});
+        let finish;
+        const flow = platform.withNativeFlow(() => new Promise((resolve) => (finish = resolve)));
+        expect(platform.nativeFlowPending).to.equal(true);
+        finish('picked');
+        expect(await flow).to.equal('picked');
+        expect(platform.nativeFlowPending).to.equal(false);
+
+        const failed = platform.withNativeFlow(() => Promise.reject(new Error('canceled')));
+        expect(platform.nativeFlowPending).to.equal(true);
+        await failed.catch(() => {});
+        expect(platform.nativeFlowPending).to.equal(false);
+
+        expect(() =>
+            platform.withNativeFlow(() => {
+                throw new Error('no plugin');
+            })
+        ).to.throw('no plugin');
+        expect(platform.nativeFlowPending).to.equal(false);
+    });
+
     it('refuses plugin access outside Android', () => {
         expect(() => createAndroidPlatform({}).plugin('App')).to.throw('outside Android');
     });

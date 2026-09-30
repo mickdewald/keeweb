@@ -69,6 +69,7 @@
   "webdav": "WebDAV",
   "dropbox": "Dropbox",
   "gdrive": "Google Drive",
+  "androiddoc": "Open file (Drive, device)",
   "onedrive": "OneDrive",
   "msteams": "Microsoft Teams",
   "menuAllItems": "All Items",

@@ -1,4 +1,6 @@
 import { Launcher } from 'comp/launcher';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { StorageAndroidDocument } from 'storage/impl/storage-android-document';
 import { StorageCache } from 'storage/impl/storage-cache';
 import { StorageDropbox } from 'storage/impl/storage-dropbox';
 import { StorageFile } from 'storage/impl/storage-file';
@@ -25,6 +27,9 @@ const ThirdPartyStorage = {
 const Storage = BuiltInStorage;
 if (!Launcher || Launcher.thirdPartyStoragesSupported) {
     Object.assign(Storage, ThirdPartyStorage);
+}
+if (AndroidPlatform.isAndroid) {
+    Storage.androiddoc = new StorageAndroidDocument();
 }
 
 requestAnimationFrame(createOAuthSession);

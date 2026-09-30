@@ -61,8 +61,8 @@ picker. Results:
 | Detail title | wraps after every few characters (title box shrinks to 77 px) |
 | Android back button | leaves the app; on restart, `SingleInstanceChecker` shows "Too many tabs" |
 
-Not testable in the spike: Google sign-in, biometrics, and performance on real
-hardware.
+Not testable in the spike: the Google Drive app as a document provider (no
+Google account on the emulator), biometrics, and performance on real hardware.
 
 ## Design Principles
 
@@ -74,9 +74,10 @@ hardware.
    reached through a separate, narrow platform bridge.
 3. **Reuse existing contracts.** Biometric unlock implements the same
    `hardwareEncrypt`/`hardwareDecrypt` contract as Touch ID. Clipboard handling
-   plugs into `CopyPaste.simpleCopy`. Google Drive keeps its storage code and
-   only swaps how a token is obtained.
-4. **No dead ends.** Every failure in unlock or sign-in ends in a usable state
+   plugs into `CopyPaste.simpleCopy`. File access follows the existing storage
+   interface (`load`/`stat`/`save` with revision conflicts), so KeeWeb's sync
+   and merge logic stays unchanged.
+4. **No dead ends.** Every failure in unlock or file access ends in a usable state
    with a clear message and a way forward (typically the master-password field,
    focused). Nothing ever requires killing and restarting the app.
 5. **No secrets in the build.** No passwords, tokens, OAuth secrets, keystore
@@ -92,7 +93,7 @@ android/                           new: Capacitor Android project
   app/src/main/java/.../keeweb/
     BiometricCryptoPlugin          Keystore + BiometricPrompt
     SecureClipboardPlugin          sensitive copy + timed clearing
-    GoogleDriveAuthPlugin          Google Identity Authorization API
+    DocumentFilePlugin             Android document picker + read/write
     MainActivity                   FLAG_SECURE, back button, lifecycle
 capacitor.config.json              webDir: dist, no server.url in release
 ```
@@ -169,43 +170,45 @@ differences only:
   copying. This applies when `Features.isMobile` is true, so mobile browsers
   benefit too.
 
-### 3. Google Drive Sign-In (`GoogleDriveAuthPlugin`)
+### 3. Google Drive Through the Android Document Picker (`DocumentFilePlugin`)
 
-- **Why native:** Google rejects OAuth inside embedded WebViews, and new
-  Android OAuth clients no longer support custom URI-scheme redirects. The
-  token is therefore obtained natively through the Google Identity Services
-  Authorization API (`Identity.getAuthorizationClient(...).authorize(...)`),
-  using the phone's Google account and the `drive.file` scope.
-- **Bridge:** `authorize({ interactive })` returns
-  `{ accessToken, expiresInSeconds }`, and `revoke()`. No refresh token ever
-  reaches JavaScript. When a token expires, a silent `authorize` fetches a new
-  one.
-- **Integration:** `StorageGDrive` overrides token acquisition on Android.
-  `_oauthAuthorize` and `_oauthGetNewToken` call the bridge instead of opening
-  a popup. The resulting token goes through the existing
-  `_oauthMsgToToken`/`runtimeData` path. Drive REST calls, revision checks,
-  merge and the IndexedDB offline cache stay unchanged.
-- **Google Cloud project (maintainer action):** create a dedicated project for
-  the fork containing:
-  - an Android OAuth client for `com.mickdewald.keeweb` with the SHA-1 of the
-    release signing key (and the debug key for development);
-  - a Desktop OAuth client that the macOS fork uses through the existing
-    `gdriveClientId`/`gdriveClientSecret` settings, entered at runtime and not
-    committed.
+The phone reaches the database the way other Android apps reach Drive files:
+through the system document picker, with the Google Drive app as the
+provider. The app never talks to Google itself, so there is no Google Cloud
+project, no OAuth client, no sign-in, and no change to the macOS app or to the
+file.
 
-  `drive.file` grants are per Cloud project, so the Mac and the phone must use
-  clients from the same project to see the same file.
-- **One-time migration (maintainer, guided):**
-  1. Back up the current `.kdbx` (download from Drive).
-  2. In the macOS fork, switch to the new Desktop client and save the open
-     database to Google Drive as a new file. The new project can then access
-     that file.
-  3. Open that file on Android.
-  4. Rename the old file in Drive (for example `…-before-migration.kdbx`), but
-     keep it.
-
-  Keepass2Android keeps working with the new file through its own Drive
-  access during the transition.
+- **Opening:** `pick()` starts `ACTION_OPEN_DOCUMENT` and takes a persistable
+  read and write permission (`takePersistableUriPermission`). The maintainer
+  chooses "Drive" and the `.kdbx` once. The content URI is stored in the file
+  info, so later starts reopen the same file without the picker.
+- **Bridge:** `pick()`, `read(uri)`, `stat(uri)` and
+  `write(uri, data, expectedRev)`.
+  - `read` returns the bytes (base64) plus `rev`, the SHA-256 of the content.
+  - `write` re-reads the document first. If its hash differs from
+    `expectedRev`, it writes nothing and returns `revConflict`. Otherwise it
+    writes with truncation (`"wt"`) and returns the new `rev`.
+  - Provider errors (offline and not cached, permission revoked) come back as
+    typed errors.
+- **Storage:** a new KeeWeb storage, `storage/impl/storage-android-document.js`,
+  implements `load`, `stat` and `save` with these revisions, in the same shape
+  as `storage-gdrive.js`. On a `revConflict`, KeeWeb's existing sync loads the
+  newer file, merges it and saves again, as it does for Drive on the Mac.
+- **Hashes instead of timestamps:** revisions are content hashes, because
+  document providers do not report reliable modification times.
+- **When sync runs:** on open, on every return to the foreground, before
+  saving, and on the existing `autoSaveInterval`.
+- **Offline:** KeeWeb's IndexedDB cache keeps the last loaded version. When
+  the provider cannot deliver the file, the cached copy opens with KeeWeb's
+  usual "not synced" state, and the next successful sync merges.
+- **Permission lost** (file moved or deleted in Drive, access revoked): a clear
+  message and the picker, never an empty or stuck screen.
+- **Known risk:** the Google Drive app uploads and downloads in the
+  background. How quickly a change made on the Mac becomes visible on the phone
+  (and the reverse) depends on that app. This is checked on the physical
+  device (see Testing). If it proves insufficient, a follow-up adds direct
+  Drive API access, starting from the existing `playground-48709` Cloud
+  project, without changing the rest of this design.
 
 ### 4. Android Lifecycle and Navigation (`MainActivity` + JS)
 
@@ -247,8 +250,9 @@ Version 1 fixes only what blocks daily use on a phone. It is not a redesign.
 
 - the Android Autofill service and a custom keyboard (IME); Keepass2Android can
   stay installed for autofill until a follow-up covers it;
-- storages other than Google Drive (Dropbox, OneDrive, WebDAV, local files):
-  they may work but are not tested or supported;
+- direct Google Drive API access (OAuth) and other storages (Dropbox,
+  OneDrive, WebDAV); files from other document providers may work but are not
+  tested or supported;
 - YubiKey challenge-response, auto-type, the browser-extension connector and
   the plugin gallery;
 - iOS and Play Store distribution;
@@ -267,7 +271,7 @@ Version 1 fixes only what blocks daily use on a phone. It is not a redesign.
 - **Release signing:** a dedicated, stable Android keystore kept outside the
   repository. Its password comes from the macOS Keychain or OpenBao at build
   time, as the notarization lane does. A lost or rotated key breaks in-place
-  updates and changes the OAuth SHA-1, so the key is backed up.
+  updates, so the key is backed up.
 - **Installation:** version 1 installs with `adb install -r` from the Mac. A
   private update channel, like the macOS one, is a follow-up.
 - **CI:** version 1 builds the APK locally only; web unit tests keep running in
@@ -282,8 +286,8 @@ Version 1 fixes only what blocks daily use on a phone. It is not a redesign.
   - the `CopyPaste` Android path with a stubbed bridge: sensitive flag and
     clear timeout are passed through;
   - touch copy: a tap on a value copies and a long press opens the action bar;
-  - `StorageGDrive` token acquisition with a stubbed bridge, including 401 →
-    silent refresh → retry;
+  - `storage-android-document` with a stubbed bridge: load, save, and
+    `revConflict` → merge → save, plus provider errors mapped to user states;
   - the biometric error paths map to "password field focused" states.
 - **Native unit tests (JVM):** the plugin argument and response mapping and
   the base64 round trip.
@@ -295,8 +299,11 @@ Version 1 fixes only what blocks daily use on a phone. It is not a redesign.
   back → background → resume, and runs against generated test databases only
   (`spike-test`-style credentials created by the test itself).
 - **Physical device acceptance (the maintainer's phone):**
-  - Google sign-in and the migrated file sync both ways with the Mac: edit on
-    the phone and see it on the Mac, and the reverse;
+  - the real `.kdbx` opened once through the picker from the Drive app;
+  - sync both ways with the Mac: edit on the phone and see it on the Mac, and
+    the reverse, recording how long each direction takes;
+  - a deliberate parallel edit on both devices, which must end merged with
+    nothing lost;
   - biometric unlock;
   - unlock time with the maintainer's real KDF parameters: target ≤ 1.5 s from
     biometric confirmation to list, otherwise native Argon2 moves into scope;
@@ -312,7 +319,8 @@ Version 1 fixes only what blocks daily use on a phone. It is not a redesign.
 3. The back button never closes the open database. From details it returns to
    the list.
 4. Edits on the phone reach the Mac through Google Drive and the reverse, with
-   conflicts merged as on the Mac today.
+   parallel edits merged and nothing lost. No Google Cloud setup and no change
+   to the macOS app or to the database file is needed.
 5. The macOS app builds and passes its existing tests unchanged in behaviour.
 6. The APK contains no credentials. A check greps the built APK and the
    Capacitor config for credential-shaped values and fails the build.

@@ -753,5 +753,6 @@
   "bioOpenAuthPrompt": "„{}“ öffnen",
   "bioUsePassword": "Passwort verwenden",
   "bioChangedHeader": "Biometrie geändert",
-  "bioChangedBody": "Gib einmal das Master-Passwort ein, um den Fingerabdruck wieder zu nutzen."
+  "bioChangedBody": "Gib einmal das Master-Passwort ein, um den Fingerabdruck wieder zu nutzen.",
+  "bioReconnectFailedBody": "Die Entsperrung per Fingerabdruck konnte nicht wieder eingerichtet werden. Schließe die Datenbank, öffne sie erneut und gib das Master-Passwort noch einmal ein."
 }

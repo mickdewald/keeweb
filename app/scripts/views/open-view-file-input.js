@@ -141,7 +141,7 @@ function createOpenViewFileInputMixin({
                 'placeholder',
                 Locale.openPassFor + ' ' + this.params.name
             );
-            this.focusInput();
+            this.focusPasswordForFile();
         },
 
         displayOpenKeyFile() {

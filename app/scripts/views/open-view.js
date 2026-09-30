@@ -28,6 +28,7 @@ import template from 'templates/open.hbs';
 import { createOpenViewFileInputMixin } from 'views/open-view-file-input';
 import { createOpenViewOperationsMixin } from 'views/open-view-operations';
 import { createOpenViewUnlockMixin } from 'views/open-view-unlock';
+import { AndroidBiometricFeedback } from 'comp/platform/android/android-biometric-feedback';
 
 const logger = new Logger('open-view');
 
@@ -168,6 +169,20 @@ class OpenView extends View {
     focusInput(focusOnMobile) {
         if (FocusDetector.hasFocus() && (focusOnMobile || !Features.isMobile)) {
             this.inputEl.focus();
+        }
+    }
+
+    // Called when a file was selected; on Android without a biometric password to offer,
+    // the password field gets focus and the keyboard opens.
+    focusPasswordForFile(feedback = AndroidBiometricFeedback) {
+        const canUseEncryptedPassword = !!this.encryptedPassword && !this.passwordInput.length;
+        if (
+            feedback.shouldFocusPassword({ hasFile: !!this.params.name, canUseEncryptedPassword })
+        ) {
+            this.focusInput(true);
+            feedback.showKeyboard();
+        } else {
+            this.focusInput();
         }
     }
 

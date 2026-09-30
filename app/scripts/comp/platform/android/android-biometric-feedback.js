@@ -23,6 +23,20 @@ const AndroidBiometricFeedback = {
                 );
             }
         }
+        await this.showKeyboard(keyboard);
+    },
+
+    // Spec §5: with no biometric password to offer, a selected file goes straight to the
+    // password field with the keyboard open.
+    shouldFocusPassword({
+        isAndroid = AndroidPlatform.isAndroid,
+        hasFile,
+        canUseEncryptedPassword
+    }) {
+        return !!(isAndroid && hasFile && !canUseEncryptedPassword);
+    },
+
+    async showKeyboard(keyboard) {
         try {
             await (keyboard || AndroidPlatform.plugin('Keyboard')).show();
         } catch {

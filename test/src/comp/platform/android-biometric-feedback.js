@@ -4,6 +4,7 @@ import { AndroidBiometricFeedback } from 'comp/platform/android/android-biometri
 import { createAndroidNativeModules } from 'comp/platform/android/android-native-modules';
 import { TouchIdRecovery } from 'comp/app/touch-id-recovery';
 import { Locale } from 'util/locale';
+import { OpenView } from 'views/open-view';
 
 describe('AndroidBiometricFeedback', () => {
     const withCode = (code, message = 'system message') =>
@@ -60,7 +61,7 @@ describe('AndroidBiometricFeedback', () => {
         await nm.hardwareDecrypt(kdbxweb.ProtectedValue.fromString('x'), 'Unlock');
         expect(options.prompt).to.equal('Unlock');
         expect(options.negativeButton).to.equal(Locale.bioUsePassword);
-        expect(Locale.bioUsePassword).to.be.a('string').and.not.empty;
+        expect(Locale.bioUsePassword).to.be.a('string').that.is.not.equal('');
     });
 
     it('explains changed biometrics without macOS wording on Android', () => {
@@ -71,5 +72,62 @@ describe('AndroidBiometricFeedback', () => {
         const mac = TouchIdRecovery.requiredAlertText(false);
         expect(mac.header).to.equal(Locale.setGenTouchId);
         expect(mac.body).to.equal(Locale.touchIdRecoveryBody);
+    });
+
+    it('focuses the password field on Android only when no biometric password is offered', () => {
+        const decide = (over) =>
+            AndroidBiometricFeedback.shouldFocusPassword({
+                isAndroid: true,
+                hasFile: true,
+                canUseEncryptedPassword: false,
+                ...over
+            });
+        expect(decide({})).to.equal(true);
+        expect(decide({ canUseEncryptedPassword: true })).to.equal(false);
+        expect(decide({ hasFile: false })).to.equal(false);
+        expect(decide({ isAndroid: false })).to.equal(false);
+    });
+
+    it('opens the keyboard and tolerates a missing keyboard plugin', async () => {
+        let shown = 0;
+        await AndroidBiometricFeedback.showKeyboard({ show: () => Promise.resolve(shown++) });
+        expect(shown).to.equal(1);
+        await AndroidBiometricFeedback.showKeyboard({
+            show: () => Promise.reject(new Error('no keyboard'))
+        });
+    });
+
+    it('shows the Android wording when reconnecting biometrics failed', () => {
+        const android = TouchIdRecovery.failedAlertText(true);
+        expect(android.header).to.equal(Locale.openError);
+        expect(android.body).to.equal(Locale.bioReconnectFailedBody);
+        expect(Locale.bioReconnectFailedBody).to.not.contain('Touch ID');
+        expect(TouchIdRecovery.failedAlertText(false).body).to.equal(Locale.touchIdRecoveryBody);
+    });
+
+    it('focuses the password and opens the keyboard when a file is selected without biometrics', () => {
+        const run = ({ encryptedPassword, typed = '', isAndroid = true }) => {
+            const calls = [];
+            const view = {
+                params: { name: 'Main' },
+                encryptedPassword,
+                passwordInput: { length: typed.length },
+                focusInput: (mobile) => calls.push(mobile ? 'focus-mobile' : 'focus')
+            };
+            const feedback = {
+                shouldFocusPassword: (o) =>
+                    AndroidBiometricFeedback.shouldFocusPassword({ ...o, isAndroid }),
+                showKeyboard: () => calls.push('keyboard')
+            };
+            OpenView.prototype.focusPasswordForFile.call(view, feedback);
+            return calls;
+        };
+        expect(run({ encryptedPassword: null })).to.eql(['focus-mobile', 'keyboard']);
+        expect(run({ encryptedPassword: { value: 'x' } })).to.eql(['focus']);
+        expect(run({ encryptedPassword: { value: 'x' }, typed: 'ab' })).to.eql([
+            'focus-mobile',
+            'keyboard'
+        ]);
+        expect(run({ encryptedPassword: null, isAndroid: false })).to.eql(['focus']);
     });
 });

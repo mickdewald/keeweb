@@ -115,11 +115,15 @@ const TouchIdRecovery = {
         });
     },
 
-    showFailedAlert() {
-        Alerts.error({
+    failedAlertText(isAndroid = AndroidPlatform.isAndroid) {
+        return {
             header: Locale.openError,
-            body: Locale.touchIdRecoveryBody
-        });
+            body: isAndroid ? Locale.bioReconnectFailedBody : Locale.touchIdRecoveryBody
+        };
+    },
+
+    showFailedAlert() {
+        Alerts.error(this.failedAlertText());
     }
 };
 

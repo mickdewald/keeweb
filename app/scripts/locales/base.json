@@ -803,6 +803,7 @@
   "bioUsePassword": "Use password",
   "bioChangedHeader": "Biometrics changed",
   "bioChangedBody": "Enter the master password once to use your fingerprint again.",
+  "bioReconnectFailedBody": "Fingerprint unlock could not be set up again. Close and reopen the database, then enter the master password once more.",
   "extensionErrorNoOpenFiles": "No open files",
   "extensionErrorUserRejected": "The request was denied",
   "extensionErrorNoMatches": "No matching logins",

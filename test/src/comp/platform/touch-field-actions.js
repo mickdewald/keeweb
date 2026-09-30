@@ -1,7 +1,13 @@
 import { expect } from 'chai';
 import { touchValueAction, touchLongPressAction } from 'comp/platform/android/touch-field-actions';
 
-const base = { isMobile: true, readonly: false, hasValue: true, targetTag: 'div', hasSelection: false };
+const base = {
+    isMobile: true,
+    readonly: false,
+    hasValue: true,
+    targetTag: 'div',
+    hasSelection: false
+};
 
 describe('touch field actions', () => {
     it('copies on a single tap on mobile', () => {

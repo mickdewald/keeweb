@@ -111,8 +111,9 @@ capacitor.config.json              webDir: dist, no server.url in release
 
 ### Web Build Differences on Android
 
-The Grunt flag `--android` produces the same `dist/` with these
-differences only:
+The same `dist/` is used; `scripts/android/prepare-web.js` copies it without
+the service worker and web update files. At runtime, when `isAndroid` is
+true, these differences apply:
 
 - no service-worker registration and no web update check (`updater.js`), since
   APK installs handle updates;
@@ -164,10 +165,11 @@ differences only:
   also works while the WebView is paused in the background.
 - **Integration:** `CopyPaste.simpleCopy` becomes true on Android, and
   `CopyPaste.copy` delegates to the bridge. The existing "copied" toast stays.
-- **UX change on touch devices:** a single tap on the **value** of User,
-  Password, URL or one-time code copies it. A long press opens the existing
-  field action bar (copy, edit, show, generate). A tap on the label keeps
-  copying. This applies when `Features.isMobile` is true, so mobile browsers
+- **UX change on touch devices:** a single tap on a field **value** (User,
+  Password, one-time code and other text fields) copies it. Links such as the
+  URL keep opening on tap. A long press opens the existing field action bar
+  (copy, edit, show, generate). A tap on the label keeps copying. Tapping an
+  empty field starts editing. This applies when `Features.isMobile` is true, so mobile browsers
   benefit too.
 
 ### 3. Google Drive Through the Android Document Picker (`DocumentFilePlugin`)

@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import { StorageAndroidDocument } from 'storage/impl/storage-android-document';
 import { AndroidPlatform } from 'comp/platform/android/android-platform';
 import { Events } from 'framework/events';
+import { Locale } from 'util/locale';
 
 function storageWith(plugin) {
     const s = new StorageAndroidDocument(plugin);
@@ -64,16 +65,42 @@ describe('StorageAndroidDocument', () => {
         expect(logged[0][1].message).to.equal('bug in the caller');
     });
 
-    it('maps a lost permission to notFound so KeeWeb offers to reopen', async () => {
+    it('reports a lost permission without notFound: a picked document is never created', async () => {
         const s = storageWith({
             stat: () => Promise.reject({ code: 'PERMISSION_LOST', message: 'gone' })
         });
         const c = cb();
         s.stat('content://doc', {}, c.fn);
         const [err] = await c.p;
-        expect(err.notFound).to.equal(true);
+        // notFound would send sync into its "file does not exist, creating" branch.
+        expect(err.notFound).to.equal(undefined);
+        expect(err.code).to.equal('PERMISSION_LOST');
         // KeeWeb shows sync errors via toString(); a plain object would read "[object Object]".
         expect(String(err)).to.equal('File not found');
+    });
+
+    it('treats an offline document with its grant still held as temporarily unavailable', async () => {
+        const seen = [];
+        const listener = (e) => seen.push(e.path);
+        Events.on('android-document-unreachable', listener);
+        let err;
+        try {
+            const s = storageWith({
+                stat: () =>
+                    Promise.reject({ code: 'UNAVAILABLE', message: 'content://drive/x: FNF' })
+            });
+            const c = cb();
+            s.stat('content://drive/x', {}, c.fn);
+            [err] = await c.p;
+        } finally {
+            Events.off('android-document-unreachable', listener);
+        }
+        expect(seen).to.eql([]);
+        expect(err.notFound).to.equal(undefined);
+        expect(err.code).to.equal('UNAVAILABLE');
+        // Friendly text without the provider's URI.
+        expect(String(err)).to.equal(Locale.androiddocUnavailable);
+        expect(String(err)).to.not.contain('content://');
     });
 
     it('shows the provider message for other errors', async () => {
@@ -129,8 +156,8 @@ describe('StorageAndroidDocument', () => {
         Events.on('android-document-unreachable', listener);
         try {
             const s = storageWith({
-                stat: () => Promise.reject({ code: 'NOT_FOUND', message: 'gone' }),
-                read: () => Promise.reject({ code: 'IO', message: 'disk' })
+                stat: () => Promise.reject({ code: 'PERMISSION_LOST', message: 'gone' }),
+                read: () => Promise.reject({ code: 'UNAVAILABLE', message: 'offline' })
             });
             const c1 = cb();
             s.stat('content://gone', {}, c1.fn);

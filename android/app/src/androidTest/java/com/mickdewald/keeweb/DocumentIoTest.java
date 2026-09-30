@@ -81,4 +81,34 @@ public class DocumentIoTest {
         expectCode("IO", () -> DocumentIo.verifiedRev(bytes("written"), bytes("writ")));
         assertEquals(DocumentIo.sha256(bytes("same")), DocumentIo.verifiedRev(bytes("same"), bytes("same")));
     }
+
+    @Test
+    public void classifiesAMissingDocumentByWhetherTheGrantIsStillHeld() {
+        // Drive offline and not cached: FileNotFoundException although the grant is held.
+        java.io.FileNotFoundException fnf = new java.io.FileNotFoundException("offline");
+        assertEquals("UNAVAILABLE", DocumentIo.errorCode(fnf, true));
+        assertEquals("PERMISSION_LOST", DocumentIo.errorCode(fnf, false));
+        DocumentIo.DocumentIoException missing = new DocumentIo.DocumentIoException("NOT_FOUND", "x");
+        assertEquals("UNAVAILABLE", DocumentIo.errorCode(missing, true));
+        assertEquals("PERMISSION_LOST", DocumentIo.errorCode(missing, false));
+        assertEquals("PERMISSION_LOST", DocumentIo.errorCode(new SecurityException("revoked"), true));
+        assertEquals("UNAVAILABLE", DocumentIo.errorCode(new java.io.IOException("timeout"), true));
+        assertEquals("IO", DocumentIo.errorCode(new java.io.IOException("timeout"), false));
+        assertEquals("IO", DocumentIo.errorCode(new IllegalStateException("bug"), true));
+        for (String code : new String[] {"REV_CONFLICT", "REV_REQUIRED", "IO"}) {
+            assertEquals(code, DocumentIo.errorCode(new DocumentIo.DocumentIoException(code, "x"), true));
+        }
+    }
+
+    @Test
+    public void aDocumentWithoutPersistedGrantCountsAsLost() throws Exception {
+        file.delete();
+        assertEquals(false, io.grantHeld(uri));
+        try {
+            io.read(uri);
+            fail("expected NOT_FOUND");
+        } catch (Exception e) {
+            assertEquals("PERMISSION_LOST", DocumentIo.errorCode(e, io.grantHeld(uri)));
+        }
+    }
 }

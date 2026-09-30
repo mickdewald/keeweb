@@ -1,9 +1,11 @@
 package com.mickdewald.keeweb;
 
 import android.content.ContentResolver;
+import android.content.UriPermission;
 import android.net.Uri;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
@@ -54,6 +56,36 @@ class DocumentIo {
             throw new DocumentIoException("NOT_FOUND", e.getMessage());
         }
         return verifiedRev(data, read(uri));
+    }
+
+    /** True while the app still holds the persisted read grant for this document. */
+    boolean grantHeld(Uri uri) {
+        for (UriPermission p : resolver.getPersistedUriPermissions()) {
+            if (p.isReadPermission() && p.getUri().equals(uri)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The code the web app sees for a failed call. PERMISSION_LOST (choose the file again) only
+     * when access is really gone; a missing or unreadable document while the grant is still held
+     * (e.g. Drive offline and not cached) is UNAVAILABLE, a temporary error.
+     */
+    static String errorCode(Exception e, boolean grantHeld) {
+        if (e instanceof SecurityException) {
+            return "PERMISSION_LOST";
+        }
+        boolean notFound = e instanceof FileNotFoundException
+                || (e instanceof DocumentIoException && "NOT_FOUND".equals(((DocumentIoException) e).code));
+        if (notFound) {
+            return grantHeld ? "UNAVAILABLE" : "PERMISSION_LOST";
+        }
+        if (e instanceof DocumentIoException) {
+            return ((DocumentIoException) e).code;
+        }
+        return grantHeld && e instanceof IOException ? "UNAVAILABLE" : "IO";
     }
 
     static String verifiedRev(byte[] written, byte[] readBack) throws DocumentIoException {

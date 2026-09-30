@@ -71,6 +71,7 @@
   "gdrive": "Google Drive",
   "androiddoc": "Open file (Drive, device)",
   "androiddocUnreachable": "The database file is no longer reachable.",
+  "androiddocUnavailable": "The database file is not available right now. Check the connection and try again.",
   "androiddocChooseAgain": "Choose file again",
   "onedrive": "OneDrive",
   "msteams": "Microsoft Teams",

@@ -13,7 +13,6 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import java.io.FileNotFoundException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -125,10 +124,14 @@ public class DocumentFilePlugin extends Plugin {
         return "Database.kdbx";
     }
 
-    private static void reject(PluginCall call, Exception e) {
-        String code = e instanceof DocumentIo.DocumentIoException ? ((DocumentIo.DocumentIoException) e).code
-                : e instanceof FileNotFoundException ? "NOT_FOUND"
-                : e instanceof SecurityException ? "PERMISSION_LOST" : "IO";
-        call.reject(e.getMessage(), code, e);
+    private void reject(PluginCall call, Exception e) {
+        String uri = call.getString("uri");
+        boolean grantHeld = false;
+        try {
+            grantHeld = uri != null && documents().grantHeld(Uri.parse(uri));
+        } catch (Exception ignored) {
+            // Grant state unknown: treat it as not held, which at worst offers to choose again.
+        }
+        call.reject(e.getMessage(), DocumentIo.errorCode(e, grantHeld), e);
     }
 }

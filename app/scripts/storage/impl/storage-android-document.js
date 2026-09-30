@@ -5,17 +5,22 @@ import { AndroidPlatform } from 'comp/platform/android/android-platform';
 import { Events } from 'framework/events';
 import { Locale } from 'util/locale';
 
-// path: the document the failed call was about; an unreachable one is announced so the
-// Android layer can offer to choose the file again.
+const FRIENDLY_MESSAGES = {
+    PERMISSION_LOST: 'openErrorFileNotFound',
+    UNAVAILABLE: 'androiddocUnavailable'
+};
+
+// path: the document the failed call was about. Only a lost grant is announced, so the
+// Android layer can offer to choose the file again; an unavailable document (e.g. Drive
+// offline, grant still held) is a plain, retryable error. notFound is never set: a picked
+// document always exists, and notFound would make sync try to create it.
 function toError(e, path) {
     const code = e && e.code;
     const err = { message: (e && e.message) || String(e), code };
-    if (code === 'NOT_FOUND' || code === 'PERMISSION_LOST') {
-        err.notFound = true;
-    }
     // Sync shows errors via toString(); keep provider details (URIs) out of the UI for these.
-    err.toString = () => (err.notFound ? Locale.openErrorFileNotFound : err.message);
-    if (err.notFound && path) {
+    const friendly = FRIENDLY_MESSAGES[code];
+    err.toString = () => (friendly ? Locale[friendly] : err.message);
+    if (code === 'PERMISSION_LOST' && path) {
         Events.emit('android-document-unreachable', { path });
     }
     return err;

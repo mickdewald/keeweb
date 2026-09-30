@@ -71,6 +71,7 @@
   "gdrive": "Google Drive",
   "androiddoc": "Datei öffnen (Drive, Gerät)",
   "androiddocUnreachable": "Die Datenbankdatei ist nicht mehr erreichbar.",
+  "androiddocUnavailable": "Die Datenbankdatei ist gerade nicht verfügbar. Prüfe die Verbindung und versuche es erneut.",
   "androiddocChooseAgain": "Datei erneut auswählen",
   "onedrive": "OneDrive",
   "menuAllItems": "Alle Einträge",

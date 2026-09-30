@@ -33,11 +33,15 @@ set `KEEWEB_ANDROID_KEYSTORE`.
   keystore (password read from the Keychain at build time only) and finishes with
   `scripts/android/check-apk-secrets.sh`. The script refuses to build from a dirty git tree.
 
+For CI or agent test builds with a throwaway keystore, `KEEWEB_ANDROID_KEYSTORE_PASSWORD` may be set in the
+environment to skip the Keychain lookup. Never do this with the real keystore, and never put its password on a command
+line. The script passes it only to the Gradle signing step, and deletes the APK if the secret check fails.
+
 `scripts/android/check-apk-secrets.sh <apk>` fails when the APK assets or `capacitor.config.json` contain
 credential-shaped values or a `.kdbx` file. The web bundle legitimately contains the upstream OAuth client secrets from
 `app/scripts/const/cloud-storage-apps.js` (public by design) and three identifier strings that match the pattern
 (`ProtectPassword`, `dropboxAppSecret`, `changeShortLivedStorageToken`). Because the bundle is inlined into one
-`index.html`, the script allows exactly those matched strings instead of excluding a file. Anything else fails.
+`index.html`, the script allows exactly those matched strings, each compared whole up to its closing quote instead of excluding a file. Anything else fails.
 
 ## Installing
 

@@ -13,16 +13,22 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 if [ -n "${KEEWEB_ANDROID_KEYSTORE_PASSWORD:-}" ]; then
-    : # password supplied by the caller (CI-less override); never echoed
+    pw="$KEEWEB_ANDROID_KEYSTORE_PASSWORD"
 else
-    KEEWEB_ANDROID_KEYSTORE_PASSWORD="$(security find-generic-password -s keeweb-android-keystore -w)"
+    pw="$(security find-generic-password -s keeweb-android-keystore -w)"
 fi
-export KEEWEB_ANDROID_KEYSTORE_PASSWORD
+# Keep the password out of the environment of npm, cap and everything but the Gradle signing step.
+unset KEEWEB_ANDROID_KEYSTORE_PASSWORD
 npm run android:web
 npx cap sync android
+APK=android/app/build/outputs/apk/release/app-release.apk
 rc=0
-(cd android && nice -n 10 ./gradlew assembleRelease) || rc=$?
+(cd android && KEEWEB_ANDROID_KEYSTORE_PASSWORD="$pw" nice -n 10 ./gradlew assembleRelease) || rc=$?
 (cd android && ./gradlew --stop) || true
 [ "$rc" -eq 0 ] || exit "$rc"
-bash scripts/android/check-apk-secrets.sh android/app/build/outputs/apk/release/app-release.apk
-echo "Built android/app/build/outputs/apk/release/app-release.apk"
+if ! bash scripts/android/check-apk-secrets.sh "$APK"; then
+    rm -f "$APK"
+    echo "Secret check failed; removed $APK" >&2
+    exit 1
+fi
+echo "Built $APK"

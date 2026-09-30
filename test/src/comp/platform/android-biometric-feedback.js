@@ -5,6 +5,7 @@ import { createAndroidNativeModules } from 'comp/platform/android/android-native
 import { TouchIdRecovery } from 'comp/app/touch-id-recovery';
 import { Locale } from 'util/locale';
 import { OpenView } from 'views/open-view';
+import { createOpenViewFileInputMixin } from 'views/open-view-file-input';
 
 describe('AndroidBiometricFeedback', () => {
     const withCode = (code, message = 'system message') =>
@@ -97,6 +98,37 @@ describe('AndroidBiometricFeedback', () => {
         });
     });
 
+    it('hides the keyboard only after a pending delayed show finished', async () => {
+        const order = [];
+        let finishShow;
+        const keyboard = {
+            show: () =>
+                new Promise((resolve) => {
+                    finishShow = () => {
+                        order.push('shown');
+                        resolve();
+                    };
+                }),
+            hide: () => Promise.resolve(order.push('hidden'))
+        };
+        AndroidBiometricFeedback.showKeyboard(keyboard);
+        const hiding = AndroidBiometricFeedback.hideKeyboard(keyboard);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        expect(order).to.eql([]);
+        finishShow();
+        await hiding;
+        expect(order).to.eql(['shown', 'hidden']);
+    });
+
+    it('hides the keyboard after unlocking and tolerates a missing keyboard plugin', async () => {
+        let hidden = 0;
+        await AndroidBiometricFeedback.hideKeyboard({ hide: () => Promise.resolve(hidden++) });
+        expect(hidden).to.equal(1);
+        await AndroidBiometricFeedback.hideKeyboard({
+            hide: () => Promise.reject(new Error('no keyboard'))
+        });
+    });
+
     it('shows the Android wording when reconnecting biometrics failed', () => {
         const android = TouchIdRecovery.failedAlertText(true);
         expect(android.header).to.equal(Locale.openError);
@@ -129,5 +161,17 @@ describe('AndroidBiometricFeedback', () => {
             'keyboard'
         ]);
         expect(run({ encryptedPassword: null, isAndroid: false })).to.eql(['focus']);
+    });
+
+    it('offers the password field again when the app returns to a locked file', () => {
+        const calls = [];
+        const view = Object.assign(createOpenViewFileInputMixin({}), {
+            autoUnlockAttemptedRef: 'Main',
+            displayOpenDeviceOwnerAuth: () => calls.push('biometric'),
+            focusPasswordForFile: () => calls.push('focus')
+        });
+        view.androidResumed();
+        expect(view.autoUnlockAttemptedRef).to.equal(null);
+        expect(calls).to.eql(['biometric', 'focus']);
     });
 });

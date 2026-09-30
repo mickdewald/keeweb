@@ -1,5 +1,8 @@
 import { AndroidPlatform } from 'comp/platform/android/android-platform';
 
+// The last Keyboard.show() call; hideKeyboard() waits for it.
+let pendingShow = Promise.resolve();
+
 // Biometric errors after which the open view simply falls back to the password field.
 const SOFT_CODES = new Set(['USER_CANCELED', 'LOCKOUT', 'NO_BIOMETRICS', 'UNAVAILABLE']);
 
@@ -36,11 +39,25 @@ const AndroidBiometricFeedback = {
         return !!(isAndroid && hasFile && !canUseEncryptedPassword);
     },
 
-    async showKeyboard(keyboard) {
+    showKeyboard(keyboard) {
+        pendingShow = (async () => {
+            try {
+                await (keyboard || AndroidPlatform.plugin('Keyboard')).show();
+            } catch {
+                // The password field is focused anyway; the user can tap it.
+            }
+        })();
+        return pendingShow;
+    },
+
+    // Waits for a pending show(): Capacitor shows the keyboard with a delay, so a hide()
+    // issued meanwhile would be undone by it.
+    async hideKeyboard(keyboard) {
+        await pendingShow;
         try {
-            await (keyboard || AndroidPlatform.plugin('Keyboard')).show();
+            await (keyboard || AndroidPlatform.plugin('Keyboard')).hide();
         } catch {
-            // The password field is focused anyway; the user can tap it.
+            // Nothing to hide.
         }
     }
 };

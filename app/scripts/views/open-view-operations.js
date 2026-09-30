@@ -115,6 +115,10 @@ function createOpenViewOperationsMixin({
                     });
                 }
             } else {
+                if (AndroidPlatform.isAndroid) {
+                    // The keyboard opened for the password must not outlive the open view.
+                    AndroidBiometricFeedback.hideKeyboard();
+                }
                 this.emit('close');
             }
         },

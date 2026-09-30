@@ -161,6 +161,7 @@ function createOpenViewFileInputMixin({
         androidResumed() {
             this.autoUnlockAttemptedRef = null;
             this.displayOpenDeviceOwnerAuth();
+            this.focusPasswordForFile();
         },
 
         displayOpenDeviceOwnerAuth() {

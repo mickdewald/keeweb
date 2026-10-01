@@ -1,4 +1,4 @@
-FROM snapcore/snapcraft:stable
+FROM snapcore/snapcraft:stable@sha256:6d771575c134569e28a590f173f7efae8bf7f4d1746ad8a474c98e02f4a3f627
 
 COPY entrypoint.sh /entrypoint.sh
 

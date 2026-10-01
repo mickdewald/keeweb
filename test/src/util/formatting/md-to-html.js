@@ -16,7 +16,7 @@ describe('MdToHtml', () => {
         expect(MdToHtml.convert('[link](https://x)')).to.eql({
             html:
                 '<div class="markdown">' +
-                '<p><a href="https://x" rel="noreferrer noopener" target="_blank">link</a></p>\n' +
+                '<p><a target="_blank" rel="noreferrer noopener" href="https://x">link</a></p>\n' +
                 '</div>'
         });
     });

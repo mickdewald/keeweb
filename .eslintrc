@@ -51,7 +51,7 @@
         "import/first": "error",
         "import/no-default-export": "error",
         "babel/no-unused-expressions": "error",
-        "node/no-callback-literal": "off"
+        "n/no-callback-literal": "off"
     },
     "parserOptions": {
         "requireConfigFile": false,

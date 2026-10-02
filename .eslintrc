@@ -54,12 +54,18 @@
         "node/no-callback-literal": "off"
     },
     "parserOptions": {
+        "requireConfigFile": false,
+        "babelOptions": {
+            "parserOpts": {
+                "allowReturnOutsideFunction": true
+            }
+        },
         "sourceType": "module",
         "ecmaFeatures": {
             "impliedStrict": true
         }
     },
-    "parser": "babel-eslint",
+    "parser": "@babel/eslint-parser",
     "globals": {
         "_": true,
         "$": true

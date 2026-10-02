@@ -93,19 +93,18 @@ module.exports = function ({ pkg, dt, rootDir, webpackConfig, webpackConfigTest,
             test: webpackConfigTest
         },
         'webpack-dev-server': {
-            options: {
-                webpack: webpackConfig.config({
+            js: {
+                ...webpackConfig.config({
                     ...webpackOptions,
                     mode: 'development',
                     sha: 'dev'
                 }),
-                publicPath: '/',
-                contentBase: [path.resolve(rootDir, 'tmp'), path.resolve(rootDir, 'app/content')],
-                progress: false
-            },
-            js: {
-                keepalive: true,
-                port: 8085
+                devServer: {
+                    port: 8085,
+                    static: [path.resolve(rootDir, 'tmp'), path.resolve(rootDir, 'app/content')],
+                    devMiddleware: { publicPath: '/' },
+                    client: { progress: false }
+                }
             }
         }
     };

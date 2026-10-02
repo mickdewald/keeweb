@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 
 # #
 #   @project        keeweb
@@ -10,7 +10,7 @@
 #                   https://hub.docker.com/repository/docker/keeweb/alpine-base
 # #
 
-FROM ghcr.io/keeweb/alpine-base:3.20-amd64
+FROM ghcr.io/keeweb/alpine-base:3.20-amd64@sha256:c9645ad8019adff0b8a4b73190f5ffff95d4cccf3d9aeb8e28edc71eb6a8a691
 
 # #
 #   Set Args

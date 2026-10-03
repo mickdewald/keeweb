@@ -21,19 +21,19 @@ require_cmd() {
 }
 
 ensure_node_runtime() {
-    local major required_major root_dir
+    local current_version required_node_version root_dir
     root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-    required_major="$(tr -d '[[:space:]]' < "$root_dir/.nvmrc")"
-    [[ "$required_major" =~ ^[0-9]+$ ]] || die "Invalid Node version in $root_dir/.nvmrc: $required_major"
+    required_node_version="$(tr -d '[[:space:]]' < "$root_dir/.nvmrc")"
+    [[ "$required_node_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Invalid Node version in $root_dir/.nvmrc: $required_node_version"
 
-    major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
-    if [[ "$major" != "$required_major" && -s "$HOME/.nvm/nvm.sh" ]]; then
+    current_version="$(node -p 'process.versions.node' 2>/dev/null || true)"
+    if [[ "$current_version" != "$required_node_version" && -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
         source "$HOME/.nvm/nvm.sh"
-        nvm use "$required_major" >/dev/null 2>&1 || true
-        major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
+        nvm use "$required_node_version" >/dev/null 2>&1 || true
+        current_version="$(node -p 'process.versions.node' 2>/dev/null || true)"
     fi
-    [[ "$major" == "$required_major" ]] || die "KeeWeb's macOS packaging flow requires Node $required_major from .nvmrc."
+    [[ "$current_version" == "$required_node_version" ]] || die "KeeWeb's macOS packaging flow requires Node $required_node_version from .nvmrc."
 }
 
 # Exactly one valid keychain identity with the exact common name; no fallback.

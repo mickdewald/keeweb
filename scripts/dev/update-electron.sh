@@ -17,6 +17,7 @@ fi
 
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
     # shellcheck disable=SC1091
+    unset npm_config_prefix npm_config_global_prefix
     source "$HOME/.nvm/nvm.sh"
     nvm use "$REQUIRED_NODE_VERSION" >/dev/null 2>&1 || true
 fi

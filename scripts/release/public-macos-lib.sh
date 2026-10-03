@@ -29,6 +29,7 @@ ensure_node_runtime() {
     current_version="$(node -p 'process.versions.node' 2>/dev/null || true)"
     if [[ "$current_version" != "$required_node_version" && -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
+        unset npm_config_prefix npm_config_global_prefix
         source "$HOME/.nvm/nvm.sh"
         nvm use "$required_node_version" >/dev/null 2>&1 || true
         current_version="$(node -p 'process.versions.node' 2>/dev/null || true)"

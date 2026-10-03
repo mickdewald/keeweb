@@ -37,6 +37,16 @@ module.exports = {
         }
     },
     module: {
-        rules: appConfig.module.rules
+        rules: [
+            {
+                test: /node_modules[\\/](chai|assertion-error)[\\/].*\.js$/,
+                loader: 'babel-loader',
+                options: {
+                    cacheDirectory: true,
+                    presets: [['@babel/preset-env', { targets: { chrome: '91' } }]]
+                }
+            },
+            ...appConfig.module.rules
+        ]
     }
 };

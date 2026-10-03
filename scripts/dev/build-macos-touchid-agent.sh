@@ -78,30 +78,35 @@ require_cmd ditto
 require_cmd xattr
 
 ensure_node_runtime() {
-    local major
+    local major required_major
+
+    required_major="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
+    if [[ ! "$required_major" =~ ^[0-9]+$ ]]; then
+        echo "Invalid Node version in $ROOT_DIR/.nvmrc: $required_major" >&2
+        exit 1
+    fi
 
     major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
-    if [[ "$major" == "20" ]]; then
+    if [[ "$major" == "$required_major" ]]; then
         return 0
     fi
 
     if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
         source "$HOME/.nvm/nvm.sh"
-        nvm use 20.5.1 >/dev/null 2>&1 || nvm use 20 >/dev/null 2>&1 || true
+        nvm use "$required_major" >/dev/null 2>&1 || true
         major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
     fi
 
-    if [[ "$major" != "20" ]]; then
-        echo "KeeWeb's macOS packaging flow requires Node 20. Current node: $(node --version 2>/dev/null || echo missing)" >&2
-        echo "Install/use Node 20 before running this script." >&2
+    if [[ "$major" != "$required_major" ]]; then
+        echo "KeeWeb's macOS packaging flow requires Node $required_major from .nvmrc. Current node: $(node --version 2>/dev/null || echo missing)" >&2
+        echo "Install/use Node $required_major before running this script." >&2
         exit 1
     fi
 }
 
-ensure_node_runtime
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+ensure_node_runtime
 cd "$ROOT_DIR"
 
 APP_BUILD_PATH="${KEEWEB_APP_BUILD_PATH:-tmp/desktop/KeeWeb-darwin-arm64/KeeWeb.app}"

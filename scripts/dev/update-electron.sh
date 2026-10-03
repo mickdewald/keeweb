@@ -9,10 +9,23 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 cd "$ROOT_DIR"
 
+REQUIRED_NODE_MAJOR="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
+if [[ ! "$REQUIRED_NODE_MAJOR" =~ ^[0-9]+$ ]]; then
+    echo "Invalid Node version in $ROOT_DIR/.nvmrc: $REQUIRED_NODE_MAJOR" >&2
+    exit 1
+fi
+
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
     # shellcheck disable=SC1091
     source "$HOME/.nvm/nvm.sh"
-    nvm use 20.5.1 >/dev/null 2>&1 || nvm use 20 >/dev/null 2>&1 || true
+    nvm use "$REQUIRED_NODE_MAJOR" >/dev/null 2>&1 || true
+fi
+
+CURRENT_NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
+if [[ "$CURRENT_NODE_MAJOR" != "$REQUIRED_NODE_MAJOR" ]]; then
+    echo "KeeWeb's Electron update flow requires Node $REQUIRED_NODE_MAJOR from .nvmrc. Current node: $(node --version 2>/dev/null || echo missing)" >&2
+    echo "Install/use Node $REQUIRED_NODE_MAJOR before running this script." >&2
+    exit 1
 fi
 
 VERSION="${1:-$(npm view electron dist-tags.latest)}"

@@ -20,6 +20,20 @@ if bash "$SCRIPT_DIR/build-macos-touchid-agent.sh" --backup --help >/dev/null 2>
 fi
 
 BUILD_SCRIPT="$(<"$SCRIPT_DIR/build-macos-touchid-agent.sh")"
+UPDATE_ELECTRON_SCRIPT="$(<"$SCRIPT_DIR/update-electron.sh")"
+if [[ "$BUILD_SCRIPT" != *'required_major="$(tr -d '\''[[:space:]]'\'' < "$ROOT_DIR/.nvmrc")"'* ]]; then
+    echo "The private macOS build must read its Node runtime from .nvmrc" >&2
+    exit 1
+fi
+if [[ "$BUILD_SCRIPT" == *'nvm use 20'* || "$BUILD_SCRIPT" == *'requires Node 20'* ]]; then
+    echo "The private macOS build must not pin a Node major separately from .nvmrc" >&2
+    exit 1
+fi
+if [[ "$UPDATE_ELECTRON_SCRIPT" != *'REQUIRED_NODE_MAJOR="$(tr -d '\''[[:space:]]'\'' < "$ROOT_DIR/.nvmrc")"'* ||
+    "$UPDATE_ELECTRON_SCRIPT" != *'CURRENT_NODE_MAJOR="$(node -p '\''process.versions.node.split(".")[0]'\'' 2>/dev/null || true)"'* ]]; then
+    echo "The Electron update script must validate the Node runtime from .nvmrc" >&2
+    exit 1
+fi
 if [[ "$BUILD_SCRIPT" == *"BACKUP_ON_DEPLOY"* || "$BUILD_SCRIPT" == *"-backup-"* || "$TRACE" == *"--backup"* ]]; then
     echo "The deploy script must not create or advertise app backups" >&2
     exit 1
@@ -107,7 +121,7 @@ STATUS=$?
 set -e
 [[ "$STATUS" -ne 0 ]] || fail "an invalid candidate must be rejected"
 [[ -f "$WORK/KeeWeb.app/Contents/sentinel" ]] || fail "rejection deleted the installed target"
-printf '%s\n' "$TRACE" | grep -Fq 'check-installed-app-compatibility.js inspect' ||
+[[ "$TRACE" == *'check-installed-app-compatibility.js inspect'* ]] ||
     fail "rejection must inspect the installed target first"
 executed_stop="$(printf '%s\n' "$TRACE" | grep -E '^\++ stop_running_app$' || true)"
 executed_rm="$(printf '%s\n' "$TRACE" | grep -E '^\++ rm -rf ' || true)"

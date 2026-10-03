@@ -21,15 +21,19 @@ require_cmd() {
 }
 
 ensure_node_runtime() {
-    local major
+    local major required_major root_dir
+    root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+    required_major="$(tr -d '[[:space:]]' < "$root_dir/.nvmrc")"
+    [[ "$required_major" =~ ^[0-9]+$ ]] || die "Invalid Node version in $root_dir/.nvmrc: $required_major"
+
     major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
-    if [[ "$major" != "20" && -s "$HOME/.nvm/nvm.sh" ]]; then
+    if [[ "$major" != "$required_major" && -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
         source "$HOME/.nvm/nvm.sh"
-        nvm use 20.5.1 >/dev/null 2>&1 || nvm use 20 >/dev/null 2>&1 || true
+        nvm use "$required_major" >/dev/null 2>&1 || true
         major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
     fi
-    [[ "$major" == "20" ]] || die "KeeWeb's macOS packaging flow requires Node 20."
+    [[ "$major" == "$required_major" ]] || die "KeeWeb's macOS packaging flow requires Node $required_major from .nvmrc."
 }
 
 # Exactly one valid keychain identity with the exact common name; no fallback.

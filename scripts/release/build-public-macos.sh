@@ -112,7 +112,7 @@ assess_gatekeeper app "$APP"
 
 # --- DMG: drag-install image, sign, notarize, staple, Gatekeeper --------------
 # hdiutil keeps the lane free of the optional DMG layout plugin, which cannot be
-# installed from the lockfile on the required Node 20 runtime.
+# installed from the lockfile on the runtime selected by .nvmrc.
 mkdir -p "$WORK/dmg-root"
 ditto "$APP" "$WORK/dmg-root/KeeWeb.app"
 ln -s /Applications "$WORK/dmg-root/Applications"

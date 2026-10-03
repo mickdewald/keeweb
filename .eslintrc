@@ -54,23 +54,27 @@
         "n/no-callback-literal": "off"
     },
     "parserOptions": {
+        "ecmaVersion": 2022,
         "requireConfigFile": false,
-        "babelOptions": {
-            "parserOpts": {
-                "allowReturnOutsideFunction": true
-            }
-        },
         "sourceType": "module",
         "ecmaFeatures": {
+            "globalReturn": true,
             "impliedStrict": true
         }
     },
-    "parser": "@babel/eslint-parser",
     "globals": {
         "_": true,
         "$": true
     },
     "env": {
         "browser": true
-    }
+    },
+    "overrides": [
+        {
+            "files": ["desktop/main.js"],
+            "parserOptions": {
+                "sourceType": "script"
+            }
+        }
+    ]
 }

@@ -35,7 +35,7 @@
     "base64-loader": "1.0.0",
     "bourbon": "^7.0.0",
     "chai": "^6.0.0",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.0.0",
     "css-loader": "^5.2.4",
     "dompurify": "^3.0.0",
     "electron": "43.5.0",

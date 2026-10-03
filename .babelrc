@@ -1,6 +1,5 @@
 {
     "assumptions": {
-        "pureGetters": true,
         "setPublicClassFields": true,
         "setSpreadProperties": true
     },

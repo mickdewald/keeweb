@@ -78,29 +78,30 @@ require_cmd ditto
 require_cmd xattr
 
 ensure_node_runtime() {
-    local major required_major
+    local current_version required_node_version
 
-    required_major="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
-    if [[ ! "$required_major" =~ ^[0-9]+$ ]]; then
-        echo "Invalid Node version in $ROOT_DIR/.nvmrc: $required_major" >&2
+    required_node_version="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
+    if [[ ! "$required_node_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "Invalid Node version in $ROOT_DIR/.nvmrc: $required_node_version" >&2
         exit 1
     fi
 
-    major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
-    if [[ "$major" == "$required_major" ]]; then
+    current_version="$(node -p 'process.versions.node' 2>/dev/null || true)"
+    if [[ "$current_version" == "$required_node_version" ]]; then
         return 0
     fi
 
     if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
+        unset npm_config_prefix npm_config_global_prefix
         source "$HOME/.nvm/nvm.sh"
-        nvm use "$required_major" >/dev/null 2>&1 || true
-        major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
+        nvm use "$required_node_version" >/dev/null 2>&1 || true
+        current_version="$(node -p 'process.versions.node' 2>/dev/null || true)"
     fi
 
-    if [[ "$major" != "$required_major" ]]; then
-        echo "KeeWeb's macOS packaging flow requires Node $required_major from .nvmrc. Current node: $(node --version 2>/dev/null || echo missing)" >&2
-        echo "Install/use Node $required_major before running this script." >&2
+    if [[ "$current_version" != "$required_node_version" ]]; then
+        echo "KeeWeb's macOS packaging flow requires Node $required_node_version from .nvmrc. Current node: $(node --version 2>/dev/null || echo missing)" >&2
+        echo "Install/use Node $required_node_version before running this script." >&2
         exit 1
     fi
 }

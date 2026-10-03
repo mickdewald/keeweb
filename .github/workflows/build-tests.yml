@@ -307,10 +307,23 @@ jobs:
             - name: '🌐 Chrome › Headless Shell'
               id: task_test_chrome_install
               run: |
-                  CHROME_BIN=$(npx -y @puppeteer/browsers@2.13.2 install \
-                      chrome-headless-shell@153.0.8010.12 \
-                      --path "$HOME/.cache/keeweb-ci-browsers" | tail -n 1 | awk '{print $2}')
-                  test -x "$CHROME_BIN"
+                  case "$(uname -m)" in
+                      arm64) browser_platform="mac-arm64" ;;
+                      x86_64) browser_platform="mac-x64" ;;
+                      *) echo "Unsupported macOS architecture: $(uname -m)" >&2; exit 1 ;;
+                  esac
+                  browser_build_id="153.0.8010.12"
+                  browser_dir="$RUNNER_TEMP/chrome-headless-shell-$browser_platform"
+                  browser_archive="$RUNNER_TEMP/chrome-headless-shell-$browser_platform.zip"
+                  curl --fail --location --retry 3 --retry-all-errors --output "$browser_archive" \
+                      "https://storage.googleapis.com/chrome-for-testing-public/$browser_build_id/$browser_platform/chrome-headless-shell-$browser_platform.zip"
+                  unzip -q "$browser_archive" -d "$browser_dir"
+                  CHROME_BIN="$browser_dir/chrome-headless-shell-$browser_platform/chrome-headless-shell"
+                  printf 'Chrome Headless Shell executable: %s\n' "$CHROME_BIN"
+                  if [[ ! -x "$CHROME_BIN" ]]; then
+                      echo "Chrome Headless Shell installation did not return an executable path: $CHROME_BIN" >&2
+                      exit 1
+                  fi
                   "$CHROME_BIN" --version
                   echo "CHROME_BIN=$CHROME_BIN" >> $GITHUB_ENV
 

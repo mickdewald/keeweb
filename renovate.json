@@ -6,6 +6,7 @@
     "helpers:pinGitHubActionDigests"
   ],
   "forkProcessing": "enabled",
+  "gitIgnoredAuthors": ["renovate-repair@users.noreply.github.com"],
   "timezone": "Europe/Berlin",
   "dependencyDashboard": true,
   "internalChecksFilter": "strict",

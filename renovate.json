@@ -3,6 +3,5 @@
   "extends": [
     "local>mickdewald/renovate-config",
     "local>mickdewald/renovate-config:automerge"
-  ],
-  "forkProcessing": "enabled"
+  ]
 }

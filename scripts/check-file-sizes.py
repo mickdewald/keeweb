@@ -70,7 +70,7 @@ def default_base_ref() -> str:
     if result.returncode == 0:
         return result.stdout.strip().removeprefix("refs/remotes/")
 
-    return "origin/master"
+    return "origin/main"
 
 
 def main() -> int:

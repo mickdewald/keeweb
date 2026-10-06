@@ -1,61 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    "docker:pinDigests",
-    "helpers:pinGitHubActionDigests"
+    "local>mickdewald/renovate-config",
+    "local>mickdewald/renovate-config:automerge"
   ],
-  "forkProcessing": "enabled",
-  "gitIgnoredAuthors": ["renovate-repair@users.noreply.github.com"],
-  "timezone": "Europe/Berlin",
-  "dependencyDashboard": true,
-  "internalChecksFilter": "strict",
-  "rangeStrategy": "pin",
-  "prConcurrentLimit": 4,
-  "prHourlyLimit": 2,
-  "rebaseWhen": "conflicted",
-  "schedule": ["* 0-6,20-23 * * 1-5", "* * * * 0,6"],
-  "separateMajorMinor": true,
-  "separateMultipleMajor": true,
-  "labels": ["dependencies"],
-  "osvVulnerabilityAlerts": true,
-  "vulnerabilityAlerts": {
-    "labels": ["dependencies", "security"],
-    "minimumReleaseAge": null,
-    "schedule": ["at any time"]
-  },
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["before 5am on monday"]
-  },
-  "packageRules": [
-    {
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pin"],
-      "groupName": "github-actions (non-major)",
-      "minimumReleaseAge": "7 days",
-      "automerge": true,
-      "automergeType": "pr",
-      "labels": ["dependencies", "github-actions", "automerge"]
-    },
-    {
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major"],
-      "groupName": "github-actions (major)",
-      "groupSlug": "github-actions-major"
-    },
-    {
-      "matchUpdateTypes": ["major"],
-      "minimumReleaseAge": "7 days",
-      "automerge": false,
-      "labels": ["dependencies", "major-update"]
-    },
-    {
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "matchFileNames": ["!**/.github/workflows/**"],
-      "groupName": "non-major dependencies",
-      "groupSlug": "non-major-dependencies",
-      "minimumReleaseAge": "7 days"
-    }
-  ]
+  "forkProcessing": "enabled"
 }

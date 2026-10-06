@@ -4,7 +4,7 @@
   "description": "Free cross-platform password manager compatible with KeePass",
   "main": "main.js",
   "dependencies": {
-    "@electron/remote": "2.1.3"
+    "@electron/remote": "^2.1.2"
   },
   "homepage": "https://keeweb.info",
   "repository": {

@@ -1,7 +1,204 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Inlined copy of mickdewald/renovate-config (default.json + automerge.json). This repository is public and hosted Renovate cannot read the private preset from it (\"Cannot find preset's package\", #81). When the shared preset changes, regenerate this file from both preset files."
+  ],
   "extends": [
-    "local>mickdewald/renovate-config",
-    "local>mickdewald/renovate-config:automerge"
-  ]
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "Europe/Berlin",
+  "dependencyDashboard": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "internalChecksFilter": "strict",
+  "rangeStrategy": "pin",
+  "prConcurrentLimit": 4,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "conflicted",
+  "schedule": [
+    "* 0-6,20-23 * * 1-5",
+    "* * * * 0,6"
+  ],
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "labels": [
+    "dependencies"
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "dependencies",
+      "security"
+    ],
+    "minimumReleaseAge": null,
+    "dependencyDashboardApproval": false,
+    "schedule": [
+      "at any time"
+    ]
+  },
+  "gitIgnoredAuthors": [
+    "renovate-lockfile-refresh@users.noreply.github.com",
+    "renovate-repair@users.noreply.github.com"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 5am on monday"
+    ],
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "description": "Keep GitHub Actions non-major updates current with low maintenance effort.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin"
+      ],
+      "groupName": "github-actions (non-major)",
+      "minimumReleaseAge": "7 days",
+      "automerge": true,
+      "automergeType": "pr",
+      "labels": [
+        "dependencies",
+        "github-actions",
+        "automerge"
+      ]
+    },
+    {
+      "description": "One PR for all GitHub Actions majors instead of one per action: each PR runs the full CI on the shared Macs (ops-platform#1434).",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "github-actions (major)",
+      "groupSlug": "github-actions-major"
+    },
+    {
+      "description": "Own actions and reusable workflows (mickdewald/*) are SHA-pinned with a `# main` comment and tracked by digest. The 7-day gate restarts with every new repo-standards commit, so an active repo-standards kept every consumer pending; they carry the same trust as the consuming repo (like @mick/* npm packages). Without the `# main` comment Renovate skips a bare SHA as unversioned-reference.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "mickdewald/**"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "minimumReleaseAge": null
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": false,
+      "labels": [
+        "dependencies",
+        "major-update"
+      ]
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "matchFileNames": [
+        "!**/.github/workflows/**"
+      ],
+      "groupName": "non-major dependencies",
+      "groupSlug": "non-major-dependencies",
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Keep Docker digest refreshes visible but separate from ordinary version bumps.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
+      "groupName": "docker digest refreshes",
+      "groupSlug": "docker-digest-refreshes",
+      "minimumReleaseAge": "7 days",
+      "labels": [
+        "dependencies",
+        "docker",
+        "digest"
+      ]
+    },
+    {
+      "description": "Flag mutable Docker latest-style tags for explicit review.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchCurrentValue": "/(^|-)latest$/",
+      "dependencyDashboardApproval": true,
+      "labels": [
+        "dependencies",
+        "docker",
+        "mutable-tag"
+      ]
+    },
+    {
+      "description": "Flag Docker images with no explicit tag the same way as mutable `latest` tags. Renovate leaves `currentValue` undefined for an untagged image (it does not default it to `latest`), so `matchCurrentValue` above cannot see these; `matchJsonata` checks for the missing value directly.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchJsonata": [
+        "$not($exists(currentValue))"
+      ],
+      "dependencyDashboardApproval": true,
+      "labels": [
+        "dependencies",
+        "docker",
+        "mutable-tag"
+      ]
+    },
+    {
+      "description": "Automerge minor, patch, pin and digest updates after minimumReleaseAge; majors stay manual.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "addLabels": [
+        "automerge"
+      ]
+    },
+    {
+      "description": "Mutable latest-style Docker tags keep requiring explicit review.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchCurrentValue": "/(^|-)latest$/",
+      "automerge": false
+    },
+    {
+      "description": "Untagged Docker images (no `currentValue`) keep requiring explicit review, same as mutable latest-style tags.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchJsonata": [
+        "$not($exists(currentValue))"
+      ],
+      "automerge": false
+    }
+  ],
+  "automergeSchedule": [
+    "* 9-16 * * 1-5"
+  ],
+  "platformAutomerge": true
 }

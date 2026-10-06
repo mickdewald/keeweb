@@ -1,13 +1,13 @@
 # Übergabe KeeWeb-Codex
 
-Stand: 2026-08-24. KeeWeb-Codex ist Micks eigener Produkt-Fork von KeeWeb (Electron 43, kein Rewrite): `mickdewald/keeweb` (`origin`). Das ursprüngliche Projekt `keeweb/keeweb` ist als schreibgeschütztes `upstream` eingetragen (Fetch nur `master`, keine Tags). Ziel: schrittweise UX-Politur.
+Stand: 2026-08-24. KeeWeb-Codex ist Micks eigenständige Weiterentwicklung von KeeWeb (Electron 43, kein Rewrite): `mickdewald/keeweb` (`origin`). Seit 2026-10-06 ist das Repository auf GitHub kein Fork mehr (Fork-Verbund verlassen), und der Standard-Branch heißt `main` statt `master`. Das ursprüngliche Projekt `keeweb/keeweb` ist als schreibgeschütztes `upstream` eingetragen (Fetch nur `master`, keine Tags). Ziel: schrittweise UX-Politur.
 
 ## Wo gearbeitet wird
 
 | Ort | Branch | Regel |
 |---|---|---|
-| `~/projects/keeweb` | `master` | Kanonischer Checkout; nur lesen / `git pull --ff-only origin master`. |
-| `~/projects/wt/keeweb-<task>` | `codex/<task>` | Isolierte Arbeitskopie für die jeweilige Änderung, ausgehend von `origin/master`. |
+| `~/projects/keeweb` | `main` | Kanonischer Checkout; nur lesen / `git pull --ff-only origin main`. |
+| `~/projects/wt/keeweb-<task>` | `codex/<task>` | Isolierte Arbeitskopie für die jeweilige Änderung, ausgehend von `origin/main`. |
 
 Jeder Worktree benötigt eine eigene `node_modules`-Installation (kein Symlink). `keys/` bleibt lokal. **Nicht anfassen: mick.kdbx.**
 
@@ -40,16 +40,16 @@ Zum Klick-Testen ohne mick.kdbx: `npx grunt devsrv` (Port 8085) und die Demo-Dat
 
 ## Repository-Stand
 
-`origin/master` enthält den aktuellen Produktstand von KeeWeb-Codex. Der frühere Arbeitsbranch `grok/keeweb-colorful-list-icons` ist vollständig in `master` aufgegangen und existiert auf GitHub nicht mehr. Neue Änderungen erfolgen auf kurzlebigen `codex/*`-Branches in eigenen Worktrees und werden erst nach Micks Freigabe integriert.
+`origin/main` enthält den aktuellen Produktstand von KeeWeb-Codex. Der frühere Arbeitsbranch `grok/keeweb-colorful-list-icons` ist vollständig in `main` aufgegangen und existiert auf GitHub nicht mehr. Neue Änderungen erfolgen auf kurzlebigen `codex/*`-Branches in eigenen Worktrees und werden erst nach Micks Freigabe integriert.
 
-In `master` enthalten: Settings-Suche, bunte Listen-Icons, Details/Attachments, Trash+Restore, macOS-Chrome + Vibrancy, Ein-Sidebar-Layout, Such-Highlight, Auto-Backups, Copy-Hover, Cmd+K-Palette, farbige Passwort-Zeichen, Generator-Redesign, Electron 13→43 + safeStorage, Review-Fixes.
+In `main` enthalten: Settings-Suche, bunte Listen-Icons, Details/Attachments, Trash+Restore, macOS-Chrome + Vibrancy, Ein-Sidebar-Layout, Such-Highlight, Auto-Backups, Copy-Hover, Cmd+K-Palette, farbige Passwort-Zeichen, Generator-Redesign, Electron 13→43 + safeStorage, Review-Fixes.
 
 Abschluss 2026-08-18:
 
 - `06782863` Cmd+K: echtes Suchfeld, Palette bleibt bei 0 Treffern / leerem Passwort
 - `9782ad63` Devices/YubiKey aus Settings und Settings-Suche entfernt
 
-GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf `origin` liegt nur `master`; Release-Tags von Vanilla-KeeWeb sind entfernt. Der Tag `pre-single-sidebar` bleibt lokal und auf `origin`. `upstream` zeigt nur auf `keeweb/keeweb` `master` und wird ohne Tags gefetcht.
+GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf `origin` liegt nur `main`; Release-Tags von Vanilla-KeeWeb sind entfernt. Der Tag `pre-single-sidebar` bleibt lokal und auf `origin`. `upstream` zeigt nur auf `keeweb/keeweb` `master` und wird ohne Tags gefetcht.
 
 ## Code-Pitfalls (mehrfach gebissen — zuerst lesen!)
 

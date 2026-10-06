@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 module.exports = function ({ pkg, sha, appdmgOptions, linuxDependencies }) {
     return {
         compress: {

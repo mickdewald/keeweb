@@ -100,11 +100,8 @@ class WebsiteIconReviewView extends View {
             }
             if (this.removed) return;
             proposal.whiteBackground = input.checked;
-            input
-                .closest('.icon-review__row')
-                .querySelector('.icon-review__new-image').src = proposal.whiteBackground
-                ? proposal.whiteImage
-                : proposal.image;
+            input.closest('.icon-review__row').querySelector('.icon-review__new-image').src =
+                proposal.whiteBackground ? proposal.whiteImage : proposal.image;
         } catch {
             input.checked = !!proposal.whiteBackground;
             this.$el.find('.icon-review__background-error').removeClass('hide');

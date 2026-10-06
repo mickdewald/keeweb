@@ -173,13 +173,13 @@ class StorageBase {
         const winWidth = window.innerWidth
             ? window.innerWidth
             : document.documentElement.clientWidth
-            ? document.documentElement.clientWidth
-            : screen.width;
+              ? document.documentElement.clientWidth
+              : screen.width;
         const winHeight = window.innerHeight
             ? window.innerHeight
             : document.documentElement.clientHeight
-            ? document.documentElement.clientHeight
-            : screen.height;
+              ? document.documentElement.clientHeight
+              : screen.height;
 
         const left = winWidth / 2 - width / 2 + dualScreenLeft;
         const top = winHeight / 2 - height / 2 + dualScreenTop;

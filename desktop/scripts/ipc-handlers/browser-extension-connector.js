@@ -327,7 +327,7 @@ async function processFirstMessageFromSocket(socket, message) {
         }
 
         appName = parentProcessInfo
-            ? AppNames[parentProcessInfo.appName] ?? parentProcessInfo.appName
+            ? (AppNames[parentProcessInfo.appName] ?? parentProcessInfo.appName)
             : 'Unidentified browser';
         appName = appName[0].toUpperCase() + appName.substr(1);
     }

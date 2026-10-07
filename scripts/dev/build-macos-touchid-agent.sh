@@ -78,9 +78,11 @@ require_cmd ditto
 require_cmd xattr
 
 ensure_node_runtime() {
-    local major required_major
+    local major required_node required_major
 
-    required_major="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
+    required_node="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
+    required_major="${required_node#v}"
+    required_major="${required_major%%.*}"
     if [[ ! "$required_major" =~ ^[0-9]+$ ]]; then
         echo "Invalid Node version in $ROOT_DIR/.nvmrc: $required_major" >&2
         exit 1
@@ -94,7 +96,7 @@ ensure_node_runtime() {
     if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
         source "$HOME/.nvm/nvm.sh"
-        nvm use "$required_major" >/dev/null 2>&1 || true
+        nvm use "$required_node" >/dev/null 2>&1 || true
         major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
     fi
 

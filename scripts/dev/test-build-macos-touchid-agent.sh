@@ -21,7 +21,9 @@ fi
 
 BUILD_SCRIPT="$(<"$SCRIPT_DIR/build-macos-touchid-agent.sh")"
 UPDATE_ELECTRON_SCRIPT="$(<"$SCRIPT_DIR/update-electron.sh")"
-if [[ "$BUILD_SCRIPT" != *'required_major="$(tr -d '\''[[:space:]]'\'' < "$ROOT_DIR/.nvmrc")"'* ]]; then
+if [[ "$BUILD_SCRIPT" != *'required_node="$(tr -d '\''[[:space:]]'\'' < "$ROOT_DIR/.nvmrc")"'* ||
+    "$BUILD_SCRIPT" != *'required_major="${required_node#v}"'* ||
+    "$BUILD_SCRIPT" != *'required_major="${required_major%%.*}"'* ]]; then
     echo "The private macOS build must read its Node runtime from .nvmrc" >&2
     exit 1
 fi
@@ -29,7 +31,9 @@ if [[ "$BUILD_SCRIPT" == *'nvm use 20'* || "$BUILD_SCRIPT" == *'requires Node 20
     echo "The private macOS build must not pin a Node major separately from .nvmrc" >&2
     exit 1
 fi
-if [[ "$UPDATE_ELECTRON_SCRIPT" != *'REQUIRED_NODE_MAJOR="$(tr -d '\''[[:space:]]'\'' < "$ROOT_DIR/.nvmrc")"'* ||
+if [[ "$UPDATE_ELECTRON_SCRIPT" != *'REQUIRED_NODE_VERSION="$(tr -d '\''[[:space:]]'\'' < "$ROOT_DIR/.nvmrc")"'* ||
+    "$UPDATE_ELECTRON_SCRIPT" != *'REQUIRED_NODE_MAJOR="${REQUIRED_NODE_VERSION#v}"'* ||
+    "$UPDATE_ELECTRON_SCRIPT" != *'REQUIRED_NODE_MAJOR="${REQUIRED_NODE_MAJOR%%.*}"'* ||
     "$UPDATE_ELECTRON_SCRIPT" != *'CURRENT_NODE_MAJOR="$(node -p '\''process.versions.node.split(".")[0]'\'' 2>/dev/null || true)"'* ]]; then
     echo "The Electron update script must validate the Node runtime from .nvmrc" >&2
     exit 1

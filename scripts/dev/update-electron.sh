@@ -9,7 +9,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 cd "$ROOT_DIR"
 
-REQUIRED_NODE_MAJOR="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
+REQUIRED_NODE_VERSION="$(tr -d '[[:space:]]' < "$ROOT_DIR/.nvmrc")"
+REQUIRED_NODE_MAJOR="${REQUIRED_NODE_VERSION#v}"
+REQUIRED_NODE_MAJOR="${REQUIRED_NODE_MAJOR%%.*}"
 if [[ ! "$REQUIRED_NODE_MAJOR" =~ ^[0-9]+$ ]]; then
     echo "Invalid Node version in $ROOT_DIR/.nvmrc: $REQUIRED_NODE_MAJOR" >&2
     exit 1
@@ -18,7 +20,7 @@ fi
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
     # shellcheck disable=SC1091
     source "$HOME/.nvm/nvm.sh"
-    nvm use "$REQUIRED_NODE_MAJOR" >/dev/null 2>&1 || true
+    nvm use "$REQUIRED_NODE_VERSION" >/dev/null 2>&1 || true
 fi
 
 CURRENT_NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"

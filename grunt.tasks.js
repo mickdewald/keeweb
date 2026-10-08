@@ -1,6 +1,14 @@
 module.exports = function (grunt) {
     const sign = !grunt.option('skip-sign');
 
+    grunt.registerTask('check-css-icon-glyphs', () => {
+        require('child_process').execFileSync(
+            process.execPath,
+            ['build/check-css-icon-glyphs.js', 'dist/index.html'],
+            { stdio: 'inherit' }
+        );
+    });
+
     grunt.registerTask('build-web-app', [
         'clean',
         'eslint',
@@ -11,6 +19,7 @@ module.exports = function (grunt) {
         'inline',
         'htmlmin',
         'csp-hashes',
+        'check-css-icon-glyphs',
         'copy:content-dist',
         'string-replace:service-worker',
         'string-replace:update-manifest',

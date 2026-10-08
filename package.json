@@ -65,7 +65,7 @@
     "grunt-inline-alt": "github:keeweb/grunt-inline-alt#ec9f6ad",
     "grunt-string-replace": "1.3.3",
     "grunt-webpack": "7.0.1",
-    "handlebars": "4.7.9",
+    "handlebars": "4.7.10",
     "handlebars-loader": "1.7.3",
     "html-minifier": "4.0.0",
     "ignore-loader": "0.1.2",

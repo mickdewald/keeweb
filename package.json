@@ -96,7 +96,7 @@
     "string-replace-loader": "3.3.0",
     "strip-sourcemap-loader": "0.0.1",
     "sumchecker": "3.0.1",
-    "svg2ttf": "5.2.0",
+    "svg2ttf": "6.1.0",
     "svgicons2svgfont": "9.2.0",
     "terser-webpack-plugin": "5.6.1",
     "time-grunt": "2.0.0",
@@ -114,6 +114,11 @@
   "optionalDependencies": {
     "grunt-appdmg": "github:keeweb/grunt-appdmg#874ad83",
     "keytar": "7.9.0"
+  },
+  "overrides": {
+    "kdbxweb": {
+      "@xmldom/xmldom": "0.9.12"
+    }
   },
   "scripts": {
     "start": "grunt",

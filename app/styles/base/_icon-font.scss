@@ -24,14 +24,27 @@
 
 $fa-glyph-counter: 61440; // 0xf000
 
+@function fa-hex-digit($value) {
+    @return str-slice('0123456789abcdef', $value + 1, $value + 1);
+}
+
+@function fa-hex-code($value) {
+    $remaining: $value;
+    $result: '';
+
+    @each $place in 4096, 256, 16, 1 {
+        $digit: floor($remaining / $place);
+        $remaining: $remaining - $digit * $place;
+        $result: $result + fa-hex-digit($digit);
+    }
+
+    @return $result;
+}
+
 @function next-fa-glyph() {
     $fa-glyph-counter: $fa-glyph-counter + 1 !global;
 
-    $lo-part: $fa-glyph-counter % 256;
-    $hi-part: ($fa-glyph-counter - $lo-part) / 256;
-    $hex-num-str: str-slice(#{rgb($hi-part, $lo-part, 1)}, 2, 5);
-
-    $glyph: unquote('"\\#{$hex-num-str}"');
+    $glyph: unquote('"\\#{fa-hex-code($fa-glyph-counter)}"');
 
     @return $glyph;
 }

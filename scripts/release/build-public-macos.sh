@@ -103,7 +103,8 @@ verify_public_app() {
 }
 verify_public_app "$APP" "$PROFILE"
 MINIMUM_MACOS="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist")"
-[[ "$MINIMUM_MACOS" == "12.0" ]] || die "Public builds must declare macOS 12.0 as minimum, found: $MINIMUM_MACOS"
+# Electron 44 runs on macOS 13 or later; the website states the same minimum.
+[[ "$MINIMUM_MACOS" == "13.0" ]] || die "Public builds must declare macOS 13.0 as minimum, found: $MINIMUM_MACOS"
 
 # --- app: notarize, staple, Gatekeeper ---------------------------------------
 notarize_and_staple "$APP" "$WORK"

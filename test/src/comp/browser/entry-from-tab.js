@@ -3,6 +3,7 @@ import { Events } from 'framework/events';
 import {
     collectKnownSites,
     mostUsedUserName,
+    preferredUserName,
     tabEntryFields,
     fillEntryFromTab,
     attachWebsiteIcon
@@ -49,10 +50,43 @@ describe('EntryFromTab', () => {
         expect(mostUsedUserName([fileWith([])])).to.eql('');
     });
 
+    it('prefers the default user name of the database', () => {
+        const files = [fileWith([{ id: '1', user: 'most-used@example.com' }])];
+        expect(preferredUserName({ defaultUser: 'chosen@example.com' }, files)).to.eql(
+            'chosen@example.com'
+        );
+        expect(preferredUserName({ defaultUser: '' }, files)).to.eql('most-used@example.com');
+        expect(preferredUserName(undefined, files)).to.eql('most-used@example.com');
+
+        const fields = tabEntryFields(
+            { title: 'A', url: 'https://a.com/' },
+            { defaultUser: 'chosen@example.com' },
+            files,
+            () => 'x'
+        );
+        expect(fields.UserName).to.eql('chosen@example.com');
+
+        const set = {};
+        fillEntryFromTab(
+            {
+                title: '',
+                user: '',
+                password: { byteLength: 0 },
+                file: { defaultUser: 'chosen@example.com' },
+                setField: (name, value) => (set[name] = value)
+            },
+            { title: 'A', url: 'https://a.com/' },
+            files,
+            () => 'x'
+        );
+        expect(set.UserName).to.eql('chosen@example.com');
+    });
+
     it('fills the fields of a new entry with a protected generated password', () => {
         const files = [fileWith([{ id: '1', user: 'main@example.com' }])];
         const fields = tabEntryFields(
             { title: 'Kaufland', url: 'https://www.kaufland.de/', host: 'www.kaufland.de' },
+            files[0],
             files,
             () => 'generated'
         );
@@ -64,7 +98,7 @@ describe('EntryFromTab', () => {
     });
 
     it('generates a password with the default preset', () => {
-        const fields = tabEntryFields({ title: 'A', url: 'https://a.com/' }, []);
+        const fields = tabEntryFields({ title: 'A', url: 'https://a.com/' }, null, []);
         expect(fields.Password.getText().length).to.be.greaterThan(7);
     });
 

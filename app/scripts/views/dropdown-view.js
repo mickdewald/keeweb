@@ -38,6 +38,10 @@ class DropdownView extends View {
     render(config) {
         this.options = config.options;
         super.render(config);
+        if (config.width) {
+            // a fixed width keeps the menu in place when options are added later
+            this.$el.addClass('dropdown--fixed').css({ width: config.width });
+        }
         const ownRect = this.$el[0].getBoundingClientRect();
         const bodyRect = document.body.getBoundingClientRect();
         let left = config.position.left || config.position.right - ownRect.right + ownRect.left;

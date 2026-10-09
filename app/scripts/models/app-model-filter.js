@@ -281,7 +281,7 @@ const AppModelFilterMixin = {
         } else if (args?.tab) {
             const newEntry = EntryModel.newEntry(sel.group, sel.file, {
                 tag: this.filter.tag,
-                fields: tabEntryFields(args.tab, this.files)
+                fields: tabEntryFields(args.tab, sel.file, this.files)
             });
             // it holds a generated password, so it must survive without a further edit
             newEntry.isJustCreated = false;

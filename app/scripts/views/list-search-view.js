@@ -13,7 +13,9 @@ import { createSortOptions } from 'views/list-search-sort-options';
 import {
     TabOptionPrefix,
     TabAccessOption,
-    loadTabOptions,
+    CreateMenuMaxWidth,
+    preloadTabOptions,
+    addTabOptions,
     openTabAccessSettings
 } from 'views/list-search-tab-options';
 import template from 'templates/list-search.hbs';
@@ -29,6 +31,7 @@ class ListSearchView extends View {
         'input .list__search-field': 'inputChange',
         'focus .list__search-field': 'inputFocus',
         'click .list__search-btn-new': 'createOptionsClick',
+        'mouseenter .list__search-btn-new': 'createOptionsHover',
         'click .list__search-btn-sort': 'sortOptionsClick',
         'click .list__search-btn-tags': 'tagOptionsClick',
         'click .list__search-btn-att': 'attachmentsFilterClick',
@@ -247,6 +250,10 @@ class ListSearchView extends View {
         }
     }
 
+    createOptionsHover() {
+        preloadTabOptions();
+    }
+
     createOptionsClick(e) {
         e.stopImmediatePropagation();
         if (e.shiftKey) {
@@ -330,20 +337,22 @@ class ListSearchView extends View {
         view.isCreate = true;
         this.listenTo(view, 'cancel', this.hideSearchOptions);
         this.listenTo(view, 'select', this.createDropdownSelect);
-        const position = {
-            top: this.$el.find('.list__search-btn-new')[0].getBoundingClientRect().bottom,
-            right: this.$el[0].getBoundingClientRect().right + 1
+        const header = this.$el[0].getBoundingClientRect();
+        const config = {
+            position: {
+                top: this.$el.find('.list__search-btn-new')[0].getBoundingClientRect().bottom,
+                right: header.right + 1
+            },
+            width: Math.min(header.width, CreateMenuMaxWidth),
+            options: this.createOptions.concat(this.getCreateEntryTemplateOptions())
         };
-        const options = this.createOptions.concat(this.getCreateEntryTemplateOptions());
-        view.render({ position, options });
+        view.render(config);
         this.views.searchDropdown = view;
-        // tabs arrive later and go below the fixed items, so nothing moves under the pointer
         this.tabSuggestions = [];
-        loadTabOptions(this.model.files).then((tabs) => {
-            if (this.views.searchDropdown === view && tabs.options.length) {
-                this.tabSuggestions = tabs.suggestions;
-                view.render({ position, options: options.concat(tabs.options) });
-            }
+        addTabOptions(view, config, this.model.files, (suggestions) => {
+            const open = this.views.searchDropdown === view;
+            this.tabSuggestions = open ? suggestions : this.tabSuggestions;
+            return open;
         });
     }
 

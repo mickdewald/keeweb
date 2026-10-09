@@ -32,16 +32,21 @@ function mostUsedUserName(files) {
     return best;
 }
 
+// The default user name of the database wins; without one the most used name is a good guess.
+function preferredUserName(file, files) {
+    return file?.defaultUser || mostUsedUserName(files);
+}
+
 function generateDefaultPassword() {
     const presets = GeneratorPresets.enabled;
     return PasswordGenerator.generate(presets.find((preset) => preset.default) || presets[0]);
 }
 
-function tabEntryFields(tab, files, generate = generateDefaultPassword) {
+function tabEntryFields(tab, file, files, generate = generateDefaultPassword) {
     return {
         Title: tab.title,
         URL: tab.url,
-        UserName: mostUsedUserName(files),
+        UserName: preferredUserName(file, files),
         Password: kdbxweb.ProtectedValue.fromString(generate())
     };
 }
@@ -50,7 +55,7 @@ function tabEntryFields(tab, files, generate = generateDefaultPassword) {
 function fillEntryFromTab(entry, tab, files, generate = generateDefaultPassword) {
     if (!entry.title) entry.setField('Title', tab.title);
     entry.setField('URL', tab.url);
-    const user = entry.user ? '' : mostUsedUserName(files);
+    const user = entry.user ? '' : preferredUserName(entry.file, files);
     if (user) entry.setField('UserName', user);
     if (!entry.password?.byteLength) {
         entry.setField('Password', kdbxweb.ProtectedValue.fromString(generate()));
@@ -76,4 +81,11 @@ async function attachWebsiteIcon(entry, download = downloadWebsiteIcon) {
     return true;
 }
 
-export { collectKnownSites, mostUsedUserName, tabEntryFields, fillEntryFromTab, attachWebsiteIcon };
+export {
+    collectKnownSites,
+    mostUsedUserName,
+    preferredUserName,
+    tabEntryFields,
+    fillEntryFromTab,
+    attachWebsiteIcon
+};

@@ -193,4 +193,29 @@ function verifyUpdateApp(appPath, channel, tools = {}) {
     }
 }
 
-module.exports = { signingPolicy, verifyUpdateApp };
+const IDENTITY_ENTITLEMENTS = [
+    'com.apple.application-identifier',
+    'com.apple.developer.team-identifier',
+    'keychain-access-groups'
+];
+
+// The installed app may predate an entitlement change, so its entitlement set is
+// not compared with the current policy. Its signature and the entitlements that
+// carry the app identity still have to match the build that replaces it.
+function verifyInstalledApp(installedPath, candidatePath, channel, tools = {}) {
+    const run = tools.run || defaultRun;
+    const policy = tools.entitlements || defaultEntitlements(channel);
+    const installed = readEntitlements(run, installedPath);
+    const candidate = readEntitlements(run, candidatePath);
+    for (const key of IDENTITY_ENTITLEMENTS) {
+        if (candidate[key] === undefined || !isDeepStrictEqual(installed[key], candidate[key])) {
+            throw new Error(`Installed app differs from the new build in ${key}`);
+        }
+    }
+    verifyUpdateApp(installedPath, channel, {
+        ...tools,
+        entitlements: { app: installed, inherit: policy.inherit }
+    });
+}
+
+module.exports = { signingPolicy, verifyUpdateApp, verifyInstalledApp };

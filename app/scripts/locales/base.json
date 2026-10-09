@@ -199,6 +199,8 @@
   "searchON": "Old {} New",
   "searchNO": "New {} Old",
   "searchShiftClickOr": "shift-click or",
+  "searchTabExists": "already saved",
+  "searchTabAccess": "Allow access to {} in System Settings…",
   "searchAdvTitle": "Toggle advanced search",
   "searchSearchIn": "Search in",
   "searchOther": "Other fields",

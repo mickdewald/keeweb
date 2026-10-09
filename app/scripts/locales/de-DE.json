@@ -194,6 +194,8 @@
   "searchON": "Alt {} Neu",
   "searchNO": "Neu {} Alt",
   "searchShiftClickOr": "Umschalt-Klick oder",
+  "searchTabExists": "schon vorhanden",
+  "searchTabAccess": "Zugriff auf {} in den Systemeinstellungen erlauben…",
   "searchAdvTitle": "Erweiterte Suche",
   "searchSearchIn": "Durchsuchen",
   "searchOther": "Andere Felder",

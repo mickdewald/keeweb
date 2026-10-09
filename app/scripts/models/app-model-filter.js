@@ -1,6 +1,7 @@
 import { Events } from 'framework/events';
 import { SearchResultCollection } from 'collections/search-result-collection';
 import { AppSettingsModel } from 'models/app-settings-model';
+import { tabEntryFields, attachWebsiteIcon } from 'comp/browser/entry-from-tab';
 import { EntryModel } from 'models/entry-model';
 import { GroupModel } from 'models/group-model';
 import { Locale } from 'util/locale';
@@ -276,6 +277,17 @@ const AppModelFilterMixin = {
             const templateEntry = args.template.entry;
             const newEntry = EntryModel.newEntry(sel.group, sel.file);
             newEntry.copyFromTemplate(templateEntry);
+            return newEntry;
+        } else if (args?.tab) {
+            const newEntry = EntryModel.newEntry(sel.group, sel.file, {
+                tag: this.filter.tag,
+                fields: tabEntryFields(args.tab, this.files)
+            });
+            // it holds a generated password, so it must survive without a further edit
+            newEntry.isJustCreated = false;
+            newEntry.canBeDeleted = false;
+            sel.file.reload();
+            attachWebsiteIcon(newEntry);
             return newEntry;
         } else {
             return EntryModel.newEntry(sel.group, sel.file, {

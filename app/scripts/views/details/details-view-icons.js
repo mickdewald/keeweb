@@ -34,6 +34,13 @@ const DetailsViewIcons = {
         this.entryUpdated();
     },
 
+    entryIconLoaded({ entry }) {
+        const editing = this.$el.find('.details__field--edit,.details__header-title-input').length;
+        if (entry === this.model && !this.views.sub && !editing) {
+            this.render();
+        }
+    },
+
     toggleIcons() {
         if (this.model.backend) {
             return;

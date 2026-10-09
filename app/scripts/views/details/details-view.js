@@ -51,6 +51,7 @@ class DetailsView extends View {
         super(model, options);
         this.initScroll();
         this.listenTo(Events, 'entry-selected', this.showEntry);
+        this.listenTo(Events, 'entry-icon-loaded', this.entryIconLoaded);
         this.listenTo(Events, 'copy-password', this.copyPassword);
         this.listenTo(Events, 'copy-user', this.copyUserName);
         this.listenTo(Events, 'copy-url', this.copyUrl);

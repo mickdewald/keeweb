@@ -175,7 +175,13 @@ function config(options) {
                         { loader: 'scss-add-icons-loader' }
                     ]
                 },
-                { test: /fontawesome.*\.woff2$/, loader: 'fontawesome-loader' },
+                {
+                    // javascript/auto: css-loader would otherwise emit the stock font as an asset
+                    // file, which the single-file app cannot load
+                    test: /fontawesome.*\.woff2$/,
+                    type: 'javascript/auto',
+                    loader: 'fontawesome-loader'
+                },
                 { test: /\.pem$/, loader: 'raw-loader' },
                 { test: /\.kdbx$/, loader: 'base64-loader' }
             ]

@@ -11,6 +11,18 @@ if (source.includes(String.raw`\gb(2`)) {
     );
 }
 
+// The app is a single HTML file: a font that is not embedded cannot be loaded,
+// and every icon then renders as an empty box.
+const fontSources = [...source.matchAll(/@font-face\s*\{[^}]*?src:\s*url\(([^)]{0,40})/g)].map(
+    (match) => match[1]
+);
+
+if (!fontSources.length || !fontSources.every((src) => src.startsWith('data:font/woff2;base64,'))) {
+    throw new Error(
+        `Expected the icon font to be embedded as a data URI, found: ${fontSources.join(', ') || 'no @font-face'}`
+    );
+}
+
 const iconNames = [...iconScss.matchAll(/\n\$fa-var-([\w-]+):\s*next-fa-glyph\(\);/g)].map(
     (match) => match[1]
 );

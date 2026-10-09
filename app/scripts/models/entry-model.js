@@ -445,6 +445,9 @@ class EntryModel extends Model {
         if (opts && opts.tag) {
             entry.tags = [opts.tag];
         }
+        for (const [field, value] of Object.entries(opts?.fields || {})) {
+            entry.fields.set(field, value);
+        }
         model.setEntry(entry, group, file);
         model.entry.times.update();
         model.unsaved = true;

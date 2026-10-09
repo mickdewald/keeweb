@@ -10,6 +10,12 @@ import { AppSettingsModel } from 'models/app-settings-model';
 import { Locale } from 'util/locale';
 import { DropdownView } from 'views/dropdown-view';
 import { createSortOptions } from 'views/list-search-sort-options';
+import {
+    TabOptionPrefix,
+    TabAccessOption,
+    loadTabOptions,
+    openTabAccessSettings
+} from 'views/list-search-tab-options';
 import template from 'templates/list-search.hbs';
 
 class ListSearchView extends View {
@@ -324,14 +330,21 @@ class ListSearchView extends View {
         view.isCreate = true;
         this.listenTo(view, 'cancel', this.hideSearchOptions);
         this.listenTo(view, 'select', this.createDropdownSelect);
-        view.render({
-            position: {
-                top: this.$el.find('.list__search-btn-new')[0].getBoundingClientRect().bottom,
-                right: this.$el[0].getBoundingClientRect().right + 1
-            },
-            options: this.createOptions.concat(this.getCreateEntryTemplateOptions())
-        });
+        const position = {
+            top: this.$el.find('.list__search-btn-new')[0].getBoundingClientRect().bottom,
+            right: this.$el[0].getBoundingClientRect().right + 1
+        };
+        const options = this.createOptions.concat(this.getCreateEntryTemplateOptions());
+        view.render({ position, options });
         this.views.searchDropdown = view;
+        // tabs arrive later and go below the fixed items, so nothing moves under the pointer
+        this.tabSuggestions = [];
+        loadTabOptions(this.model.files).then((tabs) => {
+            if (this.views.searchDropdown === view && tabs.options.length) {
+                this.tabSuggestions = tabs.suggestions;
+                view.render({ position, options: options.concat(tabs.options) });
+            }
+        });
     }
 
     getCreateEntryTemplateOptions() {
@@ -428,8 +441,14 @@ class ListSearchView extends View {
             case 'tmpl':
                 this.emit('create-template');
                 break;
+            case TabAccessOption:
+                openTabAccessSettings();
+                break;
             default:
-                if (this.entryTemplates[e.item]) {
+                if (String(e.item).startsWith(TabOptionPrefix)) {
+                    const tab = this.tabSuggestions[e.item.slice(TabOptionPrefix.length)];
+                    this.emit('create-entry', { tab });
+                } else if (this.entryTemplates[e.item]) {
                     this.emit('create-entry', { template: this.entryTemplates[e.item] });
                 }
         }

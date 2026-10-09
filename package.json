@@ -80,7 +80,7 @@
     "morphdom": "2.7.8",
     "node-fetch": "2.7.0",
     "normalize.css": "8.0.1",
-    "css-minimizer-webpack-plugin": "5.0.1",
+    "css-minimizer-webpack-plugin": "7.0.4",
     "pikaday": "1.8.2",
     "pkcs11-smartcard-sign": "1.0.1",
     "postcss": "8.5.28",

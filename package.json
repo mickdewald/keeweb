@@ -118,7 +118,8 @@
   "overrides": {
     "kdbxweb": {
       "@xmldom/xmldom": "0.9.12"
-    }
+    },
+    "lodash": "$lodash"
   },
   "scripts": {
     "start": "grunt",

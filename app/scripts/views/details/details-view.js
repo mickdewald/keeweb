@@ -17,6 +17,7 @@ import { DetailsViewCopyAutoType } from 'views/details/details-view-copy-auto-ty
 import { DetailsViewEntryActions } from 'views/details/details-view-entry-actions';
 import { DetailsViewIcons } from 'views/details/details-view-icons';
 import { DetailsViewMenus } from 'views/details/details-view-menus';
+import { DetailsViewTabSuggestions } from 'views/details/details-view-tab-suggestions';
 import { createDetailsFields, createNewCustomField } from 'views/details/details-fields';
 import { FieldViewCustom } from 'views/fields/field-view-custom';
 import { isEqual } from 'util/fn';
@@ -34,6 +35,7 @@ class DetailsView extends View {
         'click .details__header-icon': 'toggleIcons',
         'click .details__attachment': 'toggleAttachment',
         'click .details__header-title': 'editTitle',
+        'click .details__tab-suggestion': 'tabSuggestionClick',
         'click .details__history-link': 'showHistory',
         'click .details__buttons-trash': 'moveToTrash',
         'click .details__buttons-trash-del': 'deleteFromTrash',
@@ -138,6 +140,7 @@ class DetailsView extends View {
         if (this.dragTimeout) {
             clearTimeout(this.dragTimeout);
         }
+        this.renderTabSuggestions();
         this.pageResized();
         this.showCopyTip();
     }
@@ -291,6 +294,7 @@ class DetailsView extends View {
         this.render();
         if (entry && !entry.title && entry.isJustCreated) {
             this.editTitle();
+            this.loadTabSuggestions(entry);
         }
     }
 
@@ -447,5 +451,6 @@ Object.assign(DetailsView.prototype, DetailsViewCopyAutoType);
 Object.assign(DetailsView.prototype, DetailsViewMenus);
 Object.assign(DetailsView.prototype, DetailsViewEntryActions);
 Object.assign(DetailsView.prototype, DetailsViewIcons);
+Object.assign(DetailsView.prototype, DetailsViewTabSuggestions);
 
 export { DetailsView };

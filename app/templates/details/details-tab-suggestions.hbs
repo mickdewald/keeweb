@@ -1,0 +1,10 @@
+<div class="details__tab-suggestions">
+    <span class="details__tab-suggestions-label">{{res 'detTabSuggestions'}}</span>
+    {{#each tabs as |tab ix|}}
+    <div class="details__tab-suggestion" role="button" data-tab="{{ix}}">
+        <i class="fa fa-globe"></i>
+        <span class="details__tab-suggestion-title">{{tab.title}}</span>
+        <span class="details__tab-suggestion-host">{{tab.host}}{{#if tab.exists}} · {{res 'searchTabExists'}}{{/if}}</span>
+    </div>
+    {{/each}}
+</div>

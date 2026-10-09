@@ -4,6 +4,7 @@ import {
     collectKnownSites,
     mostUsedUserName,
     tabEntryFields,
+    fillEntryFromTab,
     attachWebsiteIcon
 } from 'comp/browser/entry-from-tab';
 
@@ -65,6 +66,51 @@ describe('EntryFromTab', () => {
     it('generates a password with the default preset', () => {
         const fields = tabEntryFields({ title: 'A', url: 'https://a.com/' }, []);
         expect(fields.Password.getText().length).to.be.greaterThan(7);
+    });
+
+    it('fills a new empty entry from a tab', () => {
+        const files = [fileWith([{ id: '1', user: 'main@example.com' }])];
+        const set = {};
+        const entry = {
+            title: '',
+            user: '',
+            password: { byteLength: 0 },
+            setField: (name, value) => (set[name] = value)
+        };
+        fillEntryFromTab(
+            entry,
+            { title: 'Kaufland', url: 'https://www.kaufland.de/' },
+            files,
+            () => 'generated'
+        );
+        expect(Object.keys(set)).to.eql(['Title', 'URL', 'UserName', 'Password']);
+        expect(set.Title).to.eql('Kaufland');
+        expect(set.URL).to.eql('https://www.kaufland.de/');
+        expect(set.UserName).to.eql('main@example.com');
+        expect(set.Password.getText()).to.eql('generated');
+    });
+
+    it('keeps what the user already typed into the entry', () => {
+        const files = [fileWith([{ id: '1', user: 'main@example.com' }])];
+        const set = {};
+        const entry = {
+            title: 'My shop',
+            user: 'me',
+            password: { byteLength: 8 },
+            setField: (name, value) => (set[name] = value)
+        };
+        let generated = false;
+        fillEntryFromTab(
+            entry,
+            { title: 'Kaufland', url: 'https://www.kaufland.de/' },
+            files,
+            () => {
+                generated = true;
+                return 'x';
+            }
+        );
+        expect(set).to.eql({ URL: 'https://www.kaufland.de/' });
+        expect(generated).to.eql(false);
     });
 
     it('sets the downloaded website icon and announces it', async () => {

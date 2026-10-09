@@ -46,6 +46,17 @@ function tabEntryFields(tab, files, generate = generateDefaultPassword) {
     };
 }
 
+// Fills an entry the user has just started; fields they already filled are kept.
+function fillEntryFromTab(entry, tab, files, generate = generateDefaultPassword) {
+    if (!entry.title) entry.setField('Title', tab.title);
+    entry.setField('URL', tab.url);
+    const user = entry.user ? '' : mostUsedUserName(files);
+    if (user) entry.setField('UserName', user);
+    if (!entry.password?.byteLength) {
+        entry.setField('Password', kdbxweb.ProtectedValue.fromString(generate()));
+    }
+}
+
 async function attachWebsiteIcon(entry, download = downloadWebsiteIcon) {
     const { file, id, url } = entry;
     const host = websiteIconHost(url);
@@ -65,4 +76,4 @@ async function attachWebsiteIcon(entry, download = downloadWebsiteIcon) {
     return true;
 }
 
-export { collectKnownSites, mostUsedUserName, tabEntryFields, attachWebsiteIcon };
+export { collectKnownSites, mostUsedUserName, tabEntryFields, fillEntryFromTab, attachWebsiteIcon };

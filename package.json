@@ -50,7 +50,7 @@
     "eslint-plugin-promise": "7.3.0",
     "exports-loader": "5.0.0",
     "form-data": "4.0.6",
-    "fs-extra": "10.1.0",
+    "fs-extra": "11.4.1",
     "grunt": "1.6.3",
     "grunt-chmod": "1.1.1",
     "grunt-contrib-clean": "2.0.1",

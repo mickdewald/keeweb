@@ -6,6 +6,13 @@
     border: light-border();
     box-shadow: dropdown-box-shadow();
     padding: $tiny-spacing;
+    &--fixed {
+        box-sizing: border-box;
+        .dropdown__item {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
     &__item {
         padding: 8px 12px;
         cursor: pointer;

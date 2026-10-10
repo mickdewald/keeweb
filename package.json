@@ -121,7 +121,7 @@
     "globule": {
       "minimatch": "5.1.9",
       "glob": {
-        ".": "8.1.0"
+        ".": "9.3.5"
       }
     },
     "grunt-chmod": {

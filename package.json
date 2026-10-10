@@ -119,9 +119,9 @@
     },
     "lodash": "$lodash",
     "globule": {
-      "minimatch": "4.2.6",
+      "minimatch": "5.1.9",
       "glob": {
-        "minimatch": "3.1.5"
+        ".": "8.1.0"
       }
     },
     "grunt-chmod": {

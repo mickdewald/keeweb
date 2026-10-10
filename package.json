@@ -119,7 +119,7 @@
     },
     "lodash": "$lodash",
     "globule": {
-      "minimatch": "5.1.9",
+      "minimatch": "6.2.3",
       "glob": {
         ".": "8.1.0"
       }

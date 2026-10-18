@@ -48,7 +48,7 @@ function config(options) {
             ],
             alias: {
                 'babel-helpers': path.join(rootDir, 'app/lib/babel-helpers.js'),
-                jquery: `jquery/dist/jquery${devMode ? '' : '.min'}.js`,
+                jquery: require.resolve('jquery'),
                 morphdom: `morphdom/dist/morphdom-umd${devMode ? '' : '.min'}.js`,
                 kdbxweb: `kdbxweb/dist/kdbxweb${devMode ? '' : '.min'}.js`,
                 baron: `baron/baron${devMode ? '' : '.min'}.js`,

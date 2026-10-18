@@ -22,6 +22,12 @@ describe('StringFormat', () => {
         expect(StringFormat.padStr('abc', 3)).to.eql('abc');
     });
 
+    it('should trim strings and preserve the empty result for nullish values', () => {
+        expect(StringFormat.trim('  abc  ')).to.eql('abc');
+        expect(StringFormat.trim(null)).to.eql('');
+        expect(StringFormat.trim(undefined)).to.eql('');
+    });
+
     it('should convert kebab case to camel case', () => {
         expect(StringFormat.camelCase('aa-bbb-c')).to.eql('aaBbbC');
     });

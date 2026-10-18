@@ -23,6 +23,10 @@ const StringFormat = {
         return str;
     },
 
+    trim(str) {
+        return str == null ? '' : (str + '').trim();
+    },
+
     camelCase(str) {
         return str.replace(this.camelCaseRegex, (match) => match[1].toUpperCase());
     },

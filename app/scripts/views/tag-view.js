@@ -2,6 +2,7 @@ import { Events } from 'framework/events';
 import { View } from 'framework/views/view';
 import { Alerts } from 'comp/ui/alerts';
 import { Locale } from 'util/locale';
+import { StringFormat } from 'util/formatting/string-format';
 import template from 'templates/tag.hbs';
 
 class TagView extends View {
@@ -29,7 +30,7 @@ class TagView extends View {
     }
 
     renameTag() {
-        const title = $.trim(this.$el.find('#tag__field-title').val());
+        const title = StringFormat.trim(this.$el.find('#tag__field-title').val());
         if (!title || title === this.tag.title) {
             return;
         }

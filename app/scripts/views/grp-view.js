@@ -2,6 +2,7 @@ import { View } from 'framework/views/view';
 import { Events } from 'framework/events';
 import { AutoType } from 'auto-type';
 import { Scrollable } from 'framework/views/scrollable';
+import { StringFormat } from 'util/formatting/string-format';
 import { AutoTypeHintView } from 'views/auto-type/auto-type-hint-view';
 import { IconSelectView } from 'views/icon-select-view';
 import template from 'templates/grp.hbs';
@@ -54,7 +55,7 @@ class GrpView extends View {
     }
 
     changeTitle(e) {
-        const title = $.trim(e.target.value);
+        const title = StringFormat.trim(e.target.value);
         if (title) {
             if (!this.model.top && title !== this.model.title) {
                 this.model.setName(title);
@@ -69,7 +70,7 @@ class GrpView extends View {
 
     changeAutoTypeSeq(e) {
         const el = e.target;
-        const seq = $.trim(el.value);
+        const seq = StringFormat.trim(el.value);
         AutoType.validate(null, seq, (err) => {
             $(e.target).toggleClass('input--error', !!err);
             if (!err) {

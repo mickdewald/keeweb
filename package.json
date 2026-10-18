@@ -10,9 +10,9 @@
     "url": "https://github.com/keeweb/keeweb"
   },
   "dependencies": {
-    "@babel/core": "8.0.6",
+    "@babel/core": "8.0.7",
     "@babel/generator": "8.0.6",
-    "@babel/helpers": "8.0.5",
+    "@babel/helpers": "8.0.7",
     "@babel/plugin-external-helpers": "8.0.1",
     "@babel/plugin-transform-class-properties": "8.0.1",
     "@babel/plugin-transform-logical-assignment-operators": "8.0.1",
@@ -20,7 +20,7 @@
     "@babel/plugin-transform-object-rest-spread": "8.0.1",
     "@babel/plugin-transform-optional-catch-binding": "8.0.1",
     "@babel/plugin-transform-optional-chaining": "8.0.5",
-    "@babel/preset-env": "8.0.6",
+    "@babel/preset-env": "8.0.7",
     "@babel/types": "8.0.6",
     "@fortawesome/fontawesome-free": "7.3.1",
     "@keeweb/keeweb-native-messaging-host": "https://github.com/keeweb/keeweb-connect/releases/download/0.3.5/keeweb-native-messaging-host.tgz",
@@ -37,7 +37,7 @@
     "cross-env": "10.1.0",
     "css-loader": "7.1.5",
     "dompurify": "3.4.16",
-    "electron": "44.5.1",
+    "electron": "44.7.0",
     "electron-builder": "26.15.3",
     "@electron/remote": "2.1.3",
     "electron-evil-feature-patcher": "1.2.1",
@@ -85,7 +85,7 @@
     "pkcs11-smartcard-sign": "1.0.1",
     "postcss": "8.5.29",
     "postcss-loader": "5.3.0",
-    "prettier": "3.9.9",
+    "prettier": "3.9.10",
     "puppeteer": "25.13.0",
     "raw-loader": "4.0.2",
     "sass": "1.105.1",
@@ -104,7 +104,7 @@
     "webpack": "5.111.1",
     "webpack-bundle-analyzer": "4.10.2",
     "webpack-dev-server": "5.2.6",
-    "@babel/eslint-parser": "8.0.6",
+    "@babel/eslint-parser": "8.0.7",
     "@babel/eslint-plugin": "8.0.6",
     "eslint-plugin-import-x": "4.17.1",
     "globals": "17.13.0"
@@ -155,7 +155,7 @@
     "url": "https://antelle.net"
   },
   "engines": {
-    "node": "v26.10.0"
+    "node": "26.11.1"
   },
   "license": "MIT",
   "readme": "README.md",

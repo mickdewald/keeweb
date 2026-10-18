@@ -74,7 +74,7 @@
     "kdbxweb": "2.1.1",
     "load-grunt-tasks": "5.1.0",
     "lodash": "4.18.1",
-    "marked": "11.2.0",
+    "marked": "12.0.2",
     "mini-css-extract-plugin": "1.6.2",
     "mocha": "12.0.3",
     "morphdom": "2.7.8",

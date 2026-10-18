@@ -1,13 +1,14 @@
 import { Launcher } from 'comp/launcher';
 import { Alerts } from 'comp/ui/alerts';
 import { Locale } from 'util/locale';
+import { StringFormat } from 'util/formatting/string-format';
 
 const DefaultBackupPath = 'Backups/{name}.{date}.bak';
 const DefaultBackupSchedule = '1w';
 
 const SettingsFileBackupMixin = {
     changeName(e) {
-        const value = $.trim(e.target.value);
+        const value = StringFormat.trim(e.target.value);
         if (!value) {
             return;
         }
@@ -15,7 +16,7 @@ const SettingsFileBackupMixin = {
     },
 
     changeDefUser(e) {
-        const value = $.trim(e.target.value);
+        const value = StringFormat.trim(e.target.value);
         this.model.setDefaultUser(value);
     },
 

@@ -1,6 +1,7 @@
 import * as kdbxweb from 'kdbxweb';
 import { Keys } from 'const/keys';
 import { Locale } from 'util/locale';
+import { StringFormat } from 'util/formatting/string-format';
 import { Tip } from 'util/ui/tip';
 import { FieldView } from 'views/fields/field-view';
 import { FieldViewText } from 'views/fields/field-view-text';
@@ -49,7 +50,7 @@ class FieldViewCustom extends FieldViewText {
             if (this.isProtected) {
                 newVal = kdbxweb.ProtectedValue.fromString(newVal);
             } else {
-                newVal = $.trim(newVal);
+                newVal = StringFormat.trim(newVal);
             }
         }
         FieldView.prototype.endEdit.call(this, newVal, extra);

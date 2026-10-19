@@ -4,6 +4,7 @@ set -euo pipefail
 APK="${1:?usage: check-apk-secrets.sh <apk>}"
 cd "$(dirname "$0")/../.."
 [ -f "$APK" ] || { echo "APK not found: $APK" >&2; exit 1; }
+python3 scripts/android/check-native-resources.py "$APK"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 unzip -qo "$APK" 'assets/*' -d "$WORK" </dev/null  # res/ has case-colliding names on macOS and is not scanned

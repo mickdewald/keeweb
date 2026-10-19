@@ -13,6 +13,10 @@ import { SignatureVerifier } from 'util/data/signature-verifier';
 
 const logger = new Logger('updater');
 
+function shouldRegisterServiceWorker({ launcher, isAndroid, serviceWorker, beta, devMode }) {
+    return !!(!launcher && !isAndroid && serviceWorker && !beta && !devMode);
+}
+
 const Updater = {
     UpdateInterval: 1000 * 60 * 60 * 24,
     MinUpdateTimeout: 500,
@@ -42,11 +46,13 @@ const Updater = {
     init() {
         this.scheduleNextCheck();
         if (
-            !Launcher &&
-            !AndroidPlatform.isAndroid &&
-            navigator.serviceWorker &&
-            !RuntimeInfo.beta &&
-            !RuntimeInfo.devMode
+            shouldRegisterServiceWorker({
+                launcher: Launcher,
+                isAndroid: AndroidPlatform.isAndroid,
+                serviceWorker: navigator.serviceWorker,
+                beta: RuntimeInfo.beta,
+                devMode: RuntimeInfo.devMode
+            })
         ) {
             navigator.serviceWorker
                 .register('service-worker.js')
@@ -310,4 +316,4 @@ const Updater = {
     }
 };
 
-export { Updater };
+export { Updater, shouldRegisterServiceWorker };

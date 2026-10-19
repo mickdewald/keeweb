@@ -105,6 +105,35 @@ describe('Android back navigation', () => {
         expect(clicked).to.equal(1);
     });
 
+    it('closes a modal through escape', () => {
+        const events = [];
+        const original = window.$;
+        window.$ = (target) => ({
+            trigger: (event) => events.push([target, event.keyCode])
+        });
+        window.$.Event = (_name, options) => options;
+        try {
+            performBackAction(BackAction.CloseModal);
+        } finally {
+            window.$ = original;
+        }
+        expect(events).to.eql([[document, 27]]);
+    });
+
+    it('clears and blurs the active search field', () => {
+        const root = document.createElement('div');
+        root.innerHTML = '<input class="list__search-field" value="abc">';
+        const input = root.querySelector('input');
+        let inputEvents = 0;
+        let blurred = 0;
+        input.addEventListener('input', () => inputEvents++);
+        input.blur = () => blurred++;
+        performBackAction(BackAction.ClearSearch, { root });
+        expect(input.value).to.equal('');
+        expect(inputEvents).to.equal(1);
+        expect(blurred).to.equal(1);
+    });
+
     it('moves the task to the background for the fallback action', () => {
         const calls = [];
         performBackAction(BackAction.Background, {

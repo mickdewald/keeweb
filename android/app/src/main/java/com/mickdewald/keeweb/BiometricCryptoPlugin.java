@@ -2,6 +2,8 @@ package com.mickdewald.keeweb;
 
 import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.util.Base64;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -27,6 +29,28 @@ public class BiometricCryptoPlugin extends Plugin {
     // each call is settled exactly once (by the prompt or by the stop safety net below).
     private PluginCall pendingDecrypt;
     private BiometricPrompt activePrompt;
+    private long activeRequest;
+    private long nextRequest;
+    private boolean activeSettled;
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private static final long CANCELLATION_TIMEOUT_MS = 1_000;
+    private final BiometricPromptHandoff handoff = new BiometricPromptHandoff(
+            new BiometricPromptHandoff.Scheduler() {
+                @Override
+                public void post(Runnable runnable) {
+                    uiHandler.post(runnable);
+                }
+
+                @Override
+                public void postDelayed(Runnable runnable, long delayMillis) {
+                    uiHandler.postDelayed(runnable, delayMillis);
+                }
+
+                @Override
+                public void cancel(Runnable runnable) {
+                    uiHandler.removeCallbacks(runnable);
+                }
+            });
 
     @PluginMethod
     public void encrypt(PluginCall call) {
@@ -74,47 +98,108 @@ public class BiometricCryptoPlugin extends Plugin {
             return;
         }
         activity.runOnUiThread(() -> {
-            // A prompt that never reported back must not keep an earlier call pending.
-            cancelPendingDecrypt("Superseded by a new biometric prompt");
-            BiometricPrompt prompt = new BiometricPrompt(activity, ContextCompat.getMainExecutor(activity),
-                    new BiometricPrompt.AuthenticationCallback() {
-                        @Override
-                        public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult r) {
-                            if (!settle(call)) {
-                                return;
-                            }
+            if (handoff.cancellationTimedOut()) {
+                call.reject("Biometric prompt cancellation is still pending", "USER_CANCELED");
+                return;
+            }
+            if (handoff.isActive() || handoff.hasQueuedReplacement()) {
+                handoff.queueReplacement(
+                        () -> startDecryptPrompt(new PendingDecrypt(call, blob, cipher)),
+                        () -> call.reject("Superseded by a new biometric prompt", "USER_CANCELED"));
+                if (activePrompt != null) {
+                    cancelPendingDecrypt("Superseded by a new biometric prompt");
+                }
+                return;
+            }
+            startDecryptPrompt(new PendingDecrypt(call, blob, cipher));
+        });
+    }
+
+    private void startDecryptPrompt(PendingDecrypt pending) {
+        FragmentActivity activity = getActivity();
+        if (activity == null || handoff.cancellationTimedOut()) {
+            pending.call.reject("Biometric prompt unavailable", "USER_CANCELED");
+            return;
+        }
+        long request = ++nextRequest;
+        pendingDecrypt = pending.call;
+        activeRequest = request;
+        activeSettled = false;
+        BiometricPrompt prompt = new BiometricPrompt(activity, ContextCompat.getMainExecutor(activity),
+                new BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult r) {
+                        if (!isActive(request)) {
+                            return;
+                        }
+                        if (!activeSettled) {
+                            activeSettled = true;
                             byte[] plain = null;
                             try {
-                                plain = HybridCrypto.decrypt(r.getCryptoObject().getCipher(), blob);
-                                call.resolve(result(plain));
+                                plain = HybridCrypto.decrypt(r.getCryptoObject().getCipher(), pending.blob);
+                                pending.call.resolve(result(plain));
                             } catch (HybridCrypto.StaleBlobException e) {
-                                // Wrapped for a key that was replaced since: recover like an invalidated key.
-                                call.reject("Biometric key replaced", "KEY_INVALIDATED");
+                                pending.call.reject("Biometric key replaced", "KEY_INVALIDATED");
                             } catch (Exception e) {
-                                call.reject("Decryption failed: " + e.getClass().getSimpleName(), "FAILED");
+                                pending.call.reject("Decryption failed: " + e.getClass().getSimpleName(), "FAILED");
                             } finally {
                                 if (plain != null) {
                                     Arrays.fill(plain, (byte) 0);
                                 }
                             }
                         }
+                        finishPrompt(request);
+                    }
 
-                        @Override
-                        public void onAuthenticationError(int code, CharSequence msg) {
-                            if (settle(call)) {
-                                call.reject(msg.toString(), errorCode(code));
-                            }
+                    @Override
+                    public void onAuthenticationError(int code, CharSequence msg) {
+                        if (!isActive(request)) {
+                            return;
                         }
-                    });
-            BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
-                    .setTitle(call.getString("prompt", "Unlock"))
-                    .setNegativeButtonText(call.getString("negativeButton", "Use password"))
-                    .setAllowedAuthenticators(STRONG)
-                    .build();
-            pendingDecrypt = call;
-            activePrompt = prompt;
-            prompt.authenticate(info, new BiometricPrompt.CryptoObject(cipher));
-        });
+                        if (!activeSettled) {
+                            activeSettled = true;
+                            pending.call.reject(msg.toString(), errorCode(code));
+                        }
+                        finishPrompt(request);
+                    }
+                });
+        BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle(pending.call.getString("prompt", "Unlock"))
+                .setNegativeButtonText(pending.call.getString("negativeButton", "Use password"))
+                .setAllowedAuthenticators(STRONG)
+                .build();
+        activePrompt = prompt;
+        handoff.started();
+        prompt.authenticate(info, new BiometricPrompt.CryptoObject(pending.cipher));
+    }
+
+    private boolean isActive(long request) {
+        return activePrompt != null && activeRequest == request;
+    }
+
+    private void finishPrompt(long request) {
+        if (!isActive(request)) {
+            return;
+        }
+        pendingDecrypt = null;
+        activePrompt = null;
+        activeSettled = false;
+        activeRequest = 0;
+        // AndroidX 1.1 routes prompt results through an activity-scoped ViewModel. The handoff
+        // posts a replacement only after this terminal callback has fully unwound.
+        handoff.terminal();
+    }
+
+    private static final class PendingDecrypt {
+        final PluginCall call;
+        final byte[] blob;
+        final Cipher cipher;
+
+        PendingDecrypt(PluginCall call, byte[] blob, Cipher cipher) {
+            this.call = call;
+            this.blob = blob;
+            this.cipher = cipher;
+        }
     }
 
     /**
@@ -125,6 +210,7 @@ public class BiometricCryptoPlugin extends Plugin {
     @Override
     protected void handleOnStop() {
         super.handleOnStop();
+        handoff.rejectQueued();
         cancelPendingDecrypt("Biometric prompt interrupted");
     }
 
@@ -134,22 +220,15 @@ public class BiometricCryptoPlugin extends Plugin {
         if (call == null) {
             return;
         }
-        pendingDecrypt = null;
-        activePrompt = null;
-        if (prompt != null) {
-            prompt.cancelAuthentication();
+        if (!activeSettled) {
+            activeSettled = true;
+            call.reject(message, "USER_CANCELED");
         }
-        call.reject(message, "USER_CANCELED");
-    }
-
-    /** True for the one caller allowed to settle this call. */
-    private boolean settle(PluginCall call) {
-        if (pendingDecrypt != call) {
-            return false;
+        if (prompt == null) {
+            return;
         }
-        pendingDecrypt = null;
-        activePrompt = null;
-        return true;
+        handoff.awaitCancellation(CANCELLATION_TIMEOUT_MS);
+        prompt.cancelAuthentication();
     }
 
     @PluginMethod

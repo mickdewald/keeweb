@@ -104,3 +104,20 @@ describe('SingleInstanceChecker on Android', () => {
         expect(armed).to.equal(false);
     });
 });
+
+describe('SingleInstanceChecker outside Android', () => {
+    it('arms the multi-tab guard in a regular browser', () => {
+        const original = SingleInstanceChecker.setKey;
+        let armed = false;
+        SingleInstanceChecker.setKey = () => {
+            armed = true;
+        };
+        try {
+            SingleInstanceChecker.init({ isAndroid: false });
+        } finally {
+            SingleInstanceChecker.setKey = original;
+            window.removeEventListener('storage', SingleInstanceChecker.storageChanged);
+        }
+        expect(armed).to.equal(true);
+    });
+});

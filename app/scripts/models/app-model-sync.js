@@ -3,17 +3,35 @@ import { Storage } from 'storage';
 import { FileInfoModel } from 'models/file-info-model';
 import { IdGenerator } from 'util/generators/id-generator';
 import { Logger } from 'util/logger';
+import { documentPathChangedDuringSync } from 'comp/platform/android/android-document-relink';
+import { waitForPendingMutations } from 'models/file-mutation-tracker';
+import * as SyncRecoverySnapshot from 'models/sync-recovery-snapshot';
+import { AppModelSyncLockCacheMixin } from 'models/app-model-sync-lock-cache';
+import { Locale } from 'util/locale';
 
+const closedFileError = 'File is closed';
+
+function isFileActive(file) {
+    return file.active !== false;
+}
 const AppModelSyncMixin = {
+    ...AppModelSyncLockCacheMixin,
+
     syncFile(file, options, callback) {
         if (file.demo) {
             return callback && callback();
         }
+        if (file.pendingMutations) {
+            return waitForPendingMutations(file, () => this.syncFile(file, options, callback));
+        }
         if (file.syncing) {
             return callback && callback('Sync in progress');
         }
-        if (!file.active) {
-            return callback && callback('File is closed');
+        if (file.lockCacheInProgress) {
+            return callback && callback('Lock cache in progress');
+        }
+        if (!isFileActive(file)) {
+            return callback && callback(closedFileError);
         }
         if (!options) {
             options = {};
@@ -21,7 +39,13 @@ const AppModelSyncMixin = {
         const logger = new Logger('sync', file.name);
         const storage = options.storage || file.storage;
         let path = options.path || file.path;
-        const opts = options.opts || file.opts;
+        let opts = options.opts || file.opts;
+        const updateDocumentCapability = (stat) => {
+            if (storage === 'androiddoc' && typeof stat?.writable === 'boolean') {
+                opts = { ...opts, writable: stat.writable };
+                file.opts = opts;
+            }
+        };
         if (storage && Storage[storage].getPathForName && (!path || storage !== file.storage)) {
             path = Storage[storage].getPathForName(file.name);
         }
@@ -31,6 +55,8 @@ const AppModelSyncMixin = {
             optionsForLogging.opts.password = '***';
         }
         logger.info('Sync started', storage, path, optionsForLogging);
+        let savedEditVersion = file.editVersion;
+        let savedRecoveryVersion = null;
         let fileInfo = this.getFileInfo(file);
         if (!fileInfo) {
             logger.info('Create new file info');
@@ -49,36 +75,118 @@ const AppModelSyncMixin = {
                 backup: file.backup
             });
         }
+        const recoveryVersionAtSyncStart = fileInfo.recoveryVersion || null;
         file.setSyncProgress();
         const complete = (err) => {
-            if (!file.active) {
-                return callback && callback('File is closed');
+            if (!isFileActive(file)) {
+                return callback && callback(closedFileError);
+            }
+            if (
+                documentPathChangedDuringSync({
+                    storage,
+                    syncPath: path,
+                    currentPath: file.path
+                })
+            ) {
+                logger.info('Document relinked while sync ran, restart at the replacement URI');
+                file.set({ syncing: false });
+                return this.syncFile(file, null, callback);
             }
             logger.info('Sync finished', err || 'no error');
-            file.setSyncComplete(path, storage, err ? err.toString() : null);
-            fileInfo.set({
-                name: file.name,
-                storage,
-                path,
-                opts: this.getStoreOpts(file),
-                modified: file.dirty ? fileInfo.modified : file.modified,
-                editState: file.dirty ? fileInfo.editState : file.getLocalEditState(),
-                syncDate: file.syncDate,
-                chalResp: file.chalResp
-            });
-            if (this.settings.rememberKeyFiles === 'data') {
-                fileInfo.set({
-                    keyFileName: file.keyFileName || null,
-                    keyFileHash: file.getKeyFileHash()
-                });
-            }
+            const recoveryVersionToClear = savedRecoveryVersion || recoveryVersionAtSyncStart;
+            const staleSave =
+                !err &&
+                typeof savedEditVersion === 'number' &&
+                savedEditVersion !== file.editVersion;
+            const savedCurrentVersion = !staleSave;
+            const recoveryVersionForMetadata =
+                !err &&
+                savedCurrentVersion &&
+                fileInfo.recoveryVersion === recoveryVersionAtSyncStart
+                    ? null
+                    : savedRecoveryVersion ||
+                      fileInfo.recoveryVersion ||
+                      recoveryVersionAtSyncStart;
+            fileInfo.set(
+                SyncRecoverySnapshot.fileInfoSnapshotForFile(fileInfo, file, this.settings || {}, {
+                    name: file.name,
+                    storage,
+                    path,
+                    opts: this.getStoreOpts(file),
+                    modified: !(savedCurrentVersion && !err),
+                    editState: savedCurrentVersion && !err ? null : file.getLocalEditState(),
+                    syncDate: file.syncDate,
+                    chalResp: file.chalResp,
+                    recoveryVersion: recoveryVersionForMetadata
+                })
+            );
             if (!this.fileInfos.get(fileInfo.id)) {
                 this.fileInfos.unshift(fileInfo);
             }
-            this.fileInfos.save();
-            if (callback) {
-                callback(err);
+            const fileInfosSaved = this.fileInfos.save();
+            const finish = (finalErr) => {
+                if (!isFileActive(file)) {
+                    return callback?.(closedFileError);
+                }
+                if (finalErr) {
+                    file.set({
+                        modified: true,
+                        dirty: true,
+                        syncing: false,
+                        syncError: finalErr ? finalErr.toString() : finalErr
+                    });
+                    return callback?.(finalErr);
+                }
+                file.setSyncComplete(path, storage, err ? err.toString() : null, {
+                    editVersion: savedEditVersion
+                });
+                callback?.(err);
+            };
+            const afterFileInfosSaved = () => {
+                if (!err && savedCurrentVersion && recoveryVersionToClear) {
+                    SyncRecoverySnapshot.clearMatchingRecovery(
+                        fileInfo,
+                        recoveryVersionToClear,
+                        finish
+                    );
+                } else {
+                    finish();
+                }
+            };
+            if (fileInfosSaved?.then) {
+                fileInfosSaved.then(afterFileInfosSaved, finish);
+            } else {
+                afterFileInfosSaved();
             }
+        };
+        const saveCurrentDataToCache = (saveData) => {
+            if (!isFileActive(file)) {
+                return complete(closedFileError);
+            }
+            if (file.pendingMutations) {
+                return waitForPendingMutations(file, () => saveCurrentDataToCache(saveData));
+            }
+            savedEditVersion = file.editVersion;
+            const cacheSnapshot = SyncRecoverySnapshot.createNormalCacheSnapshot(
+                this,
+                fileInfo,
+                file,
+                storage,
+                path,
+                savedEditVersion
+            );
+            file.getData((data, err) => {
+                if (err) {
+                    return complete(err);
+                }
+                if (!isFileActive(file)) {
+                    return complete(closedFileError);
+                }
+                if (file.pendingMutations || file.editVersion !== savedEditVersion) {
+                    return saveCurrentDataToCache(saveData);
+                }
+                saveData(data, cacheSnapshot);
+            });
         };
         if (!storage) {
             if (!file.modified && fileInfo.id === file.id) {
@@ -86,17 +194,22 @@ const AppModelSyncMixin = {
                 return complete();
             }
             logger.info('Local, save to cache');
-            file.getData((data, err) => {
-                if (err) {
-                    return complete(err);
-                }
-                Storage.cache.save(fileInfo.id, null, data, (err) => {
-                    logger.info('Saved to cache', err || 'no error');
-                    complete(err);
-                    if (!err) {
-                        this.scheduleBackupFile(file, data);
+            saveCurrentDataToCache((data, cacheSnapshot) => {
+                SyncRecoverySnapshot.saveNormalCacheSnapshot(
+                    fileInfo,
+                    file,
+                    data,
+                    cacheSnapshot.metadata,
+                    cacheSnapshot.recoveryVersion,
+                    (err, recoveryVersion) => {
+                        savedRecoveryVersion = recoveryVersion || savedRecoveryVersion;
+                        logger.info('Saved to cache', err || 'no error');
+                        complete(err);
+                        if (!err && isFileActive(file)) {
+                            this.scheduleBackupFile(file, data);
+                        }
                     }
-                });
+                );
             });
         } else {
             const maxLoadLoops = 3;
@@ -108,12 +221,13 @@ const AppModelSyncMixin = {
                 logger.info('Load from storage, attempt ' + loadLoops);
                 Storage[storage].load(path, opts, (err, data, stat) => {
                     logger.info('Load from storage', stat, err || 'no error');
-                    if (!file.active) {
-                        return complete('File is closed');
+                    if (!isFileActive(file)) {
+                        return complete(closedFileError);
                     }
                     if (err) {
                         return complete(err);
                     }
+                    updateDocumentCapability(stat);
                     file.mergeOrUpdate(data, options.remoteKey, (err) => {
                         logger.info('Merge complete', err || 'no error');
                         this.refresh();
@@ -138,14 +252,30 @@ const AppModelSyncMixin = {
                                 return complete(err);
                             }
                             logger.info('Saving not modified dirty file to cache');
-                            Storage.cache.save(fileInfo.id, null, data, (err) => {
-                                if (err) {
-                                    return complete(err);
+                            savedEditVersion = file.editVersion;
+                            const cacheSnapshot = SyncRecoverySnapshot.createNormalCacheSnapshot(
+                                this,
+                                fileInfo,
+                                file,
+                                storage,
+                                path,
+                                savedEditVersion
+                            );
+                            SyncRecoverySnapshot.saveNormalCacheSnapshot(
+                                fileInfo,
+                                file,
+                                data,
+                                cacheSnapshot.metadata,
+                                cacheSnapshot.recoveryVersion,
+                                (err, recoveryVersion) => {
+                                    savedRecoveryVersion = recoveryVersion || savedRecoveryVersion;
+                                    if (err) {
+                                        return complete(err);
+                                    }
+                                    logger.info('Complete after dirty cache save');
+                                    complete();
                                 }
-                                file.dirty = false;
-                                logger.info('Complete, remove dirty flag');
-                                complete();
-                            });
+                            );
                         } else {
                             logger.info('Complete, no changes');
                             complete();
@@ -189,36 +319,50 @@ const AppModelSyncMixin = {
             };
             const saveToCacheAndStorage = () => {
                 logger.info('Getting file data for saving');
-                file.getData((data, err) => {
-                    if (err) {
-                        return complete(err);
-                    }
+                saveCurrentDataToCache((data, cacheSnapshot) => {
                     if (storage === 'file') {
                         logger.info('Saving to file storage');
                         saveToStorage(data);
-                    } else if (!file.dirty) {
+                    } else if (!file.dirty && storage !== 'androiddoc') {
                         logger.info('Saving to storage, skip cache because not dirty');
                         saveToStorage(data);
-                    } else if (this.settings.disableOfflineStorage) {
+                    } else if (this.settings.disableOfflineStorage && storage !== 'androiddoc') {
                         logger.info('Saving to storage because cache is disabled');
                         saveToStorage(data);
                     } else {
+                        if (storage === 'androiddoc' && !Storage.cache.saveRecovery) {
+                            return complete(
+                                Object.assign(new Error(Locale.androiddocRecoveryUnavailable), {
+                                    code: 'RECOVERY_UNAVAILABLE'
+                                })
+                            );
+                        }
                         logger.info('Saving to cache');
-                        Storage.cache.save(fileInfo.id, null, data, (err) => {
-                            if (err) {
-                                return complete(err);
+                        SyncRecoverySnapshot.saveNormalCacheSnapshot(
+                            fileInfo,
+                            file,
+                            data,
+                            cacheSnapshot.metadata,
+                            cacheSnapshot.recoveryVersion,
+                            (err, recoveryVersion) => {
+                                savedRecoveryVersion = recoveryVersion || savedRecoveryVersion;
+                                if (err) {
+                                    return complete(err);
+                                }
+                                logger.info('Saved to cache, saving to storage');
+                                saveToStorage(data);
                             }
-                            file.dirty = false;
-                            logger.info('Saved to cache, saving to storage');
-                            saveToStorage(data);
-                        });
+                        );
                     }
                 });
             };
             logger.info('Stat file');
             Storage[storage].stat(path, opts, (err, stat) => {
-                if (!file.active) {
-                    return complete('File is closed');
+                if (!isFileActive(file)) {
+                    return complete(closedFileError);
+                }
+                if (!err) {
+                    updateDocumentCapability(stat);
                 }
                 if (err) {
                     if (err.notFound) {
@@ -230,21 +374,25 @@ const AppModelSyncMixin = {
                             return complete(err);
                         }
                         logger.info('Stat error, dirty, save to cache', err || 'no error');
-                        file.getData((data, e) => {
-                            if (e) {
-                                logger.error('Error getting file data', e);
-                                return complete(err);
-                            }
-                            Storage.cache.save(fileInfo.id, null, data, (e) => {
-                                if (e) {
-                                    logger.error('Error saving to cache', e);
+                        saveCurrentDataToCache((data, cacheSnapshot) => {
+                            SyncRecoverySnapshot.saveNormalCacheSnapshot(
+                                fileInfo,
+                                file,
+                                data,
+                                cacheSnapshot.metadata,
+                                cacheSnapshot.recoveryVersion,
+                                (e, recoveryVersion) => {
+                                    savedRecoveryVersion = recoveryVersion || savedRecoveryVersion;
+                                    if (e) {
+                                        logger.error('Error saving to cache', e);
+                                    }
+                                    logger.info(
+                                        'Saved to cache, exit with error',
+                                        err || 'no error'
+                                    );
+                                    complete(err);
                                 }
-                                if (!e) {
-                                    file.dirty = false;
-                                }
-                                logger.info('Saved to cache, exit with error', err || 'no error');
-                                complete(err);
-                            });
+                            );
                         });
                     } else {
                         logger.info('Stat error, not dirty', err || 'no error');

@@ -26,9 +26,15 @@
         <div class="settings__file-save-choose hide">
             <h3 class="settings__section-subtitle">{{res 'setFileSaveTo'}}</h3>
             {{#ifneq storage 'file'}}
+            {{#if isAndroidDocument}}
+            <div class="settings__file-save-to settings__file-save-to-file">
+                <i class="fa fa-file-alt"></i>{{res 'androiddocSaveCopy'}}
+            </div>
+            {{else}}
             <div class="settings__file-save-to settings__file-save-to-file">
                 <i class="fa fa-file-alt"></i>{{Res 'file'}}
             </div>
+            {{/if}}
             {{/ifneq}}
             {{#each storageProviders as |prv|}}
                 {{#unless prv.own}}
@@ -49,6 +55,13 @@
                 </div>
             {{/if}}
         </div>
+        {{#if isAndroidDocument}}
+            {{#if isAndroidDocumentReadOnly}}
+                <p class="settings__meta">{{res 'androiddocReadOnly'}}</p>
+            {{else}}
+                <p class="settings__meta">{{res 'androiddocSyncAvailable'}}</p>
+            {{/if}}
+        {{/if}}
     </section>
 
     {{#if storage}}

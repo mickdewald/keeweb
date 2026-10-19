@@ -374,9 +374,14 @@
             padding: $medium-padding;
             padding-right: $small-spacing;
         }
-        &-cancel-btn {
+        &-cancel-btn,
+        .open__biometric-message-cancel-btn {
             padding: $medium-padding;
             padding-left: $small-spacing;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
             cursor: pointer;
             opacity: 0.5;
             transition: opacity $base-duration $base-timing;

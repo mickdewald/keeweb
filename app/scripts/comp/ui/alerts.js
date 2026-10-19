@@ -74,7 +74,8 @@ const Alerts = {
     // Dismisses every open alert as if canceled (used when Android backgrounds the app, so
     // an open dialog cannot keep the workspace from locking).
     closeAll() {
-        for (const view of [...openAlerts]) {
+        while (openAlerts.size) {
+            const [view] = openAlerts;
             view.closeImmediate();
         }
     },

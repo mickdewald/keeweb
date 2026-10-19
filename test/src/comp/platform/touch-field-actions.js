@@ -16,7 +16,12 @@ describe('touch field actions', () => {
 
     it('keeps links and inputs working', () => {
         expect(touchValueAction({ ...base, targetTag: 'a' })).to.equal('none');
+        expect(touchValueAction({ ...base, targetTag: 'span', insideLink: true })).to.equal('none');
         expect(touchValueAction({ ...base, targetTag: 'input' })).to.equal('none');
+    });
+
+    it('copies a read-only value on mobile', () => {
+        expect(touchValueAction({ ...base, readonly: true })).to.equal('copy');
     });
 
     it('does nothing while text is selected or the field is empty', () => {

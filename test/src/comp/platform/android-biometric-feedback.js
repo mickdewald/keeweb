@@ -42,13 +42,42 @@ describe('AndroidBiometricFeedback', () => {
         await AndroidBiometricFeedback.show(el, withCode('LOCKOUT', 'Too many attempts'), {
             show: () => Promise.reject(new Error('no keyboard'))
         });
-        const box = el.querySelector('.open__message');
+        const box = el.querySelector('.open__biometric-message');
         expect(box.classList.contains('hide')).to.equal(false);
         expect(box.querySelector('.open__message-content').textContent).to.equal(
             'Too many attempts'
         );
-        box.querySelector('.open__message-cancel-btn').click();
+        const dismiss = box.querySelector('.open__biometric-message-cancel-btn');
+        expect(dismiss.tagName).to.equal('BUTTON');
+        expect(dismiss.getAttribute('aria-label')).to.equal(Locale.alertCancel);
+        expect(dismiss.getAttribute('title')).to.equal(Locale.alertCancel);
+        expect(dismiss.querySelector('.fa-times-circle')).to.not.equal(null);
+        dismiss.click();
         expect(box.classList.contains('hide')).to.equal(true);
+    });
+
+    it('does not let a lockout message cancel a later pending unlock', async () => {
+        const el = openViewEl();
+        let pendingUnlockRejected = 0;
+        el.addEventListener('click', (event) => {
+            if (event.target.matches('.open__message-cancel-btn')) {
+                pendingUnlockRejected++;
+            }
+        });
+        await AndroidBiometricFeedback.show(el, withCode('LOCKOUT', 'Too many attempts'), {
+            show: () => Promise.resolve()
+        });
+
+        const pendingMessage = el.querySelector('.open__message');
+        pendingMessage.classList.remove('hide');
+        pendingMessage.querySelector('.open__message-content').textContent = 'Unlock another file';
+        el.querySelector('.open__biometric-message-cancel-btn').click();
+
+        expect(pendingUnlockRejected).to.equal(0);
+        expect(pendingMessage.classList.contains('hide')).to.equal(false);
+        expect(pendingMessage.querySelector('.open__message-content').textContent).to.equal(
+            'Unlock another file'
+        );
     });
 
     it('passes the localized "use password" label to the prompt', async () => {

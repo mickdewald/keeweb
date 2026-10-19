@@ -12,9 +12,11 @@ import { DateFormat } from 'comp/i18n/date-format';
 import { PasswordPresenter } from 'util/formatting/password-presenter';
 import { Locale } from 'util/locale';
 import { Features } from 'util/features';
-import { FileSaver } from 'util/ui/file-saver';
+import { canSaveToAndroidDocument } from 'comp/platform/android/android-storage-actions';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 import template from 'templates/settings/settings-file.hbs';
 import { SettingsFileSaveMixin } from 'views/settings/settings-file-view-save';
+import { SettingsFileKeyFileMixin } from 'views/settings/settings-file-view-key-file';
 import {
     DefaultBackupPath,
     DefaultBackupSchedule,
@@ -24,6 +26,7 @@ import {
 class SettingsFileView extends View {
     template = template;
     yubiKeys = [];
+    keyFileSelectionId = 0;
 
     events = {
         'click .settings__file-button-save-default': 'saveDefault',
@@ -81,7 +84,7 @@ class SettingsFileView extends View {
             if (!canBackup && prv.backup && prv.enabled) {
                 canBackup = true;
             }
-            if (!prv.system && prv.enabled) {
+            if (!prv.system && prv.enabled && canSaveToAndroidDocument(fileStorage, prv.name)) {
                 storageProviders.push({
                     name: prv.name,
                     icon: prv.icon,
@@ -156,6 +159,11 @@ class SettingsFileView extends View {
             canSaveTo: AppSettingsModel.canSaveTo,
             canExportXml: AppSettingsModel.canExportXml,
             canExportHtml: AppSettingsModel.canExportHtml,
+            isAndroidDocument: AndroidPlatform.isAndroid && this.model.storage === 'androiddoc',
+            isAndroidDocumentReadOnly:
+                AndroidPlatform.isAndroid &&
+                this.model.storage === 'androiddoc' &&
+                this.model.opts?.writable === false,
             showYubiKeyBlock,
             selectedYubiKey,
             yubiKeys
@@ -173,83 +181,6 @@ class SettingsFileView extends View {
         return kdfParameters
             ? { ...kdfParameters, memory: Math.round(kdfParameters.memory / 1024) }
             : null;
-    }
-
-    renderKeyFileSelect() {
-        const keyFileName = this.model.keyFileName;
-        const oldKeyFileName = this.model.oldKeyFileName;
-        const keyFileChanged = this.model.keyFileChanged;
-        const sel = this.$el.find('#settings__file-key-file');
-        sel.empty();
-        if (keyFileName && keyFileChanged) {
-            const text =
-                keyFileName !== 'Generated'
-                    ? Locale.setFileUseKeyFile + ' ' + keyFileName
-                    : Locale.setFileUseGenKeyFile;
-            $('<option/>').val('ex').text(text).appendTo(sel);
-        }
-        if (oldKeyFileName) {
-            const useText = keyFileChanged
-                ? Locale.setFileUseOldKeyFile
-                : Locale.setFileUseKeyFile + ' ' + oldKeyFileName;
-            $('<option/>').val('old').text(useText).appendTo(sel);
-        }
-        $('<option/>').val('gen').text(Locale.setFileGenKeyFile).appendTo(sel);
-        $('<option/>').val('none').text(Locale.setFileDontUseKeyFile).appendTo(sel);
-        if (keyFileName && keyFileChanged) {
-            sel.val('ex');
-        } else if (!keyFileName) {
-            sel.val('none');
-        } else if (oldKeyFileName && keyFileName === oldKeyFileName && !keyFileChanged) {
-            sel.val('old');
-        }
-    }
-
-    keyFileChange(e) {
-        switch (e.target.value) {
-            case 'old':
-                this.selectOldKeyFile();
-                break;
-            case 'gen':
-                this.generateKeyFile();
-                break;
-            case 'none':
-                this.clearKeyFile();
-                break;
-        }
-    }
-
-    selectOldKeyFile() {
-        this.model.resetKeyFile();
-        this.renderKeyFileSelect();
-    }
-
-    generateKeyFile() {
-        this.model.generateAndSetKeyFile().then((keyFile) => {
-            const blob = new Blob([keyFile], { type: 'application/octet-stream' });
-            FileSaver.saveAs(blob, this.model.name + '.key');
-            this.renderKeyFileSelect();
-        });
-    }
-
-    clearKeyFile() {
-        this.model.removeKeyFile();
-        this.renderKeyFileSelect();
-    }
-
-    triggerSelectFile() {
-        this.$el.find('#settings__file-file-select').click();
-    }
-
-    fileSelected(e) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const res = e.target.result;
-            this.model.setKeyFile(res, file.name);
-            this.renderKeyFileSelect();
-        };
-        reader.readAsArrayBuffer(file);
     }
 
     focusMasterPass(e) {
@@ -458,6 +389,11 @@ class SettingsFileView extends View {
     }
 }
 
-Object.assign(SettingsFileView.prototype, SettingsFileSaveMixin, SettingsFileBackupMixin);
+Object.assign(
+    SettingsFileView.prototype,
+    SettingsFileSaveMixin,
+    SettingsFileKeyFileMixin,
+    SettingsFileBackupMixin
+);
 
 export { SettingsFileView };

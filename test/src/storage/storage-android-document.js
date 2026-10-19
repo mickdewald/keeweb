@@ -18,14 +18,16 @@ const cb = () => {
 };
 
 describe('StorageAndroidDocument', () => {
-    it('loads bytes and returns the content hash as rev', async () => {
-        const s = storageWith({ read: () => Promise.resolve({ data: btoa('abc'), rev: 'h1' }) });
+    it('loads bytes and returns the live content revision and write capability', async () => {
+        const s = storageWith({
+            read: () => Promise.resolve({ data: btoa('abc'), rev: 'h1', writable: true })
+        });
         const c = cb();
         s.load('content://doc', {}, c.fn);
         const [err, data, stat] = await c.p;
         expect(err).to.equal(null);
         expect(new Uint8Array(data)).to.eql(new Uint8Array([97, 98, 99]));
-        expect(stat).to.eql({ rev: 'h1' });
+        expect(stat).to.eql({ rev: 'h1', writable: true });
     });
 
     it('reports a rev conflict and writes nothing when the remote changed', async () => {
@@ -113,15 +115,24 @@ describe('StorageAndroidDocument', () => {
         expect(String(err)).to.equal('disk full');
     });
 
-    it('opens the picker and hands back path and name', async () => {
+    it('opens the picker and hands back path, name and write capability', async () => {
         const s = storageWith({
-            pick: () => Promise.resolve({ uri: 'content://doc', name: 'Main.kdbx' })
+            pick: () => Promise.resolve({ uri: 'content://doc', name: 'Main.kdbx', writable: true })
         });
         const c = cb();
         s.pick(c.fn);
         const [err, file] = await c.p;
         expect(err).to.equal(null);
-        expect(file).to.eql({ path: 'content://doc', name: 'Main.kdbx' });
+        expect(file).to.eql({ path: 'content://doc', name: 'Main.kdbx', opts: { writable: true } });
+    });
+
+    it('keeps the document read-only when a live stat reports no write grant', async () => {
+        const s = storageWith({ stat: () => Promise.resolve({ rev: 'h1', writable: false }) });
+        const c = cb();
+        s.stat('content://doc', {}, c.fn);
+        const [err, stat] = await c.p;
+        expect(err).to.equal(null);
+        expect(stat).to.eql({ rev: 'h1', writable: false });
     });
 
     it('marks the picker as a native flow so leaving for it does not lock', async () => {

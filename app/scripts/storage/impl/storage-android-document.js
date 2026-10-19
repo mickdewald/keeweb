@@ -7,7 +7,8 @@ import { Locale } from 'util/locale';
 
 const FRIENDLY_MESSAGES = {
     PERMISSION_LOST: 'openErrorFileNotFound',
-    UNAVAILABLE: 'androiddocUnavailable'
+    UNAVAILABLE: 'androiddocUnavailable',
+    READ_ONLY: 'androiddocReadOnly'
 };
 
 // path: the document the failed call was about. Only a lost grant is announced, so the
@@ -23,7 +24,14 @@ function toError(e, path) {
     if (code === 'PERMISSION_LOST' && path) {
         Events.emit('android-document-unreachable', { path });
     }
+    if (code === 'READ_ONLY' && path) {
+        Events.emit('android-document-readonly', { path });
+    }
     return err;
+}
+
+function statWithCapability(rev, writable) {
+    return typeof writable === 'boolean' ? { rev, writable } : { rev };
 }
 
 class StorageAndroidDocument extends StorageBase {
@@ -47,7 +55,12 @@ class StorageAndroidDocument extends StorageBase {
     pick(callback) {
         this._settle(
             AndroidPlatform.withNativeFlow(() => this.plugin.pick()),
-            ({ uri, name }) => callback(null, { path: uri, name }),
+            ({ uri, name, writable }) =>
+                callback(null, {
+                    path: uri,
+                    name,
+                    opts: { writable: writable === true }
+                }),
             (e) => callback(toError(e))
         );
     }
@@ -55,13 +68,13 @@ class StorageAndroidDocument extends StorageBase {
     load(path, opts, callback) {
         this._settle(
             this.plugin.read({ uri: path }),
-            ({ data, rev }) => {
+            ({ data, rev, writable }) => {
                 const bytes = kdbxweb.ByteUtils.base64ToBytes(data);
                 const buffer = bytes.buffer.slice(
                     bytes.byteOffset,
                     bytes.byteOffset + bytes.byteLength
                 );
-                callback(null, buffer, { rev });
+                callback(null, buffer, statWithCapability(rev, writable));
             },
             (e) => {
                 this.logger.error('Load error', e);
@@ -73,7 +86,7 @@ class StorageAndroidDocument extends StorageBase {
     stat(path, opts, callback) {
         this._settle(
             this.plugin.stat({ uri: path }),
-            ({ rev }) => callback(null, { rev }),
+            ({ rev, writable }) => callback(null, statWithCapability(rev, writable)),
             (e) => callback(toError(e, path))
         );
     }
@@ -112,6 +125,14 @@ class StorageAndroidDocument extends StorageBase {
             () => {},
             (e) => this.logger.info('Release failed', e && e.code)
         );
+    }
+
+    fileOptsToStoreOpts(opts) {
+        return typeof opts?.writable === 'boolean' ? { writable: opts.writable } : null;
+    }
+
+    storeOptsToFileOpts(opts) {
+        return this.fileOptsToStoreOpts(opts);
     }
 
     // Each call reports exactly once: an exception thrown by the caller's callback must not

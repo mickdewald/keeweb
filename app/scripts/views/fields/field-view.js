@@ -147,6 +147,7 @@ class FieldView extends View {
             readonly: this.readonly,
             hasValue: !!this.value,
             targetTag: e.target.tagName.toLowerCase(),
+            insideLink: !!e.target.closest('a'),
             hasSelection: !!window.getSelection().toString()
         });
         if (action === 'copy') {

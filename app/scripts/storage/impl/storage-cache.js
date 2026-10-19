@@ -9,11 +9,15 @@ class StorageCache extends StorageBase {
     io = null;
 
     init() {
+        if (this.io) {
+            return this;
+        }
         super.init();
         this.io = new IoBrowserCache({
             cacheName: 'FilesCache',
             logger: this.logger
         });
+        return this;
     }
 
     save(id, opts, data, callback) {
@@ -22,6 +26,22 @@ class StorageCache extends StorageBase {
 
     load(id, opts, callback) {
         this.io.load(id, callback);
+    }
+
+    saveRecovery(id, opts, data, fileInfo, recoveryVersion, callback) {
+        this.io.saveRecovery(id, data, fileInfo, recoveryVersion, callback);
+    }
+
+    loadRecovery(id, opts, callback) {
+        this.io.loadRecovery(id, callback);
+    }
+
+    listRecoveryInfos(opts, callback) {
+        this.io.listRecoveryInfos(callback);
+    }
+
+    clearRecovery(id, opts, recoveryVersion, callback) {
+        this.io.clearRecovery(id, recoveryVersion, callback);
     }
 
     remove(id, opts, callback) {

@@ -1,4 +1,5 @@
 import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { Locale } from 'util/locale';
 
 // The last Keyboard.show() call; hideKeyboard() waits for it.
 let pendingShow = Promise.resolve();
@@ -12,18 +13,29 @@ const AndroidBiometricFeedback = {
     },
 
     // Called after the password field got focus: opens the keyboard and, unless the user
-    // simply canceled, shows the system's message in the open view's message area.
+    // simply canceled, shows the system message separately from pending unlock status.
     async show(viewEl, err, keyboard) {
         if (err.code !== 'USER_CANCELED' && err.message) {
-            const box = viewEl.querySelector('.open__message');
+            let box = viewEl.querySelector('.open__biometric-message');
+            if (!box) {
+                box = document.createElement('div');
+                box.className = 'open__message open__biometric-message hide';
+                box.innerHTML =
+                    '<div class="open__message-content"></div>' +
+                    `<button class="open__biometric-message-cancel-btn" ` +
+                    `type="button" title="${Locale.alertCancel}" ` +
+                    `aria-label="${Locale.alertCancel}">` +
+                    '<i class="fa fa-times-circle open__biometric-message-cancel-btn-icon" ' +
+                    'aria-hidden="true"></i></button>';
+                viewEl.appendChild(box);
+                box.querySelector('.open__biometric-message-cancel-btn').addEventListener(
+                    'click',
+                    () => box.classList.add('hide')
+                );
+            }
             if (box) {
                 box.querySelector('.open__message-content').textContent = err.message;
                 box.classList.remove('hide');
-                box.querySelector('.open__message-cancel-btn').addEventListener(
-                    'click',
-                    () => box.classList.add('hide'),
-                    { once: true }
-                );
             }
         }
         await this.showKeyboard(keyboard);

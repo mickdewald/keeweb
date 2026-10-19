@@ -1,12 +1,17 @@
 // scripts/android/e2e-emulator.mjs
 // Usage: node scripts/android/e2e-emulator.mjs [--only <step>]
+/* eslint-disable no-console */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { connect, adb } from './cdp.mjs';
+import { connect, adb, assertFixtureTarget, isMainModule } from './cdp.mjs';
 
 const appId = process.env.KEEWEB_APP_ID || 'com.mickdewald.keeweb.dev';
-const fixture = fs.readFileSync(fileURLToPath(new URL('../../test/android/fixtures/e2e-fixture.kdbx', import.meta.url))).toString('base64');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const fixture = fs
+    .readFileSync(
+        fileURLToPath(new URL('../../test/android/fixtures/e2e-fixture.kdbx', import.meta.url))
+    )
+    .toString('base64');
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function assert(cond, message) {
     if (!cond) {
@@ -14,7 +19,7 @@ function assert(cond, message) {
     }
 }
 
-async function waitFor(c, expression, timeoutMs = 15000) {
+export async function waitFor(c, expression, timeoutMs = 15000) {
     const end = Date.now() + timeoutMs;
     while (Date.now() < end) {
         if (await c.evaluate(expression)) {
@@ -25,8 +30,26 @@ async function waitFor(c, expression, timeoutMs = 15000) {
     throw new Error(`timeout waiting for: ${expression.slice(0, 120)}`);
 }
 
+export async function connectWhenReady(timeoutMs = 20000) {
+    const end = Date.now() + timeoutMs;
+    let lastError;
+    while (Date.now() < end) {
+        let connection;
+        try {
+            connection = await connect();
+            await waitFor(connection, `!!document.querySelector('.open__pass-input')`, 5000);
+            return connection;
+        } catch (error) {
+            connection?.close();
+            lastError = error;
+            await sleep(200);
+        }
+    }
+    throw new Error(`WebView did not become ready: ${lastError?.message}`);
+}
+
 // Loads the fixture through KeeWeb's own file input, without the system picker.
-async function openFixture(c) {
+export async function openFixture(c) {
     // KeeWeb only accepts file data after openAny() set its reading mode, and openAny() would
     // open the system picker via input.click(). Click the readonly password field to enter the
     // reading mode, with the file input's click() neutralised for that one call.
@@ -48,11 +71,19 @@ async function openFixture(c) {
         input.dispatchEvent(new Event('change', { bubbles: true }));
         return true;
     })()`);
-    await waitFor(c, `!!document.querySelector('.open__pass-input') && document.querySelector('.open__pass-input').placeholder.includes('e2e-fixture')`);
+    await waitFor(
+        c,
+        `!!document.querySelector('.open__pass-input') && document.querySelector('.open__pass-input').placeholder.includes('e2e-fixture')`
+    );
     await c.evaluate(`(() => { const i = document.querySelector('.open__pass-input');
         i.value = 'e2e-fake-password'; i.dispatchEvent(new Event('input', { bubbles: true }));
         document.querySelector('.open__pass-enter-btn').click(); return true; })()`);
-    await waitFor(c, `document.querySelectorAll('.list__item').length > 0`);
+    await waitFor(
+        c,
+        `document.querySelectorAll('.list__item').length > 0 &&
+        [...document.querySelectorAll('.list__item')].some((item) =>
+            item.textContent.includes('a-rather-long-example-site-name.test #1'))`
+    );
 }
 
 async function closeModalAndOpenEntry(c, sleep) {
@@ -66,7 +97,7 @@ async function closeModalAndOpenEntry(c, sleep) {
     }
 }
 
-const Steps = [
+export const Steps = [
     {
         name: 'unlock',
         async run(c) {
@@ -88,11 +119,20 @@ const Steps = [
             }
             await c.evaluate(`document.querySelector('.list__item').click(), true`);
             await sleep(500);
-            assert(await c.evaluate(`!!document.querySelector('.app--details-visible')`), 'details visible');
+            assert(
+                await c.evaluate(`!!document.querySelector('.app--details-visible')`),
+                'details visible'
+            );
             adb('shell', 'input', 'keyevent', '4');
             await sleep(700);
-            assert(await c.evaluate(`!document.querySelector('.app--details-visible')`), 'back returns to the list');
-            assert(await c.evaluate(`document.querySelectorAll('.list__item').length > 0`), 'file still open');
+            assert(
+                await c.evaluate(`!document.querySelector('.app--details-visible')`),
+                'back returns to the list'
+            );
+            assert(
+                await c.evaluate(`document.querySelectorAll('.list__item').length > 0`),
+                'file still open'
+            );
         }
     },
     {
@@ -102,8 +142,13 @@ const Steps = [
             const ratio = await c.evaluate(`(() => { const t = document.querySelector('.details__header-title');
                 const h = document.querySelector('.details__header');
                 return t.getBoundingClientRect().width / h.getBoundingClientRect().width; })()`);
-            assert(ratio > 0.5, `detail title uses more than half the header (got ${ratio.toFixed(2)})`);
-            const top = await c.evaluate(`document.querySelector('.app').getBoundingClientRect().top`);
+            assert(
+                ratio > 0.5,
+                `detail title uses more than half the header (got ${ratio.toFixed(2)})`
+            );
+            const top = await c.evaluate(
+                `document.querySelector('.app').getBoundingClientRect().top`
+            );
             assert(top >= 0, 'app is not pushed under the status bar');
         }
     },
@@ -115,10 +160,14 @@ const Steps = [
                 .find((f) => f.querySelector('.details__field-label').textContent.trim() === 'Password')
                 .querySelector('.details__field-value'); v.click(); return true; })()`);
             await sleep(300);
-            const tip = await c.evaluate(`(document.querySelector('.tip') || {}).textContent || ''`);
+            const tip = await c.evaluate(
+                `(document.querySelector('.tip') || {}).textContent || ''`
+            );
             assert(tip.startsWith('Copied'), `a single tap shows the copied tip (got "${tip}")`);
-            assert(!(await c.evaluate(`!!document.querySelector('.details__field-mobile-actions')`)),
-                'a single tap does not open the action bar');
+            assert(
+                !(await c.evaluate(`!!document.querySelector('.details__field-mobile-actions')`)),
+                'a single tap does not open the action bar'
+            );
             adb('shell', 'input', 'keyevent', '4');
             await sleep(700);
         }
@@ -128,58 +177,85 @@ const Steps = [
         async run(c, { adb, sleep, assert, reconnect }) {
             adb('shell', 'input', 'keyevent', '4');
             await sleep(1500);
-            const focus = adb('shell', 'dumpsys', 'window').split('\n').find((l) => l.includes('mCurrentFocus')) || '';
+            const focus =
+                adb('shell', 'dumpsys', 'window')
+                    .split('\n')
+                    .find((l) => l.includes('mCurrentFocus')) || '';
             assert(!focus.includes('keeweb'), 'app moved to the background');
-            assert(adb('shell', 'pidof', appId).trim() !== '', 'app process still alive (not finished)');
+            assert(
+                adb('shell', 'pidof', appId).trim() !== '',
+                'app process still alive (not finished)'
+            );
             adb('shell', 'am', 'start', '-n', `${appId}/com.mickdewald.keeweb.MainActivity`);
             await sleep(1500);
             const c2 = await reconnect();
-            assert(!(await c2.evaluate(`document.body.innerText.includes('Too many tabs')`)), 'no multi-tab error');
-            return { connection: c2 };
+            assert(
+                !(await c2.evaluate(`document.body.innerText.includes('Too many tabs')`)),
+                'no multi-tab error'
+            );
+            await waitFor(
+                c2,
+                `(() => {
+                const password = document.querySelector('.open__pass-input');
+                return password && password.getClientRects().length > 0 && !password.value &&
+                    getComputedStyle(password).visibility === 'visible' &&
+                    !document.querySelector('.android-lock-screen');
+            })()`
+            );
+            assert(
+                !(await c2.evaluate(`[...document.querySelectorAll('.list__item')]
+                    .some((item) => item.getClientRects().length > 0)`)),
+                'locked workspace exposes no visible entries after backgrounding'
+            );
         }
     }
 ];
 
-const onlyIdx = process.argv.indexOf('--only');
-const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
-const names = Steps.map((st) => st.name);
-if (onlyIdx >= 0 && (!only || !names.includes(only))) {
-    console.error(`--only needs one of: ${names.join(', ')}`);
-    process.exit(2);
+async function run() {
+    const onlyIdx = process.argv.indexOf('--only');
+    const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : null;
+    const names = Steps.map((st) => st.name);
+    if (onlyIdx >= 0 && (!only || !names.includes(only))) {
+        console.error(`--only needs one of: ${names.join(', ')}`);
+        process.exitCode = 2;
+        return;
+    }
+
+    let c = null;
+    let current = '(setup)';
+    try {
+        assertFixtureTarget();
+        adb('shell', 'am', 'force-stop', appId);
+        adb('shell', 'pm', 'clear', appId);
+        adb('shell', 'am', 'start', '-W', '-n', `${appId}/com.mickdewald.keeweb.MainActivity`);
+        c = await connectWhenReady();
+        for (const step of Steps) {
+            if (only && step.name !== only && step.name !== 'unlock') {
+                continue;
+            }
+            current = step.name;
+            process.stdout.write(`- ${step.name}\n`);
+            const reconnect = async () => {
+                c.close();
+                c = await connect();
+                return c;
+            };
+            await step.run(c, { adb, sleep, waitFor, assert, openFixture, reconnect });
+        }
+        console.log('E2E OK');
+    } catch (e) {
+        console.error(`FAILED: ${current}: ${e.message}`);
+        process.exitCode = 1;
+    } finally {
+        try {
+            c?.close();
+            adb('forward', '--remove', `tcp:${Number(process.env.KEEWEB_CDP_PORT || 9333)}`);
+        } catch {
+            // ignore
+        }
+    }
 }
 
-let c = null;
-let current = '(setup)';
-try {
-    adb('shell', 'am', 'force-stop', appId);
-    adb('shell', 'pm', 'clear', appId);
-    adb('shell', 'am', 'start', '-W', '-n', `${appId}/com.mickdewald.keeweb.MainActivity`);
-    await sleep(4000);
-    c = await connect();
-    for (const step of Steps) {
-        if (only && step.name !== only && step.name !== 'unlock') {
-            continue;
-        }
-        current = step.name;
-        process.stdout.write(`- ${step.name}\n`);
-        const reconnect = async () => {
-            c.close();
-            c = await connect();
-            return c;
-        };
-        const result = await step.run(c, { adb, sleep, waitFor, assert, openFixture, reconnect });
-        if (result && result.connection) {
-            c = result.connection;
-        }
-    }
-    console.log('E2E OK');
-} catch (e) {
-    console.error(`FAILED: ${current}: ${e.message}`);
-    process.exitCode = 1;
-} finally {
-    try {
-        c?.close();
-    } catch {
-        // ignore
-    }
+if (isMainModule(import.meta.url, process.argv[1])) {
+    run();
 }

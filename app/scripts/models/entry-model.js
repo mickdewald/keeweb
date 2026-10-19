@@ -13,6 +13,7 @@ import { EntrySearch } from 'util/entry-search';
 import { EntryModelFieldRefsMixin } from 'models/entry-model-field-refs';
 import { EntryModelOtpAutoTypeMixin } from 'models/entry-model-otp-auto-type';
 import { EntryModelTrashHistoryMixin } from 'models/entry-model-trash-history';
+import { beginPendingMutation } from 'models/file-mutation-tracker';
 
 const UrlRegex = /^https?:\/\//i;
 const ExtraUrlFieldName = 'KP2A_URL';
@@ -186,8 +187,8 @@ class EntryModel extends Model {
             if (this.file.historyMaxItems !== 0) {
                 this.entry.pushHistory();
             }
-            this.file.setModified();
         }
+        this.file.setModified();
         if (this.isJustCreated) {
             this.isJustCreated = false;
             this.file.reload();
@@ -303,11 +304,21 @@ class EntryModel extends Model {
     }
 
     addAttachment(name, data) {
-        this._entryModified();
-        return this.file.db.createBinary(data).then((binaryRef) => {
-            this.entry.binaries.set(name, binaryRef);
-            this._fillByEntry();
-        });
+        const completeMutation = beginPendingMutation(this.file);
+        return this.file.db
+            .createBinary(data)
+            .then((binaryRef) => {
+                this._entryModified();
+                this.entry.binaries.set(name, binaryRef);
+                this._fillByEntry();
+            })
+            .then(
+                () => completeMutation(),
+                (err) => {
+                    completeMutation();
+                    throw err;
+                }
+            );
     }
 
     removeAttachment(name) {

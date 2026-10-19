@@ -37,17 +37,21 @@ For CI or agent test builds with a throwaway keystore, `KEEWEB_ANDROID_KEYSTORE_
 environment to skip the Keychain lookup. Never do this with the real keystore, and never put its password on a command
 line. The script passes it only to the Gradle signing step, and deletes the APK if the secret check fails.
 
-`scripts/android/check-apk-secrets.sh <apk>` fails when the APK assets or `capacitor.config.json` contain
-credential-shaped values or a `.kdbx` file. The web bundle legitimately contains the upstream OAuth client secrets from
+`scripts/android/check-apk-secrets.sh <apk>` fails when APK assets, compiled Android metadata/string resources,
+raw resources or `capacitor.config.json` contain credential-shaped values, or any APK path contains a `.kdbx` file.
+It requires Python 3 and SDK Build Tools `aapt2` (selected from `ANDROID_HOME`, with `KEEWEB_AAPT2` as an override),
+and fails closed if resource decoding fails. This is a build guard, not proof that arbitrary bytes contain no secrets.
+The exact hashes of AndroidX Biometric 1.1.0's public "Use password" translations are allow-listed together with
+their resource name; changing that name's value is still rejected. The web bundle contains upstream OAuth client secrets from
 `app/scripts/const/cloud-storage-apps.js` (public by design) and three identifier strings that match the pattern
 (`ProtectPassword`, `dropboxAppSecret`, `changeShortLivedStorageToken`). Because the bundle is inlined into one
 `index.html`, the script allows exactly those matched strings, each compared whole up to its closing quote instead of excluding a file. Anything else fails.
 
 ### Before each release
 
-Raise `versionCode` (and set `versionName`) in `android/app/build.gradle` and commit that before building. Android
-installs a release over an existing one only when its `versionCode` is higher; the same or a lower value makes
-`adb install -r` fail and would force an uninstall, which deletes the app's settings and stored biometric unlock.
+Raise `versionCode` (and set `versionName`) in `android/app/build.gradle` for each distributed release and commit
+that before building. Keep the signing key stable and install in place with `adb install -r`; do not uninstall a
+previous release to work around an installation error, because that deletes settings and stored biometric unlock.
 
 ### Tracked Capacitor outputs
 
@@ -63,11 +67,19 @@ adb install -r android/app/build/outputs/apk/release/app-release.apk
 
 ## Emulator workflow
 
+Run `npm run android:verify` for a fresh Debug build, supervised headless emulator, app instrumentation tests,
+fixture-only E2E and APK secret check. It stops its emulator and Gradle daemon on success or failure, and refuses
+an occupied emulator port. Before instrumentation it requires the fixture emulator to be the only connected
+device, because Gradle connected tests can otherwise select other devices too. Keep phones disconnected during
+this command. It resets only `com.mickdewald.keeweb.dev` on an emulator, never the release or a phone.
+Run `npm run test:android-tools` for the CDP/reset guard and real compiled-APK scanner regression tests.
+Compiled-resource tests need an Android SDK; a missing SDK is reported as skipped, not native verification.
+
 ```sh
 scripts/android/emulator.sh start        # headless dedicated AVD, prints nothing on success
 node scripts/android/e2e-emulator.mjs    # E2E against test/android/fixtures (fake password e2e-fake-password)
 node scripts/android/e2e-emulator.mjs --only unlock
-(cd android && source ../scripts/android/env.sh && ./gradlew connectedDebugAndroidTest)   # instrumented tests
+# Use npm run android:verify for guarded instrumented tests.
 scripts/android/emulator.sh stop
 ```
 
@@ -83,7 +95,43 @@ E2E runs use only the committed fixture database, never a real one. Stop the Gra
 
 ## Locking
 
-Leaving the app (Home, app switcher, screen off) always locks the open databases: the desktop setting "lock when
-minimized" (`lockOnMinimize`) is on and not shown in the Android settings. An open dialog is dismissed (as if canceled)
-so it cannot keep the lock from happening. Only the document picker the app opens itself does not lock. Unsaved
-changes are saved first when auto-save is on.
+Leaving the app (Home, app switcher, screen off), including an app-owned picker, immediately hides and
+blocks the workspace. It invalidates earlier password/biometric unlock attempts and clears the password input.
+This boundary also applies when no database is open and when the minimize-lock preference is off.
+
+Encrypted database bytes and matching recovery metadata are committed together in IndexedDB before databases
+are closed. The coordinator waits for sync and registered picker/credential/attachment operations and checks
+all open databases again before closing. If encryption or persistence fails, changes stay in memory behind the
+locked screen; retry local saving before closing the process. A hung provider/picker can delay database closure,
+but it cannot expose or make the old workspace usable. After successful closure, a fresh unlock is required.
+
+## Android document saves and exports
+
+Picked Android databases request read and write permission. The app keeps only the rights actually
+returned by the provider; documents without write permission remain readable and offer reselection.
+Ordinary Save uses the selected document URI. Save new copy remains a separate, uniquely named verified
+export that preserves the source.
+
+Before writing, the app commits encrypted candidate data with matching credential metadata to IndexedDB.
+The native bridge compares the provider's current content hash with the expected loaded revision; mismatch
+writes nothing and triggers KeePass merge/retry. It also commits and verifies a complete encrypted
+preimage/attempt journal in app-private storage, writes with truncation and verifies the resulting bytes.
+Errors preserve pending local changes. An older provider response after local save is merged with Android's
+local KDBX rather than blindly replacing it.
+
+These checks do not provide an atomic cross-client compare/write. Another device can write between the
+final provider read and write, and provider readback does not prove cloud arrival. Entry conflicts use
+KeePass history, rather than field-by-field merge. Use disposable data for real Drive acceptance before
+using this local, unreleased implementation with real databases.
+
+Attachment and key-file imports use the native readonly picker. They register their pending mutation before
+leaving the app and apply a result only to its original file/entry context. Generated key files are applied as a
+new factor only after their external copy has been verified; cancel/error preserves the previous factor.
+
+## Clipboard expiry
+
+The live process clears its copied value after the configured interval (30 seconds by default). Android prevents
+background clipboard reads, so an unreadable clipboard is cleared unconditionally, preserving the existing
+security policy; this may also clear something another app copied meanwhile. If the process is killed, the timer
+cannot run. Only a Keystore-backed HMAC and due time are persisted; the next foreground return restores expiry
+without storing the copied password. When the clipboard is readable, a different value is preserved.

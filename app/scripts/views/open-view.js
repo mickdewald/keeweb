@@ -29,6 +29,7 @@ import { createOpenViewFileInputMixin } from 'views/open-view-file-input';
 import { createOpenViewOperationsMixin } from 'views/open-view-operations';
 import { createOpenViewUnlockMixin } from 'views/open-view-unlock';
 import { AndroidBiometricFeedback } from 'comp/platform/android/android-biometric-feedback';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 
 const logger = new Logger('open-view');
 
@@ -90,6 +91,24 @@ class OpenView extends View {
         });
         this.listenTo(Events, 'user-idle', this.userIdle);
         this.listenTo(Events, 'android-resumed', this.androidResumed.bind(this));
+        this.listenTo(
+            Events,
+            'background-lock-started',
+            this.clearPasswordForBackground.bind(this)
+        );
+    }
+
+    clearPasswordForBackground({ model }) {
+        if (model !== this.model || !AndroidPlatform.isAndroid) {
+            return;
+        }
+        this.passwordInput.reset();
+        if (this.inputEl) {
+            this.inputEl.val('');
+            // Keep the existing input handler attached to the reset secure buffer.
+            this.passwordInput.el = this.inputEl;
+        }
+        this.params.password = null;
     }
 
     render() {

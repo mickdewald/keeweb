@@ -6,45 +6,39 @@ A Capacitor 8 wrapper around the KeeWeb web app. Application ID `com.mickdewald.
 All Gradle work needs JDK 21; the scripts source `scripts/android/env.sh` for you. Capacitor logging is off
 (`loggingBehavior: none` in `capacitor.config.json`), so passwords never reach logcat.
 
-## One-time keystore setup
+## Release signing
 
-The following original setup recipe predates the current OpenBao signing policy.
-Do not provision an agent release credential only in Keychain. Initial KeeWeb
-release provisioning must first establish durable signing material and a scoped
-OpenBao reader for this application; preserve any existing signing identity.
-The current shared Android signing identity covers only named `turbo-rn` apps,
-not KeeWeb. See [the continuation status](android-resumption-status.md) for this
-release blocker. The legacy commands below are retained for existing manual
-setups, not as an unattended agent provisioning path.
+`npm run build:android` signs only through the canonical OpenBao Android signing
+runner. It defaults to the trusted checkout at `$HOME/projects/ops-platform`;
+set `OPS_PLATFORM_ROOT` to another absolute, clean checkout whose `HEAD` is
+contained in `origin/main`. The build rejects an untrusted or dirty
+checkout instead of falling back to a local keystore or the macOS Keychain.
 
-Create the release keystore once, with the alias `keeweb`:
+The runner reads the dedicated `release/keeweb/android-signing` material and
+creates its temporary PKCS#12 only for the `assembleRelease` child process. It
+revokes its OpenBao session before Gradle runs and removes that file after the
+child exits. The web build and Capacitor sync receive no signing variables. The key alias is
+`keeweb`; preserve this permanent identity because losing or rotating it would
+prevent in-place updates of installed releases.
+The runner also passes the public expected certificate SHA-256 only to that child;
+after Gradle, the child uses the Android SDK's `apksigner` to confirm that the
+generated APK has that certificate before the APK secret scan runs.
 
-```sh
-mkdir -p ~/.keeweb-android
-keytool -genkeypair -keystore ~/.keeweb-android/release.jks -alias keeweb \
-    -keyalg RSA -keysize 4096 -validity 10000
-```
-
-Store the keystore password in the macOS Keychain (the `-w` flag without a value prompts for it):
-
-```sh
-security add-generic-password -s keeweb-android-keystore -a "$USER" -w
-```
-
-Back the keystore up somewhere safe. If it is lost, releases can no longer update an installed app in place; the app
-would have to be uninstalled first. Never commit the keystore and never print its password. To use another location,
-set `KEEWEB_ANDROID_KEYSTORE`.
+First-time permanent KeeWeb signing provisioning uses the reviewed owner command
+in [ops-platform’s Android signing runbook](https://github.com/mickdewald/ops-platform/blob/main/docs/runbooks/android-release-signing.md#first-keeweb-key-and-keepass-backup).
+Do not create a manual keystore, put its password in Keychain, or set
+`KEEWEB_ANDROID_KEYSTORE` / `KEEWEB_ANDROID_KEYSTORE_PASSWORD` as a build
+fallback. Never commit a keystore or print its password.
 
 ## Building
 
 - Debug: `npm run android:debug` produces `android/app/build/outputs/apk/debug/app-debug.apk`.
-- Release: `npm run build:android` builds the web app, syncs Capacitor, runs `assembleRelease` signed with the
-  keystore (password read from the Keychain at build time only) and finishes with
-  `scripts/android/check-apk-secrets.sh`. The script refuses to build from a dirty git tree.
-
-For CI or agent test builds with a throwaway keystore, `KEEWEB_ANDROID_KEYSTORE_PASSWORD` may be set in the
-environment to skip the Keychain lookup. Never do this with the real keystore, and never put its password on a command
-line. The script passes it only to the Gradle signing step, and deletes the APK if the secret check fails.
+- Release: `npm run build:android` first builds the web app and syncs Capacitor
+  without signing variables. It then hands only `assembleRelease` to the
+  OpenBao runner, verifies the APK signer against the OpenBao certificate, and
+  finishes with `scripts/android/check-apk-secrets.sh`. The script refuses to
+  build from a dirty git tree, removes any prior release APK before building,
+  and deletes the APK if signing or the secret check fails.
 
 `scripts/android/check-apk-secrets.sh <apk>` fails when APK assets, compiled Android metadata/string resources,
 raw resources or `capacitor.config.json` contain credential-shaped values, or any APK path contains a `.kdbx` file.

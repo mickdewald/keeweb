@@ -143,8 +143,7 @@ class PrivateUpdaterController {
             const { response } = await this.dialog.showMessageBox({
                 type: 'info',
                 message: 'Das KeeWeb-Update ist bereit.',
-                detail:
-                    'KeeWeb prüft vor dem Neustart auf ungespeicherte Änderungen. Du kannst das Beenden abbrechen.',
+                detail: 'KeeWeb prüft vor dem Neustart auf ungespeicherte Änderungen. Du kannst das Beenden abbrechen.',
                 buttons: ['Neu starten', 'Später'],
                 defaultId: 0,
                 cancelId: 1
@@ -182,8 +181,7 @@ class PrivateUpdaterController {
                 .showMessageBox({
                     type: 'error',
                     message: 'KeeWeb konnte das Update nicht laden.',
-                    detail:
-                        'Bitte versuche es später erneut. Deine Datenbanken bleiben unverändert.',
+                    detail: 'Bitte versuche es später erneut. Deine Datenbanken bleiben unverändert.',
                     buttons: ['OK']
                 })
                 .catch(() => {});

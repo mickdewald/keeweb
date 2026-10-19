@@ -3,6 +3,7 @@ import { View } from 'framework/views/view';
 import { GeneratorPresets } from 'comp/app/generator-presets';
 import { PasswordGenerator, CharRanges } from 'util/generators/password-generator';
 import { Locale } from 'util/locale';
+import { StringFormat } from 'util/formatting/string-format';
 import { Scrollable } from 'framework/views/scrollable';
 import template from 'templates/generator-presets.hbs';
 
@@ -126,7 +127,7 @@ class GeneratorPresetsView extends View {
     }
 
     changeTitle(e) {
-        const title = $.trim(e.target.value);
+        const title = StringFormat.trim(e.target.value);
         if (title && title !== this.getPreset(this.selected).title) {
             let duplicate = this.presets.some((p) => p.title.toLowerCase() === title.toLowerCase());
             if (!duplicate) {

@@ -13,7 +13,7 @@
 # Or, to generate self-signed cert, run:
 # docker run --name keeweb -d -p 443:443 -p 80:80 -e 'DH_SIZE=512' antelle/keeweb
 
-FROM nginx:stable
+FROM nginx:stable@sha256:b972f831f200b19ef0767938224f9711e74cd783718738cd7405d5cabf75c442
 LABEL maintainer="antelle.net@gmail.com"
 
 # install

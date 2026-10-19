@@ -5,6 +5,7 @@ import { Keys } from 'const/keys';
 import { Features } from 'util/features';
 import { MdToHtml } from 'util/formatting/md-to-html';
 import { PasswordPresenter, charClass } from 'util/formatting/password-presenter';
+import { StringFormat } from 'util/formatting/string-format';
 import { Tip } from 'util/ui/tip';
 import { FieldView } from 'views/fields/field-view';
 import { GeneratorView } from 'views/generator-view';
@@ -295,7 +296,7 @@ class FieldViewText extends FieldView {
             newVal = kdbxweb.ProtectedValue.fromString(newVal);
         }
         if (typeof newVal === 'string') {
-            newVal = $.trim(newVal);
+            newVal = StringFormat.trim(newVal);
         }
         super.endEdit(newVal, extra);
     }

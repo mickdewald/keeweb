@@ -30,8 +30,23 @@ NODE
     /usr/sbin/spctl --assess --type execute "$1"
 }
 
+verify_installed_app() {
+    node - "$1" "$2" <<'NODE'
+const [installed, candidate] = process.argv.slice(2);
+require('./scripts/release/verify-update-app').verifyInstalledApp(installed, candidate, 'public');
+require('./scripts/release/provisioning-profile').verifyEmbeddedProfile(installed);
+const metadata = JSON.parse(require('asar').extractFile(
+    installed + '/Contents/Resources/app.asar', 'private-update-build.json'
+));
+if (metadata.channel !== 'public' || metadata.smoke || !metadata.build) {
+    throw new Error('Expected a non-smoke public build');
+}
+NODE
+    /usr/sbin/spctl --assess --type execute "$1"
+}
+
 verify_app "$APP_SOURCE"
-verify_app "$TARGET"
+verify_installed_app "$TARGET" "$APP_SOURCE"
 requirement() { /usr/bin/codesign -d -r- "$1" 2>&1 | sed -n 's/^designated => //p'; }
 SOURCE_REQUIREMENT="$(requirement "$APP_SOURCE")"
 [[ -n "$SOURCE_REQUIREMENT" && "$SOURCE_REQUIREMENT" == "$(requirement "$TARGET")" ]] ||

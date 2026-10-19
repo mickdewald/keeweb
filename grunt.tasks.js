@@ -1,6 +1,14 @@
 module.exports = function (grunt) {
     const sign = !grunt.option('skip-sign');
 
+    grunt.registerTask('check-css-icon-glyphs', () => {
+        require('child_process').execFileSync(
+            process.execPath,
+            ['build/check-css-icon-glyphs.js', 'dist/index.html'],
+            { stdio: 'inherit' }
+        );
+    });
+
     grunt.registerTask('build-web-app', [
         'clean',
         'eslint',
@@ -11,6 +19,7 @@ module.exports = function (grunt) {
         'inline',
         'htmlmin',
         'csp-hashes',
+        'check-css-icon-glyphs',
         'copy:content-dist',
         'string-replace:service-worker',
         'string-replace:update-manifest',
@@ -69,10 +78,7 @@ module.exports = function (grunt) {
         'copy:native-modules-win32-arm64',
         'copy:native-messaging-host-win32-x64',
         'copy:native-messaging-host-win32-ia32',
-        'copy:native-messaging-host-win32-arm64',
-        sign ? 'sign-exe:win32-build-x64' : 'noop',
-        sign ? 'sign-exe:win32-build-ia32' : 'noop',
-        sign ? 'sign-exe:win32-build-arm64' : 'noop'
+        'copy:native-messaging-host-win32-arm64'
     ]);
 
     grunt.registerTask('build-desktop-executables', [
@@ -100,15 +106,9 @@ module.exports = function (grunt) {
         'nsis:win32-un-x64',
         'nsis:win32-un-ia32',
         'nsis:win32-un-arm64',
-        sign ? 'sign-exe:win32-uninst-x64' : 'noop',
-        sign ? 'sign-exe:win32-uninst-ia32' : 'noop',
-        sign ? 'sign-exe:win32-uninst-arm64' : 'noop',
         'nsis:win32-x64',
         'nsis:win32-ia32',
         'nsis:win32-arm64',
-        sign ? 'sign-exe:win32-installer-x64' : 'noop',
-        sign ? 'sign-exe:win32-installer-ia32' : 'noop',
-        sign ? 'sign-exe:win32-installer-arm64' : 'noop',
         'copy:desktop-win32-dist-x64',
         'copy:desktop-win32-dist-ia32',
         'copy:desktop-win32-dist-arm64'

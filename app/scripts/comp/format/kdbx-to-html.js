@@ -1,4 +1,4 @@
-/* eslint-disable import/no-commonjs */
+/* eslint-disable import-x/no-commonjs */
 import * as kdbxweb from 'kdbxweb';
 import { RuntimeInfo } from 'const/runtime-info';
 import { Links } from 'const/links';

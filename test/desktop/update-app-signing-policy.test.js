@@ -3,7 +3,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { signingPolicy, verifyUpdateApp } = require('../../scripts/release/verify-update-app');
+const {
+    signingPolicy,
+    verifyUpdateApp,
+    verifyInstalledApp
+} = require('../../scripts/release/verify-update-app');
 
 const DEVELOPER_ID = 'Developer ID Application: Michael Dewald (GGYLL32K99)';
 const DEVELOPMENT = 'Apple Development: Michael Dewald (UUCWA5MCLV)';
@@ -200,4 +204,49 @@ test('rejects a wrong outer identity, bundle ID, architecture or entitlement set
             }),
         /entitlement/i
     );
+});
+
+const IDENTITY = {
+    'com.apple.application-identifier': 'GGYLL32K99.com.mickdewald.keeweb',
+    'com.apple.developer.team-identifier': 'GGYLL32K99',
+    'keychain-access-groups': ['GGYLL32K99.com.mickdewald.keeweb']
+};
+
+function verifyInstalled(installedEntitlements, candidateEntitlements, installedOverrides = {}) {
+    const installed = appFixture();
+    const candidate = appFixture();
+    const tools = fakeTools(installed, {
+        [installed.app]: { entitlements: installedEntitlements, ...installedOverrides },
+        [candidate.app]: { entitlements: candidateEntitlements }
+    });
+    verifyInstalledApp(installed.app, candidate.app, 'public', {
+        run: tools.run,
+        readBundleId: tools.bundleId,
+        entitlements: { app: candidateEntitlements, inherit: entitlementPolicy.inherit }
+    });
+}
+
+test('an installed app from before an entitlement change may be replaced', () => {
+    const before = { ...IDENTITY, 'com.apple.security.cs.allow-jit': true };
+    const after = { ...before, 'com.apple.security.automation.apple-events': true };
+    verifyInstalled(before, after);
+    verifyInstalled(after, after);
+});
+
+test('an installed app with another identity or signature is refused', () => {
+    const after = {
+        ...IDENTITY,
+        'com.apple.security.cs.allow-jit': true,
+        'com.apple.security.automation.apple-events': true
+    };
+    for (const [key, value] of [
+        ['com.apple.application-identifier', 'GGYLL32K99.other.keeweb'],
+        ['com.apple.developer.team-identifier', 'OTHERTEAM1'],
+        ['keychain-access-groups', ['GGYLL32K99.other']]
+    ]) {
+        assert.throws(() => verifyInstalled({ ...after, [key]: value }, after), /differs/i);
+    }
+    assert.throws(() => verifyInstalled({ 'com.apple.security.cs.allow-jit': true }, after));
+    assert.throws(() => verifyInstalled(after, after, { authority: DEVELOPMENT }), /identity/i);
+    assert.throws(() => verifyInstalled(after, after, { invalid: true }), /signature/i);
 });

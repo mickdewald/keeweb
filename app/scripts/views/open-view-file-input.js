@@ -141,7 +141,7 @@ function createOpenViewFileInputMixin({
                 'placeholder',
                 Locale.openPassFor + ' ' + this.params.name
             );
-            this.focusInput();
+            this.focusPasswordForFile();
         },
 
         displayOpenKeyFile() {
@@ -156,6 +156,12 @@ function createOpenViewFileInputMixin({
             this.$el
                 .find('.open__settings-yubikey')
                 .toggleClass('open__settings-yubikey--active', !!this.params.chalResp);
+        },
+
+        androidResumed() {
+            this.autoUnlockAttemptedRef = null;
+            this.displayOpenDeviceOwnerAuth();
+            this.focusPasswordForFile();
         },
 
         displayOpenDeviceOwnerAuth() {

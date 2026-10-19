@@ -10,6 +10,11 @@ import { StringFormat } from 'util/formatting/string-format';
 import { ChalRespCalculator } from 'comp/app/chal-resp-calculator';
 import { FileModelSettingsMixin } from 'models/file-model-settings';
 import { FileModelSerializationMixin } from 'models/file-model-serialization';
+import {
+    applyRemoteCredentialState,
+    createMergeCredentials,
+    shouldMergeCleanRemote
+} from 'models/file-model-merge';
 
 const logger = new Logger('file');
 
@@ -271,58 +276,33 @@ class FileModel extends Model {
     }
 
     mergeOrUpdate(fileData, remoteKey, callback) {
-        let credentials;
-        let credentialsPromise = Promise.resolve();
-        if (remoteKey) {
-            credentials = new kdbxweb.Credentials(kdbxweb.ProtectedValue.fromString(''));
-            credentialsPromise = credentials.ready.then(() => {
-                const promises = [];
-                if (remoteKey.password) {
-                    promises.push(credentials.setPassword(remoteKey.password));
+        createMergeCredentials(this, remoteKey)
+            .then((credentials) => kdbxweb.Kdbx.load(fileData, credentials))
+            .then((remoteDb) => {
+                const previousDb = this.db;
+                const mergeCleanRemote = shouldMergeCleanRemote(this);
+                if (this.modified || mergeCleanRemote) {
+                    applyRemoteCredentialState(this, previousDb, remoteDb, remoteKey);
+                    this.db.merge(remoteDb);
+                    if (mergeCleanRemote) {
+                        this.setModified();
+                    }
                 } else {
-                    credentials.passwordHash = this.db.credentials.passwordHash;
+                    this.db = remoteDb;
+                    applyRemoteCredentialState(this, previousDb, remoteDb, remoteKey, {
+                        force: true
+                    });
                 }
-                if (remoteKey.keyFileName) {
-                    if (remoteKey.keyFileData) {
-                        promises.push(credentials.setKeyFile(remoteKey.keyFileData));
-                    } else {
-                        credentials.keyFileHash = this.db.credentials.keyFileHash;
-                    }
-                }
-                return Promise.all(promises);
-            });
-        } else {
-            credentials = this.db.credentials;
-        }
-        credentialsPromise.then(() => {
-            kdbxweb.Kdbx.load(fileData, credentials)
-                .then((remoteDb) => {
-                    if (this.modified) {
-                        try {
-                            if (remoteKey && remoteDb.meta.keyChanged > this.db.meta.keyChanged) {
-                                this.db.credentials = remoteDb.credentials;
-                                this.keyFileName = remoteKey.keyFileName || '';
-                                if (remoteKey.password) {
-                                    this.passwordLength = remoteKey.password.textLength;
-                                }
-                            }
-                            this.db.merge(remoteDb);
-                        } catch (e) {
-                            logger.error('File merge error', e);
-                            return callback(e);
-                        }
-                    } else {
-                        this.db = remoteDb;
-                    }
-                    this.dirty = true;
-                    this.reload();
-                    callback();
-                })
-                .catch((err) => {
-                    logger.error('Error opening file to merge', err.code, err.message, err);
+                this.dirty = true;
+                this.reload();
+            })
+            .then(
+                () => callback(),
+                (err) => {
+                    logger.error('Error merging file', err.code, err.message, err);
                     callback(err);
-                });
-        });
+                }
+            );
     }
 
     getLocalEditState() {
@@ -411,7 +391,11 @@ class FileModel extends Model {
 
     setModified() {
         if (!this.demo) {
-            this.set({ modified: true, dirty: true });
+            this.set({
+                modified: true,
+                dirty: true,
+                editVersion: this.editVersion + 1
+            });
         }
     }
 
@@ -441,6 +425,7 @@ FileModel.defineModelProperties({
     storage: null,
     modified: false,
     dirty: false,
+    editVersion: 0,
     active: false,
     created: false,
     demo: false,
@@ -451,6 +436,9 @@ FileModel.defineModelProperties({
     keyFileChanged: false,
     keyChangeForce: -1,
     syncing: false,
+    lockCacheInProgress: false,
+    lockCacheEditVersion: null,
+    pendingMutations: 0,
     syncError: null,
     syncDate: null,
     backup: null,

@@ -19,7 +19,8 @@ const DefaultProperties = {
     fingerprint: null, // obsolete
     chalResp: null,
     encryptedPassword: null,
-    encryptedPasswordDate: null
+    encryptedPasswordDate: null,
+    recoveryVersion: null
 };
 
 class FileInfoModel extends Model {

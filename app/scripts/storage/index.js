@@ -1,4 +1,6 @@
 import { Launcher } from 'comp/launcher';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { StorageAndroidDocument } from 'storage/impl/storage-android-document';
 import { StorageCache } from 'storage/impl/storage-cache';
 import { StorageDropbox } from 'storage/impl/storage-dropbox';
 import { StorageFile } from 'storage/impl/storage-file';
@@ -22,11 +24,19 @@ const ThirdPartyStorage = {
     webdav: new StorageWebDav()
 };
 
+// Their OAuth flows need browser popups, which the Android WebView cannot open.
+function thirdPartyStoragesAllowed(launcher, isAndroid) {
+    return !isAndroid && (!launcher || !!launcher.thirdPartyStoragesSupported);
+}
+
 const Storage = BuiltInStorage;
-if (!Launcher || Launcher.thirdPartyStoragesSupported) {
+if (thirdPartyStoragesAllowed(Launcher, AndroidPlatform.isAndroid)) {
     Object.assign(Storage, ThirdPartyStorage);
+}
+if (AndroidPlatform.isAndroid) {
+    Storage.androiddoc = new StorageAndroidDocument();
 }
 
 requestAnimationFrame(createOAuthSession);
 
-export { Storage };
+export { Storage, thirdPartyStoragesAllowed };

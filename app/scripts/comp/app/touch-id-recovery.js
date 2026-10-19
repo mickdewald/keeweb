@@ -1,18 +1,23 @@
 import { Alerts } from 'comp/ui/alerts';
 import { Locale } from 'util/locale';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 
 const recoveryFileIds = new Set();
 let recoveryPromise = null;
 
 const TouchIdRecovery = {
     handleDecryptionError(error, fileId) {
-        const isInvalidatedKey = /SecKeyCreateDecryptedData: OSStatus -1(?:\s|$)/.test(
-            error?.message || ''
-        );
+        const isInvalidatedKey =
+            error?.code === 'KEY_INVALIDATED' ||
+            /SecKeyCreateDecryptedData: OSStatus -1(?:\s|$)/.test(error?.message || '');
         if (isInvalidatedKey) {
             recoveryFileIds.add(fileId);
         }
         return isInvalidatedKey;
+    },
+
+    resetForTests() {
+        recoveryFileIds.clear();
     },
 
     isRequired(fileId) {
@@ -96,20 +101,29 @@ const TouchIdRecovery = {
         }
     },
 
+    requiredAlertText(isAndroid = AndroidPlatform.isAndroid) {
+        return isAndroid
+            ? { header: Locale.bioChangedHeader, body: Locale.bioChangedBody }
+            : { header: Locale.setGenTouchId, body: Locale.touchIdRecoveryBody };
+    },
+
     showRequiredAlert(complete) {
         Alerts.error({
-            header: Locale.setGenTouchId,
-            body: Locale.touchIdRecoveryBody,
+            ...this.requiredAlertText(),
             buttons: [Alerts.buttons.ok],
             complete
         });
     },
 
-    showFailedAlert() {
-        Alerts.error({
+    failedAlertText(isAndroid = AndroidPlatform.isAndroid) {
+        return {
             header: Locale.openError,
-            body: Locale.touchIdRecoveryBody
-        });
+            body: isAndroid ? Locale.bioReconnectFailedBody : Locale.touchIdRecoveryBody
+        };
+    },
+
+    showFailedAlert() {
+        Alerts.error(this.failedAlertText());
     }
 };
 

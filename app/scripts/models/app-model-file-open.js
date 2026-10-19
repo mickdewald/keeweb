@@ -8,13 +8,21 @@ import { FileModel } from 'models/file-model';
 import { IdGenerator } from 'util/generators/id-generator';
 import { Locale } from 'util/locale';
 import { Logger } from 'util/logger';
+import {
+    getBackgroundLockGeneration,
+    isOpenAllowedForGeneration
+} from 'models/background-lock-state';
 import debounce from 'lodash/debounce';
 
 const AppModelFileOpenMixin = {
     createDemoFile() {
         if (!this.files.getByName('Demo')) {
             const demoFile = new FileModel({ id: IdGenerator.uuid() });
+            const openLockGeneration = getBackgroundLockGeneration(this);
             demoFile.openDemo(() => {
+                if (!isOpenAllowedForGeneration(this, openLockGeneration)) {
+                    return this.discardObsoleteOpenedFile(demoFile);
+                }
                 this.addFile(demoFile);
             });
             return true;
@@ -24,6 +32,7 @@ const AppModelFileOpenMixin = {
     },
 
     createNewFile(name, callback) {
+        const openLockGeneration = getBackgroundLockGeneration(this);
         if (!name) {
             for (let i = 0; ; i++) {
                 name = Locale.openNewFile + (i || '');
@@ -34,6 +43,11 @@ const AppModelFileOpenMixin = {
         }
         const newFile = new FileModel({ id: IdGenerator.uuid() });
         newFile.create(name, () => {
+            if (!isOpenAllowedForGeneration(this, openLockGeneration)) {
+                this.discardObsoleteOpenedFile(newFile);
+                callback?.(null);
+                return;
+            }
             this.addFile(newFile);
             callback?.(newFile);
         });
@@ -42,6 +56,9 @@ const AppModelFileOpenMixin = {
     openFile(params, callback) {
         const logger = new Logger('open', params.name);
         logger.info('File open request');
+        if (params.openLockGeneration === undefined) {
+            params.openLockGeneration = getBackgroundLockGeneration(this);
+        }
 
         const fileInfo = params.id
             ? this.fileInfos.get(params.id)
@@ -168,6 +185,9 @@ const AppModelFileOpenMixin = {
                     }
                 } else {
                     logger.info('Open file from content loaded from storage');
+                    if (params.storage === 'androiddoc' && typeof stat?.writable === 'boolean') {
+                        params.opts = { ...params.opts, writable: stat.writable };
+                    }
                     params.fileData = data;
                     params.rev = (stat && stat.rev) || null;
                     const needSaveToCache = storage.name !== 'file';
@@ -179,6 +199,13 @@ const AppModelFileOpenMixin = {
         if (cacheRev && storage.stat) {
             logger.info('Stat file');
             storage.stat(params.path, params.opts, (err, stat) => {
+                if (
+                    !err &&
+                    params.storage === 'androiddoc' &&
+                    typeof stat?.writable === 'boolean'
+                ) {
+                    params.opts = { ...params.opts, writable: stat.writable };
+                }
                 if (
                     !noCache &&
                     fileInfo &&
@@ -208,6 +235,10 @@ const AppModelFileOpenMixin = {
 
     openFileWithData(params, callback, fileInfo, data, updateCacheOnSuccess) {
         const logger = new Logger('open', params.name);
+        const openLockGeneration =
+            params.openLockGeneration === undefined
+                ? getBackgroundLockGeneration(this)
+                : params.openLockGeneration;
         let needLoadKeyFile = false;
         if (!params.keyFileData && fileInfo && fileInfo.keyFileName) {
             params.keyFileName = fileInfo.keyFileName;
@@ -239,6 +270,10 @@ const AppModelFileOpenMixin = {
         const openComplete = (err) => {
             if (err) {
                 return callback(err);
+            }
+            if (!isOpenAllowedForGeneration(this, openLockGeneration)) {
+                this.discardObsoleteOpenedFile(file);
+                return callback('Workspace locked');
             }
             if (this.files.get(file.id)) {
                 return callback('Duplicate file id');
@@ -286,6 +321,7 @@ const AppModelFileOpenMixin = {
     importFileWithXml(params, callback) {
         const logger = new Logger('import', params.name);
         logger.info('File import request with supplied xml');
+        const openLockGeneration = getBackgroundLockGeneration(this);
         const file = new FileModel({
             id: IdGenerator.uuid(),
             name: params.name,
@@ -297,9 +333,19 @@ const AppModelFileOpenMixin = {
             if (err) {
                 return callback(err);
             }
+            if (!isOpenAllowedForGeneration(this, openLockGeneration)) {
+                this.discardObsoleteOpenedFile(file);
+                return callback('Workspace locked');
+            }
             this.addFile(file);
             this.fileOpened(file);
         });
+    },
+
+    discardObsoleteOpenedFile(file) {
+        file.close?.();
+        file.active = false;
+        file.db = null;
     },
 
     addToLastOpenFiles(file, rev) {
@@ -418,9 +464,19 @@ const AppModelFileOpenMixin = {
     },
 
     removeFileInfo(id) {
+        const fileInfo = this.fileInfos.get(id);
         Storage.cache.remove(id);
         this.fileInfos.remove(id);
         this.fileInfos.save();
+        const storage = fileInfo && Storage[fileInfo.storage];
+        if (storage && storage.forget) {
+            const stillUsed = this.fileInfos.find(
+                (fi) => fi.storage === fileInfo.storage && fi.path === fileInfo.path
+            );
+            if (!stillUsed) {
+                storage.forget(fileInfo.path);
+            }
+        }
     },
 
     getFileInfo(file) {

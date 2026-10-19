@@ -5,6 +5,7 @@ import { Storage } from 'storage';
 import { RuntimeInfo } from 'const/runtime-info';
 import { Updater } from 'comp/app/updater';
 import { Launcher } from 'comp/launcher';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 import { SettingsManager } from 'comp/settings/settings-manager';
 import { Alerts } from 'comp/ui/alerts';
 import { Links } from 'const/links';
@@ -153,7 +154,7 @@ class SettingsGeneralView extends View {
                     : AppSettingsModel.titlebarStyle,
             storageProviders,
             showReloadApp: Features.isStandalone,
-            hasDeviceOwnerAuth: Features.isDesktop && Features.isMac,
+            hasDeviceOwnerAuth: (Features.isDesktop && Features.isMac) || AndroidPlatform.isAndroid,
             deviceOwnerAuth: AppSettingsModel.deviceOwnerAuth,
             deviceOwnerAuthTimeout: AppSettingsModel.deviceOwnerAuthTimeoutMinutes,
             disableOfflineStorage: AppSettingsModel.disableOfflineStorage,

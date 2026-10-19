@@ -19,3 +19,6 @@ This file only adds repo-specific agent guidance.
 4. If it fails, stop and report:
    - script output,
    - latest `~/Library/Logs/DiagnosticReports/KeeWeb*.ips`.
+5. Android: build only through the `npm run android:*` scripts and `scripts/android/build-release.sh`;
+   emulator work headless through `scripts/android/emulator.sh`; E2E only against `test/android/fixtures`;
+   never commit a keystore or print its password.

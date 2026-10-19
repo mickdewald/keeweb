@@ -9,7 +9,7 @@ class FileCollection extends Collection {
     }
 
     hasUnsavedFiles() {
-        return this.some((file) => file.modified);
+        return this.some((file) => file.modified || file.pendingMutations);
     }
 
     hasDirtyFiles() {

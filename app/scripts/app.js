@@ -13,6 +13,7 @@ import { ThemeWatcher } from 'comp/browser/theme-watcher';
 import { KeyHandler } from 'comp/browser/key-handler';
 import { PopupNotifier } from 'comp/browser/popup-notifier';
 import { Launcher } from 'comp/launcher';
+import { AndroidInit } from 'comp/platform/android/android-init';
 import { SettingsManager } from 'comp/settings/settings-manager';
 import { Alerts } from 'comp/ui/alerts';
 import { Timeouts } from 'const/timeouts';
@@ -188,6 +189,7 @@ ready(() => {
     }
 
     function showView() {
+        AndroidInit.start(appModel);
         new AppView(appModel).render();
         StartProfiler.milestone('first view rendering');
 

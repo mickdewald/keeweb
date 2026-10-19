@@ -28,6 +28,8 @@ import template from 'templates/open.hbs';
 import { createOpenViewFileInputMixin } from 'views/open-view-file-input';
 import { createOpenViewOperationsMixin } from 'views/open-view-operations';
 import { createOpenViewUnlockMixin } from 'views/open-view-unlock';
+import { AndroidBiometricFeedback } from 'comp/platform/android/android-biometric-feedback';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 
 const logger = new Logger('open-view');
 
@@ -88,6 +90,25 @@ class OpenView extends View {
             this.passwordInput.reset();
         });
         this.listenTo(Events, 'user-idle', this.userIdle);
+        this.listenTo(Events, 'android-resumed', this.androidResumed.bind(this));
+        this.listenTo(
+            Events,
+            'background-lock-started',
+            this.clearPasswordForBackground.bind(this)
+        );
+    }
+
+    clearPasswordForBackground({ model }) {
+        if (model !== this.model || !AndroidPlatform.isAndroid) {
+            return;
+        }
+        this.passwordInput.reset();
+        if (this.inputEl) {
+            this.inputEl.val('');
+            // Keep the existing input handler attached to the reset secure buffer.
+            this.passwordInput.el = this.inputEl;
+        }
+        this.params.password = null;
     }
 
     render() {
@@ -123,7 +144,7 @@ class OpenView extends View {
 
         super.render({
             lastOpenFiles: this.getLastOpenFiles(),
-            canOpenKeyFromDropbox: !Launcher && Storage.dropbox.enabled,
+            canOpenKeyFromDropbox: !Launcher && !!Storage.dropbox && Storage.dropbox.enabled,
             demoOpened: this.model.settings.demoOpened,
             storageProviders,
             unlockMessageRes: this.model.unlockMessageRes,
@@ -167,6 +188,20 @@ class OpenView extends View {
     focusInput(focusOnMobile) {
         if (FocusDetector.hasFocus() && (focusOnMobile || !Features.isMobile)) {
             this.inputEl.focus();
+        }
+    }
+
+    // Called when a file was selected; on Android without a biometric password to offer,
+    // the password field gets focus and the keyboard opens.
+    focusPasswordForFile(feedback = AndroidBiometricFeedback) {
+        const canUseEncryptedPassword = !!this.encryptedPassword && !this.passwordInput.length;
+        if (
+            feedback.shouldFocusPassword({ hasFile: !!this.params.name, canUseEncryptedPassword })
+        ) {
+            this.focusInput(true);
+            feedback.showKeyboard();
+        } else {
+            this.focusInput();
         }
     }
 

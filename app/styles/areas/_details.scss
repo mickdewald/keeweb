@@ -110,6 +110,17 @@
         &-icon-img {
             vertical-align: middle;
         }
+        @include mobile {
+            flex-wrap: nowrap;
+            .details__header-title {
+                flex: 1 1 auto;
+                max-width: none;
+            }
+            .details__header-drag {
+                flex: 0 0 0;
+                min-width: 0;
+            }
+        }
     }
 
     &__colors-popup {

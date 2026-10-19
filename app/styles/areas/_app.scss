@@ -185,3 +185,22 @@
         }
     }
 }
+
+body.android-background-locked > :not(.android-lock-screen) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.android-lock-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-color);
+    color: var(--text-color);
+    padding: $base-padding;
+    text-align: center;
+}

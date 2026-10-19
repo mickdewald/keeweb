@@ -1,0 +1,38 @@
+// Non-modal notice (Android): shown above the page, below modals and tooltips' modal layer.
+.android-notice {
+    position: fixed;
+    left: $small-spacing;
+    right: $small-spacing;
+    bottom: calc(3.5em + env(safe-area-inset-bottom, 0px));
+    z-index: $z-index-no-modal;
+    display: flex;
+    align-items: center;
+    gap: $small-spacing;
+    padding: $medium-padding;
+    background: var(--secondary-background-color);
+    border: 1px solid var(--error-color);
+    border-radius: var(--block-border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    &__text {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    &__action {
+        flex: 0 0 auto;
+        min-height: 44px;
+    }
+    &__close {
+        flex: 0 0 auto;
+        min-width: 44px;
+        padding: 0;
+        min-height: 44px;
+        margin-left: 0;
+        background: transparent;
+        border: none;
+        color: var(--text-color);
+        box-shadow: none;
+    }
+    button ~ button {
+        margin-left: 0;
+    }
+}

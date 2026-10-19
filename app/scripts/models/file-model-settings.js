@@ -3,88 +3,132 @@ import { Events } from 'framework/events';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { ChalRespCalculator } from 'comp/app/chal-resp-calculator';
 import { IconUrlFormat } from 'util/formatting/icon-url-format';
+import { queuePendingMutation } from 'models/file-mutation-tracker';
+
+function setCredentialHash(credentials, propertyName, value) {
+    const privatePropertyName = propertyName === 'passwordHash' ? '_passwordHash' : '_keyFileHash';
+    if (privatePropertyName in credentials) {
+        credentials[privatePropertyName] = value;
+    } else {
+        credentials[propertyName] = value;
+    }
+}
+
+function applyKeyFile(file, keyFile, keyFileName) {
+    return file.db.credentials.setKeyFile(keyFile).then(() => {
+        file.db.meta.keyChanged = new Date();
+        file.set({ keyFileName, keyFileChanged: true });
+        file.setModified();
+    });
+}
 
 const FileModelSettingsMixin = {
     setSyncProgress() {
         this.set({ syncing: true });
     },
 
-    setSyncComplete(path, storage, error) {
-        if (!error) {
+    setSyncComplete(path, storage, error, savedState) {
+        const savedEditVersion = savedState?.editVersion;
+        const staleSave =
+            !error && typeof savedEditVersion === 'number' && savedEditVersion !== this.editVersion;
+        if (!error && !staleSave) {
             this.db.removeLocalEditState();
         }
-        const modified = this.modified && !!error;
+        const modified = staleSave ? this.modified : this.modified && !!error;
         this.set({
             created: false,
             path: path || this.path,
             storage: storage || this.storage,
             modified,
-            dirty: error ? this.dirty : false,
+            dirty: error || staleSave ? this.dirty : false,
             syncing: false,
             syncError: error
         });
 
-        if (!error && this.passwordChanged && this.encryptedPassword) {
+        if (!error && !staleSave && this.passwordChanged && this.encryptedPassword) {
             this.set({
                 encryptedPassword: null,
                 encryptedPasswordDate: null
             });
         }
 
+        const savedCurrentVersion = !staleSave;
         if (!this.open) {
-            return;
+            return savedCurrentVersion;
         }
-        this.setOpenFile({ passwordLength: this.passwordLength });
-        this.forEachEntry({ includeDisabled: true }, (entry) => entry.setSaved());
+        if (!error && !staleSave) {
+            this.setOpenFile({ passwordLength: this.passwordLength });
+            this.forEachEntry({ includeDisabled: true }, (entry) => entry.setSaved());
+        }
+        return savedCurrentVersion;
     },
 
     setPassword(password) {
-        this.db.credentials.setPassword(password);
-        this.db.meta.keyChanged = new Date();
-        this.set({ passwordLength: password.textLength, passwordChanged: true });
-        this.setModified();
+        return queuePendingMutation(this, () =>
+            this.db.credentials.setPassword(password).then(() => {
+                this.db.meta.keyChanged = new Date();
+                this.set({ passwordLength: password.textLength, passwordChanged: true });
+                this.setModified();
+            })
+        );
     },
 
     resetPassword() {
-        this.db.credentials.passwordHash = this.oldPasswordHash;
-        if (this.db.credentials.keyFileHash === this.oldKeyFileHash) {
-            this.db.meta.keyChanged = this.oldKeyChangeDate;
-        }
-        this.set({ passwordLength: this.oldPasswordLength, passwordChanged: false });
-    },
-
-    setKeyFile(keyFile, keyFileName) {
-        this.db.credentials.setKeyFile(keyFile);
-        this.db.meta.keyChanged = new Date();
-        this.set({ keyFileName, keyFileChanged: true });
-        this.setModified();
-    },
-
-    generateAndSetKeyFile() {
-        return kdbxweb.Credentials.createRandomKeyFile().then((keyFile) => {
-            const keyFileName = 'Generated';
-            this.setKeyFile(keyFile, keyFileName);
-            return keyFile;
+        return queuePendingMutation(this, () => {
+            const changed =
+                this.passwordChanged || this.db.credentials.passwordHash !== this.oldPasswordHash;
+            setCredentialHash(this.db.credentials, 'passwordHash', this.oldPasswordHash);
+            if (this.db.credentials.keyFileHash === this.oldKeyFileHash) {
+                this.db.meta.keyChanged = this.oldKeyChangeDate;
+            }
+            this.set({ passwordLength: this.oldPasswordLength, passwordChanged: false });
+            if (changed) {
+                this.setModified();
+            }
         });
     },
 
+    setKeyFile(keyFile, keyFileName) {
+        return queuePendingMutation(this, () => applyKeyFile(this, keyFile, keyFileName));
+    },
+
+    generateAndSetKeyFile() {
+        return queuePendingMutation(this, () =>
+            kdbxweb.Credentials.createRandomKeyFile().then((keyFile) =>
+                applyKeyFile(this, keyFile, 'Generated').then(() => keyFile)
+            )
+        );
+    },
+
     resetKeyFile() {
-        this.db.credentials.keyFileHash = this.oldKeyFileHash;
-        if (this.db.credentials.passwordHash === this.oldPasswordHash) {
-            this.db.meta.keyChanged = this.oldKeyChangeDate;
-        }
-        this.set({ keyFileName: this.oldKeyFileName, keyFileChanged: false });
+        return queuePendingMutation(this, () => {
+            const changed =
+                this.keyFileChanged || this.db.credentials.keyFileHash !== this.oldKeyFileHash;
+            setCredentialHash(this.db.credentials, 'keyFileHash', this.oldKeyFileHash);
+            if (this.db.credentials.passwordHash === this.oldPasswordHash) {
+                this.db.meta.keyChanged = this.oldKeyChangeDate;
+            }
+            this.set({ keyFileName: this.oldKeyFileName, keyFileChanged: false });
+            if (changed) {
+                this.setModified();
+            }
+        });
     },
 
     removeKeyFile() {
-        this.db.credentials.setKeyFile(null);
-        const changed = !!this.oldKeyFileHash;
-        if (!changed && this.db.credentials.passwordHash === this.oldPasswordHash) {
-            this.db.meta.keyChanged = this.oldKeyChangeDate;
-        }
-        this.set({ keyFileName: '', keyFilePath: '', keyFileChanged: changed });
-        Events.emit('unset-keyfile', this.id);
-        this.setModified();
+        return queuePendingMutation(this, () =>
+            this.db.credentials.setKeyFile(null).then(() => {
+                const changed = !!this.oldKeyFileHash;
+                if (changed) {
+                    this.db.meta.keyChanged = new Date();
+                } else if (this.db.credentials.passwordHash === this.oldPasswordHash) {
+                    this.db.meta.keyChanged = this.oldKeyChangeDate;
+                }
+                this.set({ keyFileName: '', keyFilePath: '', keyFileChanged: changed });
+                Events.emit('unset-keyfile', this.id);
+                this.setModified();
+            })
+        );
     },
 
     isKeyChangePending(force) {

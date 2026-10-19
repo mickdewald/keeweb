@@ -1,0 +1,16 @@
+{
+    "appId": "com.mickdewald.keeweb",
+    "appName": "KeeWeb",
+    "webDir": "tmp/android-www",
+    "android": {
+        "allowMixedContent": false,
+        "captureInput": false
+    },
+    "loggingBehavior": "none",
+    "plugins": {
+        "Keyboard": {
+            "resize": "native",
+            "resizeOnFullScreen": false
+        }
+    }
+}

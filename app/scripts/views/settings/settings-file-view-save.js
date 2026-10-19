@@ -6,6 +6,7 @@ import { FileSaver } from 'util/ui/file-saver';
 import { Locale } from 'util/locale';
 import { OpenConfigView } from 'views/open-config-view';
 import { omit } from 'util/fn';
+import { waitForPendingMutations } from 'models/file-mutation-tracker';
 
 const SettingsFileSaveMixin = {
     validatePassword(continueCallback) {
@@ -55,7 +56,19 @@ const SettingsFileSaveMixin = {
         if (skipValidation !== true && !this.validatePassword(this.saveToFile.bind(this, true))) {
             return;
         }
-        const fileName = this.model.name + '.kdbx';
+        const file = this.model;
+        if (file.pendingMutations) {
+            waitForPendingMutations(file, () => {
+                if (this.model === file && file.active !== false) {
+                    this.saveToFile(true);
+                }
+            });
+            return;
+        }
+        if (file.active === false) {
+            return;
+        }
+        const fileName = file.name + '.kdbx';
         if (Launcher && !this.model.storage) {
             Launcher.getSaveFileName(fileName, (path) => {
                 if (path) {
@@ -63,7 +76,14 @@ const SettingsFileSaveMixin = {
                 }
             });
         } else {
-            this.model.getData((data) => {
+            const serializationEditVersion = file.editVersion;
+            file.getData((data) => {
+                if (file !== this.model || file.editVersion !== serializationEditVersion) {
+                    if (file === this.model) {
+                        this.saveToFile(true);
+                    }
+                    return;
+                }
                 if (!data) {
                     return;
                 }
@@ -83,10 +103,22 @@ const SettingsFileSaveMixin = {
                     });
                 } else {
                     const blob = new Blob([data], { type: 'application/octet-stream' });
-                    FileSaver.saveAs(blob, fileName);
+                    this.saveExportBlob(blob, fileName, serializationEditVersion, {
+                        protectedUris:
+                            file.storage === 'androiddoc' && file.path?.startsWith('content://')
+                                ? [file.path]
+                                : []
+                    });
                 }
             });
         }
+    },
+
+    saveExportBlob(blob, name, serializationEditVersion, options) {
+        return FileSaver.saveAs(blob, name, options).then((result) => ({
+            ...result,
+            serializationEditVersion
+        }));
     },
 
     saveToXml() {
@@ -96,7 +128,7 @@ const SettingsFileSaveMixin = {
             success: () => {
                 this.model.getXml((xml) => {
                     const blob = new Blob([xml], { type: 'text/xml' });
-                    FileSaver.saveAs(blob, this.model.name + '.xml');
+                    this.saveExportBlob(blob, this.model.name + '.xml', this.model.editVersion);
                 });
             }
         });
@@ -109,7 +141,7 @@ const SettingsFileSaveMixin = {
             success: () => {
                 this.model.getHtml((html) => {
                     const blob = new Blob([html], { type: 'text/html' });
-                    FileSaver.saveAs(blob, this.model.name + '.html');
+                    this.saveExportBlob(blob, this.model.name + '.html', this.model.editVersion);
                 });
             }
         });
@@ -195,6 +227,10 @@ const SettingsFileSaveMixin = {
     },
 
     closeFile() {
+        if (this.model.pendingMutations) {
+            waitForPendingMutations(this.model, () => this.closeFile());
+            return;
+        }
         if (this.model.modified) {
             Alerts.yesno({
                 header: Locale.setFileUnsaved,

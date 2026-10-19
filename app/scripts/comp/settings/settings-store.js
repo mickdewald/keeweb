@@ -23,9 +23,7 @@ const SettingsStore = {
 
     save(key, data) {
         if (Launcher) {
-            return Launcher.saveConfig(key, JSON.stringify(data)).catch((err) => {
-                logger.error(`Error saving ${key}`, err);
-            });
+            return Launcher.saveConfig(key, JSON.stringify(data));
         }
         return Promise.resolve().then(() => {
             if (typeof localStorage !== 'undefined') {

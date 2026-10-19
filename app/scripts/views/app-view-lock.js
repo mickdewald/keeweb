@@ -2,6 +2,7 @@ import { Events } from 'framework/events';
 import { Launcher } from 'comp/launcher';
 import { Alerts } from 'comp/ui/alerts';
 import { Locale } from 'util/locale';
+import * as BackgroundLockState from 'models/background-lock-state';
 
 const AppViewLockMixin = {
     launcherBeforeQuit() {
@@ -116,19 +117,24 @@ const AppViewLockMixin = {
         }
     },
 
-    appMinimized() {
-        if (this.model.settings.lockOnMinimize) {
-            this.lockWorkspace(true);
+    appMinimized(options) {
+        if (this.model.settings.lockOnMinimize || options?.forceSave) {
+            this.lockWorkspace(true, options);
         }
     },
 
-    lockWorkspace(autoInit) {
+    lockWorkspace(autoInit, options = {}) {
         if (Alerts.alertDisplayed) {
             return;
         }
-        if (this.model.files.hasUnsavedFiles()) {
-            if (this.model.settings.autoSave) {
-                this.saveAndLock();
+        if (options.forceSave) {
+            this.saveAndLock(null, this.getBackgroundLockSaveOptions(options));
+        } else if (this.model.files.hasUnsavedFiles()) {
+            if (this.model.settings.autoSave || options.forceSave) {
+                this.saveAndLock(
+                    null,
+                    options.forceSave ? this.getBackgroundLockSaveOptions(options) : options
+                );
             } else {
                 const message = autoInit ? Locale.appCannotLockAutoInit : Locale.appCannotLock;
                 Alerts.alert({
@@ -159,68 +165,144 @@ const AppViewLockMixin = {
     },
 
     saveAndLock(complete, options) {
-        let pendingCallbacks = 0;
+        options = options || {};
+        const useBackgroundLockBoundary = Boolean(
+            options?.cacheOnly || options?.forceSave || typeof options?.lockGeneration === 'number'
+        );
+        const lockGeneration = useBackgroundLockBoundary
+            ? this.beginBackgroundLockBoundary(options.lockGeneration)
+            : null;
         const errorFiles = [];
-        this.model.files.forEach(function (file) {
-            if (!file.dirty) {
-                return;
-            }
-            this.model.syncFile(file, null, fileSaved.bind(this, file));
-            pendingCallbacks++;
-        }, this);
-        if (!pendingCallbacks) {
-            this.closeAllFilesAndShowFirst();
-        }
-        function fileSaved(file, err) {
-            if (err) {
-                errorFiles.push(file.name);
-            }
-            if (--pendingCallbacks === 0) {
-                if (errorFiles.length && this.model.files.hasDirtyFiles()) {
-                    if (!Alerts.alertDisplayed) {
-                        const buttons = [Alerts.buttons.ok];
-                        const errorStr =
-                            errorFiles.length > 1
-                                ? Locale.appSaveErrorBodyMul
-                                : Locale.appSaveErrorBody;
-                        let body = errorStr + ' ' + errorFiles.join(', ') + '.';
-                        if (options?.appClosing) {
-                            buttons.unshift({
-                                result: 'ignore',
-                                title: Locale.appSaveErrorExitLoseChanges,
-                                error: true
-                            });
-                            body += '\n' + Locale.appSaveErrorExitLoseChangesBody;
-                        }
-                        Alerts.error({
-                            header: Locale.appSaveError,
-                            body,
-                            buttons,
-                            complete: (res) => {
-                                if (res === 'ignore') {
-                                    this.model.closeAllFiles();
-                                    if (complete) {
-                                        complete(true);
-                                    }
-                                } else {
-                                    if (complete) {
-                                        complete(false);
-                                    }
-                                }
-                            }
-                        });
+        const saveFile = options?.cacheOnly
+            ? (file, callback) => this.model.cacheFileForLock(file, callback)
+            : (file, callback) => {
+                  if (file.syncing && file.once) {
+                      file.once('change:syncing', (_file, syncing) => {
+                          if (!syncing) {
+                              Promise.resolve().then(() => saveFile(file, callback));
+                          }
+                      });
+                      return;
+                  }
+                  this.model.syncFile(file, null, callback);
+              };
+        const savePending = () => {
+            let pendingCallbacks = 0;
+            const filesToSave = this.getFilesToSaveBeforeLock(options);
+            pendingCallbacks = filesToSave.length;
+            filesToSave.forEach((file) =>
+                saveFile(file, (err) => {
+                    if (file.lockCacheInProgress) {
+                        Promise.resolve().then(() => fileSaved.call(this, file, err));
                     } else {
-                        if (complete) {
-                            complete(false);
-                        }
+                        fileSaved.call(this, file, err);
                     }
-                } else {
-                    this.closeAllFilesAndShowFirst();
-                    if (complete) {
-                        complete(true);
+                })
+            );
+            if (!filesToSave.length) {
+                this.closeAllFilesAndShowFirst();
+                if (useBackgroundLockBoundary) {
+                    this.finishBackgroundLockBoundary(lockGeneration);
+                }
+                if (complete) {
+                    complete(true);
+                }
+            }
+            function fileSaved(file, err) {
+                if (err) {
+                    errorFiles.push(file.name);
+                }
+                if (--pendingCallbacks === 0) {
+                    if (
+                        errorFiles.length &&
+                        (options?.cacheOnly || this.model.files.hasDirtyFiles())
+                    ) {
+                        if (useBackgroundLockBoundary) {
+                            Events.emit('background-lock-failed', {
+                                model: this.model,
+                                generation: lockGeneration
+                            });
+                        }
+                        this.showLockSaveError(errorFiles, options, complete);
+                    } else {
+                        savePending();
                     }
                 }
             }
+        };
+        savePending();
+    },
+
+    beginBackgroundLockBoundary(lockGeneration) {
+        const generation =
+            typeof lockGeneration === 'number'
+                ? BackgroundLockState.activateBackgroundLock(this.model, lockGeneration)
+                : BackgroundLockState.beginBackgroundLock(this.model);
+        this.$el?.addClass('app--background-locking');
+        return generation;
+    },
+
+    finishBackgroundLockBoundary(generation) {
+        BackgroundLockState.finishBackgroundLock(this.model, generation);
+        this.$el?.removeClass('app--background-locking');
+    },
+
+    getBackgroundLockSaveOptions(options = {}) {
+        return { ...options, cacheOnly: true };
+    },
+
+    getFilesToSaveBeforeLock(options) {
+        if (!this.model.files.filter) {
+            return [];
+        }
+        return this.model.files.filter((file) => {
+            if (file.demo || file.active === false) {
+                return false;
+            }
+            if (options?.cacheOnly) {
+                return (
+                    file.pendingMutations ||
+                    file.syncing ||
+                    file.lockCacheInProgress ||
+                    (file.dirty && typeof file.editVersion !== 'number') ||
+                    file.lockCacheEditVersion !== file.editVersion
+                );
+            }
+            return file.dirty || file.pendingMutations || file.syncing;
+        });
+    },
+
+    showLockSaveError(errorFiles, options, complete) {
+        if (!Alerts.alertDisplayed) {
+            const buttons = [Alerts.buttons.ok];
+            const errorStr =
+                errorFiles.length > 1 ? Locale.appSaveErrorBodyMul : Locale.appSaveErrorBody;
+            let body = errorStr + ' ' + errorFiles.join(', ') + '.';
+            if (options?.appClosing) {
+                buttons.unshift({
+                    result: 'ignore',
+                    title: Locale.appSaveErrorExitLoseChanges,
+                    error: true
+                });
+                body += '\n' + Locale.appSaveErrorExitLoseChangesBody;
+            }
+            Alerts.error({
+                header: Locale.appSaveError,
+                body,
+                buttons,
+                complete: (res) => {
+                    if (res === 'ignore') {
+                        this.model.closeAllFiles();
+                        if (complete) {
+                            complete(true);
+                        }
+                    } else if (complete) {
+                        complete(false);
+                    }
+                }
+            });
+        } else if (complete) {
+            complete(false);
         }
     },
 

@@ -1,3 +1,10 @@
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
+import { AndroidBiometricFeedback } from 'comp/platform/android/android-biometric-feedback';
+import {
+    getBackgroundLockGeneration,
+    isOpenAllowedForGeneration
+} from 'models/background-lock-state';
+
 function createOpenViewOperationsMixin({
     kdbxweb,
     Events,
@@ -41,11 +48,26 @@ function createOpenViewOperationsMixin({
             if (this.busy || !this.params.name) {
                 return;
             }
+            const generation = getBackgroundLockGeneration(this.model);
+            if (!isOpenAllowedForGeneration(this.model, generation)) {
+                return;
+            }
+            const params = { ...this.params, openLockGeneration: generation };
+            const openAuthenticated = () => {
+                if (!isOpenAllowedForGeneration(this.model, generation)) {
+                    params.password?.value?.fill(0);
+                    params.password?.salt?.fill(0);
+                    params.password = null;
+                    this.openDbComplete({ userCanceled: true });
+                    return;
+                }
+                this.model.openFile(params, (err) => this.openDbComplete(err));
+            };
             this.$el.toggleClass('open--opening', true);
             this.inputEl.attr('disabled', 'disabled');
             this.busy = true;
-            this.params.password = this.passwordInput.value;
-            if (this.encryptedPassword && !this.params.password.length) {
+            params.password = this.passwordInput.value;
+            if (this.encryptedPassword && !params.password.length) {
                 logger.debug('Encrypting password using hardware decryption');
                 const touchIdPrompt = Locale.bioOpenAuthPrompt.replace('{}', this.params.name);
                 const encryptedPassword = kdbxweb.ProtectedValue.fromBase64(
@@ -56,13 +78,16 @@ function createOpenViewOperationsMixin({
                     .then((password) => {
                         Events.emit('hardware-decrypt-finished');
 
-                        this.params.password = password;
-                        this.params.encryptedPassword = this.encryptedPassword;
-                        this.model.openFile(this.params, (err) => this.openDbComplete(err));
+                        params.password = password;
+                        params.encryptedPassword = this.encryptedPassword;
+                        openAuthenticated();
                     })
                     .catch((err) => {
                         Events.emit('hardware-decrypt-finished');
-                        if (err.message.includes('User refused')) {
+                        if (
+                            err.message.includes('User refused') ||
+                            AndroidBiometricFeedback.isSoftError(err)
+                        ) {
                             err.userCanceled = true;
                         } else if (TouchIdRecovery.handleDecryptionError(err, this.params.id)) {
                             err.touchIdRecoveryRequired = true;
@@ -72,10 +97,8 @@ function createOpenViewOperationsMixin({
                         this.openDbComplete(err);
                     });
             } else {
-                this.params.encryptedPassword = null;
-                this.afterPaint(() => {
-                    this.model.openFile(this.params, (err) => this.openDbComplete(err));
-                });
+                params.encryptedPassword = null;
+                this.afterPaint(openAuthenticated);
             }
         },
 
@@ -92,7 +115,9 @@ function createOpenViewOperationsMixin({
                 if (err.code === 'InvalidKey') {
                     InputFx.shake(this.inputEl);
                 } else if (err.userCanceled) {
-                    // nothing to do
+                    if (AndroidPlatform.isAndroid) {
+                        AndroidBiometricFeedback.show(this.el, err);
+                    }
                 } else if (err.touchIdRecoveryRequired) {
                     this.displayOpenDeviceOwnerAuth();
                     TouchIdRecovery.showRequiredAlert(() => this.focusInput(true));
@@ -107,6 +132,10 @@ function createOpenViewOperationsMixin({
                     });
                 }
             } else {
+                if (AndroidPlatform.isAndroid) {
+                    // The keyboard opened for the password must not outlive the open view.
+                    AndroidBiometricFeedback.hideKeyboard();
+                }
                 this.emit('close');
             }
         },
@@ -115,18 +144,27 @@ function createOpenViewOperationsMixin({
             if (this.busy || !this.params.name) {
                 return;
             }
+            const generation = getBackgroundLockGeneration(this.model);
+            if (!isOpenAllowedForGeneration(this.model, generation)) {
+                return;
+            }
+            const params = { ...this.params, openLockGeneration: generation };
             this.$el.toggleClass('open--opening', true);
             this.inputEl.attr('disabled', 'disabled');
             this.busy = true;
-            this.afterPaint(() =>
-                this.model.importFileWithXml(this.params, (err) => {
+            this.afterPaint(() => {
+                if (!isOpenAllowedForGeneration(this.model, generation)) {
+                    this.openDbComplete({ userCanceled: true });
+                    return;
+                }
+                this.model.importFileWithXml(params, (err) => {
                     if (err) {
                         this.params.name = '';
                         this.params.fileXml = null;
                     }
                     this.openDbComplete(err);
-                })
-            );
+                });
+            });
         },
 
         toggleMore() {
@@ -151,6 +189,20 @@ function createOpenViewOperationsMixin({
             }
             if (storage.needShowOpenConfig && storage.needShowOpenConfig()) {
                 this.showConfig(storage);
+            } else if (storage.pick) {
+                storage.pick((err, file) => {
+                    if (err) {
+                        if (err.code !== 'CANCELED') {
+                            Alerts.error({
+                                header: Locale.openError,
+                                body: Locale.openErrorDescription,
+                                pre: err.message
+                            });
+                        }
+                    } else if (file) {
+                        this.openStorageFile(storage, file);
+                    }
+                });
             } else if (storage.list) {
                 this.listStorage(storage);
             } else {

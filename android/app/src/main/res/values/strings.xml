@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KeeWeb</string>
+    <string name="title_activity_main">KeeWeb</string>
+    <string name="package_name">com.mickdewald.keeweb</string>
+    <string name="custom_url_scheme">com.mickdewald.keeweb</string>
+</resources>

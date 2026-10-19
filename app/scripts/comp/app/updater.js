@@ -3,6 +3,7 @@ import { Events } from 'framework/events';
 import { RuntimeInfo } from 'const/runtime-info';
 import { Transport } from 'comp/browser/transport';
 import { Launcher } from 'comp/launcher';
+import { AndroidPlatform } from 'comp/platform/android/android-platform';
 import { Links } from 'const/links';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { UpdateModel } from 'models/update-model';
@@ -11,6 +12,10 @@ import { Logger } from 'util/logger';
 import { SignatureVerifier } from 'util/data/signature-verifier';
 
 const logger = new Logger('updater');
+
+function shouldRegisterServiceWorker({ launcher, isAndroid, serviceWorker, beta, devMode }) {
+    return !!(!launcher && !isAndroid && serviceWorker && !beta && !devMode);
+}
 
 const Updater = {
     UpdateInterval: 1000 * 60 * 60 * 24,
@@ -40,7 +45,15 @@ const Updater = {
 
     init() {
         this.scheduleNextCheck();
-        if (!Launcher && navigator.serviceWorker && !RuntimeInfo.beta && !RuntimeInfo.devMode) {
+        if (
+            shouldRegisterServiceWorker({
+                launcher: Launcher,
+                isAndroid: AndroidPlatform.isAndroid,
+                serviceWorker: navigator.serviceWorker,
+                beta: RuntimeInfo.beta,
+                devMode: RuntimeInfo.devMode
+            })
+        ) {
             navigator.serviceWorker
                 .register('service-worker.js')
                 .then((reg) => {
@@ -303,4 +316,4 @@ const Updater = {
     }
 };
 
-export { Updater };
+export { Updater, shouldRegisterServiceWorker };

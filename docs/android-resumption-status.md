@@ -44,14 +44,15 @@ source review, not an audit of all historical dependencies.
 - The existing local and independently pulled installed Debug APK both have SHA-256
   `d0a06f0561c99b04df4c5fa7e57fee72e3ab592d01b4f71a165bf48abc6df7bd`.
   This confirms the installed historical build, not the newly integrated source.
-- A fresh Debug build and compiled-APK credential scan passed. New APK SHA-256:
-  `77d804055978408ac73caff75cf097d1cd858966b71a0f801816d9e856df4f9a`.
-  It is not installed and has no new physical acceptance. Native instrumentation
-  and emulator E2E remain pending: after the phone was disconnected, another task
-  started `QuietControlUi` (`emulator-5554`). The only-device guard aborted before
-  instrumentation and stopped its own `KeeWebSpike` emulator; it was not bypassed
-  and the other task's emulator was not stopped. The 49-native-test/five-E2E result from October 1 is
-  historical evidence only.
+- The guarded `npm run android:verify` passed on 2026-10-20 local time:
+  49 native tests, zero failures/errors/skips, all five emulator E2E flows,
+  and the compiled-APK credential scan. The only-device guard was retained;
+  the other task released its emulator before this run. KeeWebSpike was stopped
+  by the wrapper after completion.
+- Final Debug APK SHA-256:
+  `3b449e805fcaf8ce23691b83cd0252e02593b75d84dd8fe8e35c3cb7f426ffca`.
+  This fresh build is not installed on the physical phone and has no current
+  physical acceptance.
 
 ## Release and provider boundaries
 

@@ -179,10 +179,10 @@
     "electron@43.4.0": true
   },
   "devDependencies": {
-    "@capacitor/android": "8.5.2",
-    "@capacitor/app": "8.1.1",
-    "@capacitor/cli": "8.5.2",
-    "@capacitor/core": "8.5.2",
-    "@capacitor/keyboard": "8.0.5"
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/cli": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/keyboard": "8.0.6"
   }
 }

@@ -1,5 +1,9 @@
 # Abschließender Astra-Review — 2026-10-01
 
+> Historischer Review-Verlauf: Die abschließende Same-file-Geräteprüfung am Ende
+> dieses Dokuments ersetzt frühere Readonly-/Kopie-Blocker. Den aktuellen Review
+> und die neuen Prüfungen dokumentiert [android-resumption-status.md](android-resumption-status.md).
+
 Reviewer: interner Agent mit ausdrücklich gewähltem **GPT-6 Astra**, ausschließlich lesender Review.
 Stand: `codex/android-predevice-hardening` im Worktree `keeweb-android-spec`, auf Basis von
 `2c00bfc2ed978613f63cfbe10ea7dfa811d2d54d`, einschließlich der lokalen uncommitted und untracked Änderungen.

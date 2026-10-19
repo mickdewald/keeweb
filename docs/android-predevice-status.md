@@ -1,5 +1,10 @@
 # Android pre-device status — 2026-10-01
 
+> Historical progress log. Later sections and the final physical acceptance in
+> [android-device-acceptance.md](android-device-acceptance.md) supersede the early
+> read-only/copy-only statements below. For the resumed work, current checks and
+> remaining release gates, see [android-resumption-status.md](android-resumption-status.md).
+
 Worktree: `keeweb-android-spec`, branch `codex/android-predevice-hardening`, based on
 `2c00bfc2ed978613f63cfbe10ea7dfa811d2d54d`. Changes are local and uncommitted.
 Nothing has been pushed or released. The reviewed Debug APK has subsequently been installed on the

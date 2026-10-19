@@ -8,6 +8,15 @@ All Gradle work needs JDK 21; the scripts source `scripts/android/env.sh` for yo
 
 ## One-time keystore setup
 
+The following original setup recipe predates the current OpenBao signing policy.
+Do not provision an agent release credential only in Keychain. Initial KeeWeb
+release provisioning must first establish durable signing material and a scoped
+OpenBao reader for this application; preserve any existing signing identity.
+The current shared Android signing identity covers only named `turbo-rn` apps,
+not KeeWeb. See [the continuation status](android-resumption-status.md) for this
+release blocker. The legacy commands below are retained for existing manual
+setups, not as an unattended agent provisioning path.
+
 Create the release keystore once, with the alias `keeweb`:
 
 ```sh

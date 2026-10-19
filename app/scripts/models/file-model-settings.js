@@ -56,7 +56,7 @@ const FileModelSettingsMixin = {
         if (!this.open) {
             return savedCurrentVersion;
         }
-        if (!staleSave) {
+        if (!error && !staleSave) {
             this.setOpenFile({ passwordLength: this.passwordLength });
             this.forEachEntry({ includeDisabled: true }, (entry) => entry.setSaved());
         }
@@ -119,7 +119,9 @@ const FileModelSettingsMixin = {
         return queuePendingMutation(this, () =>
             this.db.credentials.setKeyFile(null).then(() => {
                 const changed = !!this.oldKeyFileHash;
-                if (!changed && this.db.credentials.passwordHash === this.oldPasswordHash) {
+                if (changed) {
+                    this.db.meta.keyChanged = new Date();
+                } else if (this.db.credentials.passwordHash === this.oldPasswordHash) {
                     this.db.meta.keyChanged = this.oldKeyChangeDate;
                 }
                 this.set({ keyFileName: '', keyFilePath: '', keyFileChanged: changed });

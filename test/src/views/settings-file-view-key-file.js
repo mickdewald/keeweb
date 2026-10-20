@@ -16,8 +16,7 @@ describe('SettingsFileView key-file selection', () => {
             }
         };
         const view = { model: file, keyFileSelectionId: 0, renderKeyFileSelect() {} };
-        const selectedFile = new Blob([new Uint8Array([107, 101, 121])]);
-        selectedFile.name = 'picked.key';
+        const selectedFile = new File([new Uint8Array([107, 101, 121])], 'picked.key');
 
         SettingsFileView.prototype.fileSelected.call(view, { target: { files: [selectedFile] } });
         await new Promise((resolve) => setTimeout(resolve, 0));

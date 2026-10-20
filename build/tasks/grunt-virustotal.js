@@ -1,12 +1,12 @@
 module.exports = function (grunt) {
+    const { createVirusTotalUpload } = require('./virustotal-client');
+
     grunt.registerMultiTask('virustotal', 'Checks if a file has issues on VirusTotal', function () {
         const done = this.async();
         const opt = this.options();
 
         const path = require('path');
         const fs = require('fs');
-        const fetch = require('node-fetch');
-        const FormData = require('form-data');
 
         Promise.all(
             this.files[0].src.map((file) =>
@@ -28,9 +28,7 @@ module.exports = function (grunt) {
 
             const fileData = fs.readFileSync(file);
             const fileName = (prefix || '') + path.basename(file);
-
-            const form = new FormData();
-            form.append('file', fileData, fileName);
+            const { fetch, form } = await createVirusTotalUpload(fileData, fileName);
             const fileUploadResp = await fetch('https://www.virustotal.com/api/v3/files', {
                 method: 'POST',
                 headers,

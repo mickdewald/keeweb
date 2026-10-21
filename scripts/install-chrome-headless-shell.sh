@@ -19,10 +19,12 @@ curl --fail --location --retry 1 --retry-all-errors --connect-timeout 30 --max-t
 actual_sha256="$(shasum -a 256 "$archive" | awk '{print $1}')"
 [[ "$actual_sha256" == "$CHROME_SHA256" ]] || fail 'archive checksum mismatch'
 unzip -t "$archive" >/dev/null
-if unzip -Z -1 "$archive" | grep -E '(^/|(^|/)\.\.(/|$))' >/dev/null; then
+archive_entries="$(unzip -Z -1 "$archive")"
+if printf '%s\n' "$archive_entries" | grep -E '(^/|(^|/)\.\.(/|$))' >/dev/null; then
     fail 'archive contains an unsafe entry path'
 fi
-if zipinfo -l "$archive" | awk 'NR > 2 && $1 ~ /^l/ { found=1 } END { exit !found }'; then
+archive_listing="$(zipinfo -l "$archive")"
+if printf '%s\n' "$archive_listing" | awk 'NR > 2 && $1 ~ /^l/ { found=1 } END { exit !found }'; then
     fail 'archive contains a symbolic-link entry'
 fi
 mkdir "$extract"
@@ -34,6 +36,6 @@ chrome_count="$(find "$extract" -type f -path '*/chrome-headless-shell' -perm -1
 [[ "$chrome_count" == 1 ]] || fail 'expected exactly one executable Chrome headless shell'
 chrome_bin="$extract/chrome-headless-shell-mac-arm64/chrome-headless-shell"
 [[ -f "$chrome_bin" && ! -L "$chrome_bin" && -x "$chrome_bin" ]] || fail 'expected Chrome executable is missing'
-chrome_version="$($chrome_bin --version)"
+chrome_version="$("$chrome_bin" --version)"
 [[ "$chrome_version" == "Google Chrome for Testing ${CHROME_VERSION}" ]] || fail "unexpected Chrome version: ${chrome_version}"
 printf 'CHROME_BIN=%s\n' "$chrome_bin" >> "$GITHUB_ENV"

@@ -30,12 +30,12 @@ class EntrySearch {
             } else if (filter.textLowerParts) {
                 const parts = filter.textLowerParts;
                 for (let i = 0; i < parts.length; i++) {
-                    if (this.model.searchText.indexOf(parts[i]) < 0) {
+                    if (!this.matchesText(parts[i])) {
                         return false;
                     }
                 }
             } else {
-                if (this.model.searchText.indexOf(filter.textLower) < 0) {
+                if (!this.matchesText(filter.textLower)) {
                     return false;
                 }
             }
@@ -71,6 +71,18 @@ class EntrySearch {
             }
         }
         return true;
+    }
+
+    matchesText(text) {
+        if ((this.model.searchText || '').indexOf(text) >= 0) {
+            return true;
+        }
+        if (!this.model.fields) {
+            return false;
+        }
+        return Object.keys(this.model.fields).some(
+            (field) => BuiltInFields.indexOf(field) < 0 && field.toLowerCase().indexOf(text) >= 0
+        );
     }
 
     matchesAdv(filter) {

@@ -1,3 +1,12 @@
+function isInRecycleBin(group, recycleBinUuid) {
+    for (let current = group; current; current = current.parentGroup) {
+        if (recycleBinUuid && current.uuid.equals(recycleBinUuid)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const EntryModelTrashHistoryMixin = {
     deleteHistory(historyEntry) {
         const ix = this.entry.history.indexOf(historyEntry);
@@ -50,7 +59,7 @@ const EntryModelTrashHistoryMixin = {
         let group = this.entry.previousParentGroup
             ? db.getGroup(this.entry.previousParentGroup)
             : null;
-        if (!group || (db.meta.recycleBinUuid && group.uuid.equals(db.meta.recycleBinUuid))) {
+        if (!group || isInRecycleBin(group, db.meta.recycleBinUuid)) {
             group = db.getDefaultGroup();
         }
         db.move(this.entry, group);

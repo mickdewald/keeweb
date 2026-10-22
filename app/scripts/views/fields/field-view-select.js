@@ -3,6 +3,7 @@ import { escape } from 'util/fn';
 
 class FieldViewSelect extends FieldView {
     readonly = true;
+    canCopy = false;
 
     renderValue(value) {
         return (

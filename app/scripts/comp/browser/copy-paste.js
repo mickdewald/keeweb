@@ -1,4 +1,3 @@
-import { Events } from 'framework/events';
 import { Launcher } from 'comp/launcher';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { AndroidPlatform } from 'comp/platform/android/android-platform';
@@ -7,24 +6,16 @@ import { AndroidClipboard } from 'comp/platform/android/android-clipboard';
 const CopyPaste = {
     simpleCopy: !!(Launcher && Launcher.clipboardSupported) || AndroidPlatform.isAndroid,
 
-    copy(text) {
+    async copy(text) {
         if (AndroidPlatform.isAndroid) {
             return AndroidClipboard.copy(text, AppSettingsModel.clipboardSeconds);
         }
         if (this.simpleCopy) {
-            Launcher.setClipboardText(text);
             const clipboardSeconds = AppSettingsModel.clipboardSeconds;
-            if (clipboardSeconds > 0) {
-                const clearClipboard = () => {
-                    if (Launcher.getClipboardText() === text) {
-                        Launcher.clearClipboardText();
-                    }
-                };
-                Events.on('main-window-will-close', clearClipboard);
-                setTimeout(() => {
-                    clearClipboard();
-                    Events.off('main-window-will-close', clearClipboard);
-                }, clipboardSeconds * 1000);
+            try {
+                await Launcher.setClipboardText(text, clipboardSeconds);
+            } catch (error) {
+                return false;
             }
             return { success: true, seconds: clipboardSeconds };
         } else {

@@ -28,6 +28,8 @@ class FieldView extends View {
         'click .details__field-options': 'fieldOptionsClick'
     };
 
+    canCopy = true;
+
     constructor(model, options) {
         super(model, options);
         this.once('remove', () => {
@@ -51,7 +53,7 @@ class FieldView extends View {
             canEditTitle: this.model.newField,
             canGen: this.model.canGen,
             protect: this.value && this.value.isProtected,
-            canCopy: !Features.isMobile && !!renderedValue,
+            canCopy: !Features.isMobile && this.canCopy && !!renderedValue,
             hasOptions: !Features.isMobile && renderedValue && this.hasOptions
         });
         this.valueEl = this.$el.find('.details__field-value');
@@ -105,12 +107,13 @@ class FieldView extends View {
 
     copyBtnClick(e) {
         e.stopPropagation();
-        this.copyAnchorEl = e.target.closest('.details__field-copy');
-        this.copyValue();
-        this.copyAnchorEl = null;
+        this.copyValue(e.target.closest('.details__field-copy'));
     }
 
-    copyValue() {
+    async copyValue(copyAnchorEl = null) {
+        if (!this.canCopy) {
+            return;
+        }
         const field = this.model.name;
         let copyRes;
         if (field) {
@@ -121,8 +124,15 @@ class FieldView extends View {
             if (!CopyPaste.simpleCopy) {
                 CopyPaste.createHiddenInput(text);
             }
-            copyRes = CopyPaste.copy(text);
-            this.emit('copy', { source: this, copyRes });
+            copyRes = await CopyPaste.copy(text);
+            if (this.removed) {
+                return;
+            }
+            if (copyRes?.success) {
+                this.emit('copy', { source: this, copyRes, copyAnchorEl });
+            } else {
+                this.emit('copy-failed', { source: this, copyAnchorEl });
+            }
             return;
         }
         if (!this.value) {
@@ -133,10 +143,15 @@ class FieldView extends View {
         range.selectNodeContents(this.valueEl[0]);
         selection.removeAllRanges();
         selection.addRange(range);
-        copyRes = CopyPaste.copy(this.valueEl[0].innerText || this.valueEl.text());
-        if (copyRes) {
+        copyRes = await CopyPaste.copy(this.valueEl[0].innerText || this.valueEl.text());
+        if (this.removed) {
+            return;
+        }
+        if (copyRes?.success) {
             selection.removeAllRanges();
-            this.emit('copy', { source: this, copyRes });
+            this.emit('copy', { source: this, copyRes, copyAnchorEl });
+        } else {
+            this.emit('copy-failed', { source: this, copyAnchorEl });
         }
     }
 

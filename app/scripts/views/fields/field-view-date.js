@@ -17,6 +17,10 @@ class FieldViewDate extends FieldViewText {
         return value ? DateFormat.dStr(value) : '';
     }
 
+    getTextValue() {
+        return this.getEditValue(this.value);
+    }
+
     startEdit() {
         super.startEdit();
         this.picker = new Pikaday({

@@ -217,6 +217,7 @@ class DetailsHistoryView extends View {
             fieldView.parent = this.bodyEl[0];
             fieldView.render();
             fieldView.on('copy', this.fieldCopied.bind(this));
+            fieldView.on('copy-failed', this.fieldCopyFailed.bind(this));
         });
         const buttons = this.$el.find('.details__history-buttons');
         buttons.find('.details__history-button-revert').toggle(ix < this.history.length - 1);

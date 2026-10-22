@@ -189,18 +189,8 @@ const Launcher = {
         this.remoteApp().cancelPrivateUpdate();
         this.pendingUpdateFile = undefined;
     },
-    setClipboardText(text) {
-        return this.electron().clipboard.writeText(text);
-    },
-    getClipboardText() {
-        return this.electron().clipboard.readText();
-    },
-    clearClipboardText() {
-        const { clipboard } = this.electron();
-        clipboard.clear();
-        if (process.platform === 'linux') {
-            clipboard.clear('selection');
-        }
+    setClipboardText(text, seconds) {
+        return this.electron().ipcRenderer.invoke('clipboardWrite', text, seconds);
     },
     quitOnRealQuitEventIfMinimizeOnQuitIsEnabled() {
         return !!this.pendingUpdateFile || this.remoteApp().isPrivateUpdateRequested();

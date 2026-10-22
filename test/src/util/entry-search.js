@@ -58,4 +58,109 @@ describe('EntrySearch', () => {
             })
         ).to.be.true;
     });
+
+    it('matches ordinary search terms against custom field labels', () => {
+        const search = new EntrySearch({
+            searchText: 'backup database',
+            fields: { Restic: 'valuekey' }
+        });
+
+        expect(search.matches({ textLower: 'restic' })).to.be.true;
+        expect(search.matches({ textLower: 'esti' })).to.be.true;
+    });
+
+    it('does not inspect protected custom field values when matching labels', () => {
+        const search = new EntrySearch({
+            searchText: '',
+            fields: {
+                Restic: {
+                    isProtected: true,
+                    getText() {
+                        throw new Error('protected field value was read');
+                    },
+                    includesLower() {
+                        throw new Error('protected field value was read');
+                    }
+                }
+            }
+        });
+
+        expect(search.matches({ textLower: 'restic' })).to.be.true;
+        expect(search.matches({ textLower: 'secret-only' })).to.be.false;
+    });
+
+    it('does not add labels or values to the shared search index', () => {
+        const search = new EntrySearch({
+            searchText: '',
+            fields: { ApiToken: 'secret-only', UserName: 'fixture-user' }
+        });
+
+        expect(search.matches({ textLower: 'secret-only' })).to.be.false;
+        expect(search.matches({ textLower: 'username' })).to.be.false;
+        expect(search.matches({ textLower: 'user' })).to.be.false;
+    });
+
+    it('matches every ordinary search term across text and custom labels', () => {
+        const search = new EntrySearch({
+            searchText: 'nightly backup',
+            fields: { Restic: 'valuekey' }
+        });
+
+        expect(
+            search.matches({
+                textLower: 'nightly restic',
+                textLowerParts: ['nightly', 'restic']
+            })
+        ).to.be.true;
+        expect(
+            search.matches({
+                textLower: 'nightly missing',
+                textLowerParts: ['nightly', 'missing']
+            })
+        ).to.be.false;
+    });
+
+    it('reads current custom labels without changing shared search text', () => {
+        const model = { searchText: 'https://backup.example', fields: { Restic: 'valuekey' } };
+        const search = new EntrySearch(model);
+
+        expect(search.matches({ textLower: 'restic' })).to.be.true;
+        delete model.fields.Restic;
+        expect(search.matches({ textLower: 'restic' })).to.be.false;
+        model.fields.Borg = 'valuekey';
+        expect(search.matches({ textLower: 'borg' })).to.be.true;
+        expect(model.searchText).to.equal('https://backup.example');
+    });
+
+    it('uses custom field keys without reading their values', () => {
+        const fields = {};
+        Object.defineProperty(fields, 'Restic', {
+            enumerable: true,
+            get() {
+                throw new Error('custom field value was read');
+            }
+        });
+        const search = new EntrySearch({ searchText: '', fields });
+
+        expect(search.matches({ textLower: 'restic' })).to.be.true;
+    });
+
+    it('does not apply custom labels to advanced value searches', () => {
+        const protectedValue = {
+            isProtected: true,
+            includesLower() {
+                return false;
+            }
+        };
+        const search = new EntrySearch({
+            searchText: '',
+            fields: { Restic: 'valuekey', Secure: protectedValue },
+            getAllFields() {
+                return this.fields;
+            }
+        });
+
+        expect(search.matches({ textLower: 'restic', advanced: { other: true } })).to.be.false;
+        expect(search.matches({ textLower: 'restic', advanced: { protect: true } })).to.be.false;
+    });
 });

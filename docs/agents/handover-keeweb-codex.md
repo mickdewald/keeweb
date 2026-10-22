@@ -49,7 +49,7 @@ Abschluss 2026-08-18:
 - `06782863` Cmd+K: echtes Suchfeld, Palette bleibt bei 0 Treffern / leerem Passwort
 - `9782ad63` Devices/YubiKey aus Settings und Settings-Suche entfernt
 
-GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf `origin` liegt nur `main`; Release-Tags von Vanilla-KeeWeb sind entfernt. Der Tag `pre-single-sidebar` bleibt lokal und auf `origin`. `upstream` zeigt nur auf `keeweb/keeweb` `master` und wird ohne Tags gefetcht.
+GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf `origin` liegt nur `main`; Release-Tags von Vanilla-KeeWeb sind entfernt. Der Stand vor dem Ein-Sidebar-Umbau bleibt über Commit [`ad8dfe21068c85a4fafb24eadbf856e9e50b2628`](https://github.com/mickdewald/keeweb/commit/ad8dfe21068c85a4fafb24eadbf856e9e50b2628) erreichbar. `upstream` zeigt nur auf `keeweb/keeweb` `master` und wird ohne Tags gefetcht.
 
 ## Code-Pitfalls (mehrfach gebissen — zuerst lesen!)
 
@@ -73,7 +73,7 @@ GitHub-Issues #1/#2 (UX-Backlog, Duplikat) sind geschlossen. Auf `origin` liegt 
 
 ## Layout (seit 75e249b7)
 
-Ein-Sidebar-Layout (`compactLayout: true`): Die Eintragsliste ist die linke Spalte; Nav-Sidebar nur noch in den Settings. Tags über Dropdown in der Suchleiste, Workspace-Button unten in der Listen-Spalte, Drag-Streifen (38px) über der Suchleiste für die Traffic Lights, Liste ist die transluzente Vibrancy-Fläche. `compactLayout: false` stellt das klassische Drei-Spalten-Layout wieder her (auch nötig, falls sichtbare Untergruppen navigierbar sein müssen). Rollback-Tag: `pre-single-sidebar`.
+Ein-Sidebar-Layout (`compactLayout: true`): Die Eintragsliste ist die linke Spalte; Nav-Sidebar nur noch in den Settings. Tags über Dropdown in der Suchleiste, Workspace-Button unten in der Listen-Spalte, Drag-Streifen (38px) über der Suchleiste für die Traffic Lights, Liste ist die transluzente Vibrancy-Fläche. `compactLayout: false` stellt das klassische Drei-Spalten-Layout wieder her (auch nötig, falls sichtbare Untergruppen navigierbar sein müssen). Rollback-Commit: [`ad8dfe21068c85a4fafb24eadbf856e9e50b2628`](https://github.com/mickdewald/keeweb/commit/ad8dfe21068c85a4fafb24eadbf856e9e50b2628).
 
 ## Review-Notizen (2026-08-17, nachgezogen 2026-08-18)
 

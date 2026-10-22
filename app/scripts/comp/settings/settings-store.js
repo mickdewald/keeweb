@@ -22,14 +22,20 @@ const SettingsStore = {
     },
 
     save(key, data) {
+        let savePromise;
         if (Launcher) {
-            return Launcher.saveConfig(key, JSON.stringify(data));
+            savePromise = Launcher.saveConfig(key, JSON.stringify(data));
+        } else {
+            savePromise = Promise.resolve().then(() => {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage[StringFormat.camelCase(key)] = JSON.stringify(data);
+                }
+            });
         }
-        return Promise.resolve().then(() => {
-            if (typeof localStorage !== 'undefined') {
-                localStorage[StringFormat.camelCase(key)] = JSON.stringify(data);
-            }
+        savePromise.catch((err) => {
+            logger.error(`Error saving ${key}`, err);
         });
+        return savePromise;
     }
 };
 

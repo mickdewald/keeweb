@@ -4,7 +4,8 @@ import 'util/kdbxweb/protected-value-ex';
 import {
     auditPasswords,
     collectPasswordIssueIds,
-    describePasswordIssues
+    describePasswordIssues,
+    getPasswordAuditEntry
 } from 'util/data/password-audit';
 
 function entry(id, title, password, extra = {}) {
@@ -105,6 +106,33 @@ describe('password audit', () => {
         expect(auditPasswords(files, settings).old).to.eql([]);
         expect(describePasswordIssues(weak, files, settings)).to.eql([]);
         expect(collectPasswordIssueIds(files, settings).size).to.eql(0);
+    });
+
+    it('does not inspect files or password values when password auditing is disabled', () => {
+        const files = [
+            {
+                forEachEntry() {
+                    throw new Error('disabled auditing must not inspect entries');
+                }
+            }
+        ];
+
+        expect(auditPasswords(files, { auditPasswords: false })).to.include({
+            disabled: true,
+            checked: 0
+        });
+    });
+
+    it('uses the same eligibility guard for ignored entries, excluded PINs, and eligible passwords', () => {
+        const ignored = entry('ignored', 'Ignored', 'correct-horse-battery-staple-92!', {
+            ignore: true
+        });
+        const pin = entry('pin', 'PIN', '1234');
+        const eligible = entry('eligible', 'Eligible', 'correct-horse-battery-staple-92!');
+
+        expect(getPasswordAuditEntry(ignored, {})).to.equal(null);
+        expect(getPasswordAuditEntry(pin, { excludePinsFromAudit: true })).to.equal(null);
+        expect(getPasswordAuditEntry(eligible, {})).to.include({ password: eligible.password });
     });
 
     it('skips ignored entries and PIN-like codes', () => {

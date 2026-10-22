@@ -2,15 +2,22 @@ import { passwordStrength, PasswordStrengthLevel } from 'util/data/password-stre
 
 const DefaultOldYears = 2;
 
-function isAuditable(entry) {
-    if (!entry) {
-        return false;
+function getPasswordAuditEntry(entry, settings = {}) {
+    if (settings.auditPasswords === false || !entry) {
+        return null;
     }
     if (typeof entry.canCheckPasswordIssues === 'function' && !entry.canCheckPasswordIssues()) {
-        return false;
+        return null;
     }
     const password = entry.password;
-    return !!(password && password.isProtected && password.byteLength);
+    if (!password || !password.isProtected || !password.byteLength) {
+        return null;
+    }
+    const strength = passwordStrength(password);
+    if (isPinExcluded(strength, settings.excludePinsFromAudit !== false)) {
+        return null;
+    }
+    return { password, strength };
 }
 
 function isPinExcluded(strength, excludePins) {
@@ -57,6 +64,7 @@ function presentEntry(entry, extra) {
 function auditPasswords(files, settings = {}) {
     if (settings.auditPasswords === false) {
         return {
+            disabled: true,
             weak: [],
             reused: [],
             old: [],
@@ -65,7 +73,6 @@ function auditPasswords(files, settings = {}) {
         };
     }
     const auditEntropy = settings.auditPasswordEntropy !== false;
-    const excludePins = settings.excludePinsFromAudit !== false;
     const oldYears =
         settings.auditPasswordAge == null
             ? DefaultOldYears
@@ -73,14 +80,11 @@ function auditPasswords(files, settings = {}) {
 
     const audited = [];
     for (const entry of collectEntries(files)) {
-        if (!isAuditable(entry)) {
+        const auditEntry = getPasswordAuditEntry(entry, settings);
+        if (!auditEntry) {
             continue;
         }
-        const strength = passwordStrength(entry.password);
-        if (isPinExcluded(strength, excludePins)) {
-            continue;
-        }
-        audited.push({ entry, strength });
+        audited.push({ entry, strength: auditEntry.strength });
     }
     const entries = audited.map((item) => item.entry);
     const weak = [];
@@ -119,6 +123,7 @@ function auditPasswords(files, settings = {}) {
     }
 
     return {
+        disabled: false,
         weak,
         reused,
         old,
@@ -144,19 +149,21 @@ function collectPasswordIssueIds(files, settings) {
     return ids;
 }
 
-function findReusedEntries(entry, files, excludePins) {
+function findReusedEntries(entry, files, settings) {
     const others = [];
-    if (!isAuditable(entry)) {
+    const auditEntry = getPasswordAuditEntry(entry, settings);
+    if (!auditEntry) {
         return others;
     }
     for (const other of collectEntries(files)) {
-        if (!other || other.id === entry.id || !isAuditable(other)) {
+        if (!other || other.id === entry.id) {
             continue;
         }
-        if (isPinExcluded(passwordStrength(other.password), excludePins)) {
+        const otherAuditEntry = getPasswordAuditEntry(other, settings);
+        if (!otherAuditEntry) {
             continue;
         }
-        if (entry.password.equals(other.password)) {
+        if (auditEntry.password.equals(otherAuditEntry.password)) {
             others.push({
                 id: other.id,
                 title: other.title || '',
@@ -168,26 +175,23 @@ function findReusedEntries(entry, files, excludePins) {
 }
 
 function describePasswordIssues(entry, files, settings = {}) {
-    if (settings.auditPasswords === false || !isAuditable(entry)) {
+    const auditEntry = getPasswordAuditEntry(entry, settings);
+    if (!auditEntry) {
         return [];
     }
     const auditEntropy = settings.auditPasswordEntropy !== false;
-    const excludePins = settings.excludePinsFromAudit !== false;
     const oldYears =
         settings.auditPasswordAge == null
             ? DefaultOldYears
             : Math.max(0, settings.auditPasswordAge);
-    const strength = passwordStrength(entry.password);
-    if (excludePins && isPinExcluded(strength, true)) {
-        return [];
-    }
+    const { strength } = auditEntry;
     const issues = [];
     if (auditEntropy && strength.level < PasswordStrengthLevel.Low) {
         issues.push({ type: 'poor' });
     } else if (auditEntropy && strength.level < PasswordStrengthLevel.Good) {
         issues.push({ type: 'weak' });
     }
-    const reused = findReusedEntries(entry, files, excludePins);
+    const reused = findReusedEntries(entry, files, settings);
     if (reused.length) {
         issues.push({
             type: 'reused',
@@ -205,6 +209,7 @@ export {
     auditPasswords,
     collectPasswordIssueIds,
     describePasswordIssues,
+    getPasswordAuditEntry,
     isOldPassword,
     DefaultOldYears
 };

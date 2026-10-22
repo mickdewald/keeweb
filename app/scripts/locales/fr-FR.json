@@ -385,6 +385,7 @@
   "pwHealthTitle": "Santé des mots de passe",
   "pwHealthShort": "Santé",
   "pwHealthOk": "Aucun mot de passe faible, réutilisé ou ancien dans les fichiers ouverts.",
+  "pwHealthDisabled": "L'audit des mots de passe est désactivé. Activez-le dans Paramètres → Audit pour vérifier ces fichiers.",
   "pwHealthSummary": "{} faibles · {} réutilisés · {} anciens",
   "pwHealthWeak": "Faible",
   "pwHealthPoor": "Très faible",

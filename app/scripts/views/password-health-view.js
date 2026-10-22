@@ -36,8 +36,12 @@ class PasswordHealthView extends View {
         this.report = auditPasswords(this.model.files, AppSettingsModel);
         const reusedEntries = this.report.reused.reduce((sum, group) => sum + group.count, 0);
         const ok =
-            !this.report.weak.length && !this.report.reused.length && !this.report.old.length;
+            !this.report.disabled &&
+            !this.report.weak.length &&
+            !this.report.reused.length &&
+            !this.report.old.length;
         super.render({
+            disabled: this.report.disabled,
             ok,
             summary: Locale.pwHealthSummary
                 .replace('{}', this.report.weak.length)

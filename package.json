@@ -89,7 +89,7 @@
     "puppeteer": "25.14.0",
     "raw-loader": "4.0.2",
     "sass": "1.105.1",
-    "sass-loader": "15.0.0",
+    "sass-loader": "16.0.8",
     "stats-webpack-plugin": "0.7.0",
     "string-replace-loader": "3.3.0",
     "strip-sourcemap-loader": "0.0.1",

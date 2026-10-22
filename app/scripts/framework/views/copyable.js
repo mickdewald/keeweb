@@ -13,13 +13,32 @@ const Copyable = {
     },
 
     fieldCopied(e) {
+        this.showFieldCopyTip(
+            e,
+            e.copyRes.seconds
+                ? Locale.detFieldCopiedTime.replace('{}', e.copyRes.seconds)
+                : Locale.detFieldCopied
+        );
+        setTimeout(() => {
+            if (e.source.model.name === '$Password' && AppSettingsModel.lockOnCopy) {
+                setTimeout(() => {
+                    Events.emit('lock-workspace');
+                }, Timeouts.BeforeAutoLock);
+            }
+        }, Timeouts.CopyTip);
+    },
+
+    fieldCopyFailed(e) {
+        this.showFieldCopyTip(e, Locale.detFieldCopyFailed);
+    },
+
+    showFieldCopyTip(e, msg) {
         this.hideFieldCopyTip();
-        const copyAnchor = e.source.copyAnchorEl;
-        const anchorEl = copyAnchor || e.source.labelEl[0];
-        const clipboardTime = e.copyRes.seconds;
-        const msg = clipboardTime
-            ? Locale.detFieldCopiedTime.replace('{}', clipboardTime)
-            : Locale.detFieldCopied;
+        const copyAnchor = e.copyAnchorEl || e.source?.copyAnchorEl;
+        const anchorEl = copyAnchor || e.source?.labelEl?.[0];
+        if (!anchorEl || !anchorEl.isConnected || e.source?.removed) {
+            return;
+        }
         let tip;
         if (!this.isHidden()) {
             tip = Tip.createTip(anchorEl, {
@@ -36,11 +55,8 @@ const Copyable = {
             if (tip) {
                 tip.hide();
             }
-            this.fieldCopyTip = null;
-            if (e.source.model.name === '$Password' && AppSettingsModel.lockOnCopy) {
-                setTimeout(() => {
-                    Events.emit('lock-workspace');
-                }, Timeouts.BeforeAutoLock);
+            if (this.fieldCopyTip === tip) {
+                this.fieldCopyTip = null;
             }
         }, Timeouts.CopyTip);
     }

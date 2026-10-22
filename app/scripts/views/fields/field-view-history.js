@@ -3,6 +3,7 @@ import { FieldView } from 'views/fields/field-view';
 
 class FieldViewHistory extends FieldView {
     readonly = true;
+    canCopy = false;
 
     renderValue(value) {
         if (!value.length) {

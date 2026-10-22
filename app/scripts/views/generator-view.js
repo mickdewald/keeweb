@@ -7,6 +7,7 @@ import { PasswordGenerator } from 'util/generators/password-generator';
 import { PasswordPresenter, charClass } from 'util/formatting/password-presenter';
 import { Locale } from 'util/locale';
 import { Tip } from 'util/ui/tip';
+import { Timeouts } from 'const/timeouts';
 import template from 'templates/generator.hbs';
 
 class GeneratorView extends View {
@@ -192,15 +193,39 @@ class GeneratorView extends View {
         this.showPassword();
     }
 
-    btnOkClick() {
+    async btnOkClick() {
         if (this.model.copy) {
             if (!CopyPaste.simpleCopy) {
                 CopyPaste.createHiddenInput(this.password);
             }
-            CopyPaste.copy(this.password);
+            let copyRes;
+            try {
+                copyRes = await CopyPaste.copy(this.password);
+            } catch {
+                copyRes = false;
+            }
+            if (this.removed) {
+                return;
+            }
+            if (!copyRes?.success) {
+                this.showCopyFailed();
+                return;
+            }
         }
         this.emit('result', this.password);
         this.remove();
+    }
+
+    showCopyFailed() {
+        const button = this.$el.find('.gen__btn-ok')[0];
+        const tip = Tip.createTip(button, {
+            title: Locale.detFieldCopyFailed,
+            fast: true,
+            force: true,
+            noInit: true
+        });
+        tip.show();
+        setTimeout(() => tip.hide(), Timeouts.CopyTip);
     }
 
     presetChange(e) {

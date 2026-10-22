@@ -169,6 +169,7 @@ class DetailsView extends View {
                 fieldView.render();
                 fieldView.on('change', this.fieldChanged.bind(this));
                 fieldView.on('copy', (e) => this.copyFieldValue(e));
+                fieldView.on('copy-failed', (e) => this.copyFieldFailed(e));
                 fieldView.on('autotype', (e) => this.autoType(e.source.model.sequence));
                 if (hideEmptyFields) {
                     const value = fieldView.model.value();

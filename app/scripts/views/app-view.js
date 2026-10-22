@@ -204,12 +204,17 @@ class AppView extends View {
                 if (!CopyPaste.simpleCopy) {
                     CopyPaste.createHiddenInput(text);
                 }
-                const copyRes = CopyPaste.copy(text);
-                if (copyRes && this.model.settings.lockOnCopy) {
-                    setTimeout(() => {
-                        Events.emit('lock-workspace');
-                    }, Timeouts.BeforeAutoLock);
-                }
+                CopyPaste.copy(text)
+                    .then((copyRes) => {
+                        if (copyRes?.success && this.model.settings.lockOnCopy) {
+                            setTimeout(() => {
+                                Events.emit('lock-workspace');
+                            }, Timeouts.BeforeAutoLock);
+                        } else if (!copyRes?.success) {
+                            Alerts.error({ header: Locale.detFieldCopyFailed });
+                        }
+                    })
+                    .catch(() => Alerts.error({ header: Locale.detFieldCopyFailed }));
             }
         });
         view.render();

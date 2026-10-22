@@ -2,7 +2,8 @@
 // main.js assigns context.mainWindow; modules read (and clear) it through this object.
 
 const context = {
-    mainWindow: null
+    mainWindow: null,
+    mainWindowUrl: null
 };
 
 module.exports = { context };

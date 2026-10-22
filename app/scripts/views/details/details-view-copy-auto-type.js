@@ -23,8 +23,22 @@ const DetailsViewCopyAutoType = {
             if (!CopyPaste.simpleCopy) {
                 CopyPaste.createHiddenInput(fieldText);
             }
-            const copyRes = CopyPaste.copy(fieldText);
-            this.copyFieldValue({ source: editView, copyRes });
+            CopyPaste.copy(fieldText)
+                .then((copyRes) => {
+                    if (editView.removed) {
+                        return;
+                    }
+                    if (copyRes?.success) {
+                        this.copyFieldValue({ source: editView, copyRes });
+                    } else {
+                        this.copyFieldFailed({ source: editView });
+                    }
+                })
+                .catch(() => {
+                    if (!editView.removed) {
+                        this.copyFieldFailed({ source: editView });
+                    }
+                });
 
             return true;
         }
@@ -160,6 +174,10 @@ const DetailsViewCopyAutoType = {
         if (AppSettingsModel.minimizeOnFieldCopy) {
             Launcher.minimizeApp();
         }
+    },
+
+    copyFieldFailed(e) {
+        this.fieldCopyFailed(e);
     }
 };
 

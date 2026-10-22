@@ -305,6 +305,7 @@
   "detDelToTrashBody": "L'entrée sera déplacée dans la corbeille.",
   "detFieldCopied": "Copié",
   "detFieldCopiedTime": "Copié pendant {} secondes",
+  "detFieldCopyFailed": "Impossible de copier le champ",
   "detCopyHint": "Vous pouvez copier la valeur du champ en cliquant sur ton titre",
   "detMore": "plus",
   "detClickToAddField": "cliquez pour ajouter un nouveau champ",

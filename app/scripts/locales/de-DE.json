@@ -315,6 +315,7 @@
   "detDelToTrashBody": "Der Eintrag wird in den Papierkorb verschoben.",
   "detFieldCopied": "Kopiert",
   "detFieldCopiedTime": "Kopiert für {} Sekunden",
+  "detFieldCopyFailed": "Feld konnte nicht kopiert werden",
   "detCopyHint": "Sie können den Inhalt eines Feldes kopieren, indem Sie auf seine Beschriftung klicken",
   "detMore": "mehr",
   "detClickToAddField": "Klicken, um ein neues Feld hinzuzufügen",

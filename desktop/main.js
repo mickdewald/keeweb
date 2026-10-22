@@ -82,8 +82,8 @@ setUserDataPaths();
 let openFile = process.argv.filter((arg) => /\.kdbx$/i.test(arg))[0];
 
 const htmlPath =
-    (isDev && process.env.KEEWEB_HTML_PATH) ||
-    url.format({ protocol: 'file', slashes: true, pathname: path.join(__dirname, 'index.html') });
+    (isDev && process.env.KEEWEB_HTML_PATH && new URL(process.env.KEEWEB_HTML_PATH).href) ||
+    url.pathToFileURL(path.join(__dirname, 'index.html')).href;
 
 const showDevToolsOnStart =
     process.argv.some((arg) => arg.startsWith('--devtools')) ||
@@ -308,6 +308,7 @@ function createMainWindow() {
     }
     const mainWindow = new electron.BrowserWindow(windowOptions);
     context.mainWindow = mainWindow;
+    context.mainWindowUrl = new URL(htmlPath).href;
     remoteMain.enable(mainWindow.webContents);
     logProgress('creating main window');
 
@@ -338,6 +339,7 @@ function createMainWindow() {
     mainWindow.on('blur', mainWindowBlur);
     mainWindow.on('closed', () => {
         context.mainWindow = null;
+        context.mainWindowUrl = null;
         saveMainWindowPosition();
     });
     mainWindow.on('minimize', () => {

@@ -115,10 +115,13 @@ class AutoTypeEmitter {
 
     copyPaste(text) {
         setTimeout(() => {
-            Launcher.setClipboardText(text);
-            setTimeout(() => {
-                this.withCallback(NativeModules.kbdShortcut('V'));
-            }, Timeouts.AutoTypeCopyPaste);
+            Launcher.setClipboardText(text, 0)
+                .then(() => {
+                    setTimeout(() => {
+                        this.withCallback(NativeModules.kbdShortcut('V'));
+                    }, Timeouts.AutoTypeCopyPaste);
+                })
+                .catch((error) => this.withCallback(Promise.reject(error)));
         }, Timeouts.AutoTypeCopyPaste);
     }
 

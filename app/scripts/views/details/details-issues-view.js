@@ -4,7 +4,7 @@ import template from 'templates/details/details-issues.hbs';
 import { Alerts } from 'comp/ui/alerts';
 import { Timeouts } from 'const/timeouts';
 import { Locale } from 'util/locale';
-import { describePasswordIssues } from 'util/data/password-audit';
+import { describePasswordIssues, getPasswordAuditEntry } from 'util/data/password-audit';
 import { AppSettingsModel } from 'models/app-settings-model';
 import { AppModel } from 'models/app-model';
 import { Links } from 'const/links';
@@ -81,11 +81,11 @@ class DetailsIssuesView extends View {
         if (!AppSettingsModel.auditPasswords || !AppSettingsModel.checkPasswordsOnHIBP) {
             return;
         }
-        const password = this.model.password;
-        if (!password || !password.isProtected || !password.byteLength) {
+        const auditEntry = getPasswordAuditEntry(this.model, AppSettingsModel);
+        if (!auditEntry) {
             return;
         }
-        const isExposed = checkIfPasswordIsExposedOnline(password);
+        const isExposed = checkIfPasswordIsExposedOnline(auditEntry.password);
         if (typeof isExposed === 'boolean') {
             this.setRemoteIssue(isExposed ? 'pwned' : null);
         } else {
@@ -93,19 +93,27 @@ class DetailsIssuesView extends View {
             const checkWasVisible = !!iconEl;
             iconEl?.classList.add('details__issues-icon--loading');
             isExposed.then((exposed) => {
-                if (this.removed || generation !== this.hibpCheckGeneration) {
-                    return;
-                }
-                if (exposed) {
-                    this.setRemoteIssue('pwned');
-                } else if (exposed === false) {
-                    this.setRemoteIssue(null);
-                } else {
-                    this.setRemoteIssue(checkWasVisible ? 'error' : null);
-                }
-                this.render();
+                this.applyOnlineCheckResult(generation, exposed, checkWasVisible);
             });
         }
+    }
+
+    applyOnlineCheckResult(generation, exposed, checkWasVisible) {
+        if (
+            this.removed ||
+            generation !== this.hibpCheckGeneration ||
+            !getPasswordAuditEntry(this.model, AppSettingsModel)
+        ) {
+            return;
+        }
+        if (exposed) {
+            this.setRemoteIssue('pwned');
+        } else if (exposed === false) {
+            this.setRemoteIssue(null);
+        } else {
+            this.setRemoteIssue(checkWasVisible ? 'error' : null);
+        }
+        this.render();
     }
 
     setRemoteIssue(type) {
@@ -144,6 +152,7 @@ class DetailsIssuesView extends View {
 
     disableAuditForEntry() {
         this.model.setIgnorePasswordIssues();
+        Events.emit('entry-updated', { entry: this.model });
         this.checkPasswordIssues();
         this.render();
     }

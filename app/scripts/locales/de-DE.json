@@ -393,6 +393,7 @@
   "pwHealthTitle": "Passwort-Gesundheit",
   "pwHealthShort": "Gesundheit",
   "pwHealthOk": "Keine schwachen, wiederverwendeten oder alten Passwörter in den offenen Dateien.",
+  "pwHealthDisabled": "Die Passwortprüfung ist deaktiviert. Aktiviere sie unter Einstellungen → Audit, um diese Dateien zu prüfen.",
   "pwHealthSummary": "{} schwach · {} wiederverwendet · {} alt",
   "pwHealthWeak": "Schwach",
   "pwHealthPoor": "Sehr schwach",

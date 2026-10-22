@@ -401,6 +401,7 @@
   "pwHealthTitle": "Password health",
   "pwHealthShort": "Health",
   "pwHealthOk": "No weak, reused, or old passwords in the open files.",
+  "pwHealthDisabled": "Password auditing is disabled. Enable it in Settings → Audit to check these files.",
   "pwHealthSummary": "{} weak · {} reused · {} old",
   "pwHealthWeak": "Weak",
   "pwHealthPoor": "Very weak",

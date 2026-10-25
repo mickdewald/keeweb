@@ -74,7 +74,7 @@ function buildFont(loader, scssSource) {
     });
 
     const fontData = [];
-    fontStream.on('data', (chunk) => fontData.push(chunk));
+    fontStream.on('data', (chunk) => fontData.push(Buffer.from(chunk)));
 
     let charCode = 0xf000;
     for (const iconName of includedIconList) {

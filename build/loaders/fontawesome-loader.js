@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SVGIcons2SVGFontStream = require('svgicons2svgfont');
+const { SVGIcons2SVGFontStream } = require('svgicons2svgfont');
 const svg2ttf = require('svg2ttf');
 const wawoff2 = require('wawoff2');
 

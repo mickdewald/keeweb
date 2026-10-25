@@ -103,7 +103,7 @@
     "wawoff2": "2.0.1",
     "webpack": "5.112.0",
     "webpack-bundle-analyzer": "5.4.0",
-    "webpack-dev-server": "5.2.7",
+    "webpack-dev-server": "6.1.0",
     "@babel/eslint-parser": "8.0.7",
     "@babel/eslint-plugin": "8.0.6",
     "eslint-plugin-import-x": "4.17.1",

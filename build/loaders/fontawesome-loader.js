@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SVGIcons2SVGFontStream = require('svgicons2svgfont');
+const { SVGIcons2SVGFontStream } = require('svgicons2svgfont');
 const svg2ttf = require('svg2ttf');
 const wawoff2 = require('wawoff2');
 
@@ -74,7 +74,7 @@ function buildFont(loader, scssSource) {
     });
 
     const fontData = [];
-    fontStream.on('data', (chunk) => fontData.push(chunk));
+    fontStream.on('data', (chunk) => fontData.push(Buffer.from(chunk)));
 
     let charCode = 0xf000;
     for (const iconName of includedIconList) {

@@ -66,8 +66,7 @@
       "automergeType": "pr",
       "labels": [
         "dependencies",
-        "github-actions",
-        "automerge"
+        "github-actions"
       ]
     },
     {
@@ -173,10 +172,7 @@
         "digest"
       ],
       "automerge": true,
-      "automergeType": "pr",
-      "addLabels": [
-        "automerge"
-      ]
+      "automergeType": "pr"
     },
     {
       "description": "Mutable latest-style Docker tags keep requiring explicit review.",

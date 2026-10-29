@@ -86,7 +86,7 @@
     "postcss": "8.5.31",
     "postcss-loader": "8.2.1",
     "prettier": "3.9.10",
-    "puppeteer": "25.15.0",
+    "puppeteer": "25.16.0",
     "raw-loader": "4.0.2",
     "sass": "1.106.1",
     "sass-loader": "17.0.1",

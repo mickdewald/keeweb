@@ -101,7 +101,7 @@
     "tweetnacl": "1.0.3",
     "url-loader": "4.1.1",
     "wawoff2": "2.0.1",
-    "webpack": "5.112.0",
+    "webpack": "5.112.1",
     "webpack-bundle-analyzer": "5.4.0",
     "webpack-dev-server": "6.1.0",
     "@babel/eslint-parser": "8.0.7",

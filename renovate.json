@@ -31,7 +31,7 @@
       "dependencies",
       "security"
     ],
-    "minimumReleaseAge": null,
+    "minimumReleaseAge": "3 days",
     "dependencyDashboardApproval": false,
     "schedule": [
       "at any time"
@@ -61,7 +61,7 @@
         "pin"
       ],
       "groupName": "github-actions (non-major)",
-      "minimumReleaseAge": "7 days",
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
       "labels": [
@@ -81,7 +81,7 @@
       "groupSlug": "github-actions-major"
     },
     {
-      "description": "Own actions and reusable workflows (mickdewald/*) are SHA-pinned with a `# main` comment and tracked by digest. The 7-day gate restarts with every new repo-standards commit, so an active repo-standards kept every consumer pending; they carry the same trust as the consuming repo (like @mick/* npm packages). Without the `# main` comment Renovate skips a bare SHA as unversioned-reference.",
+      "description": "Own actions and reusable workflows (mickdewald/*) are SHA-pinned with a `# main` comment and tracked by digest. The 3-day gate restarts with every new repo-standards commit, so an active repo-standards kept every consumer pending; they carry the same trust as the consuming repo (like @mick/* npm packages). Without the `# main` comment Renovate skips a bare SHA as unversioned-reference.",
       "matchManagers": [
         "github-actions"
       ],
@@ -97,7 +97,7 @@
       "matchUpdateTypes": [
         "major"
       ],
-      "minimumReleaseAge": "7 days",
+      "minimumReleaseAge": "3 days",
       "automerge": false,
       "labels": [
         "dependencies",
@@ -116,7 +116,7 @@
       ],
       "groupName": "non-major dependencies",
       "groupSlug": "non-major-dependencies",
-      "minimumReleaseAge": "7 days"
+      "minimumReleaseAge": "3 days"
     },
     {
       "description": "Keep Docker digest refreshes visible but separate from ordinary version bumps.",
@@ -128,7 +128,7 @@
       ],
       "groupName": "docker digest refreshes",
       "groupSlug": "docker-digest-refreshes",
-      "minimumReleaseAge": "7 days",
+      "minimumReleaseAge": "3 days",
       "labels": [
         "dependencies",
         "docker",

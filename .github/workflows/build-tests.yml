@@ -339,13 +339,19 @@ jobs:
 
     # #
     #   Job › Complete
+    #
+    #   Merge gate and required status check of the main ruleset. GitHub counts
+    #   a skipped required check as passing, so Lint and Tests alone let a PR
+    #   merge when Initialize fails (#201). This job always runs and fails
+    #   unless every job it needs succeeded.
     # #
 
     job-complete-run:
         name: >-
             ✅ Complete
         runs-on: macos-latest
-        needs: [job-initialize, job-lint, job-test]
+        if: ${{ always() }}
+        needs: [file-size-guard, job-initialize, job-lint, job-test]
         env:
             PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}
             TEST_SUCCESS: ${{ needs.job-test.outputs.test_success }}
@@ -397,4 +403,24 @@ jobs:
                       echo "| **Test Results**            | ✔️                                                              |" >> $GITHUB_STEP_SUMMARY
                   else
                       echo "| **Test Results**            | ❌                                                              |" >> $GITHUB_STEP_SUMMARY
+                  fi
+
+            # #
+            #   Complete › Merge gate
+            #
+            #   Fails when any needed job ended as failure, cancelled or skipped.
+            # #
+
+            - name: '🚦 Merge gate'
+              id: task_tests_complete_gate
+              if: ${{ always() }}
+              shell: bash
+              env:
+                  NEEDS_JSON: ${{ toJSON(needs) }}
+              run: |
+                  echo "$NEEDS_JSON" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+                  not_ok=$(echo "$NEEDS_JSON" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
+                  if [ -n "$not_ok" ]; then
+                      echo "::error::Required jobs did not succeed: $not_ok"
+                      exit 1
                   fi

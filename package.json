@@ -122,10 +122,10 @@
     },
     "lodash": "$lodash",
     "globule": {
-      "minimatch": "11.0.4",
+      "minimatch": "11.0.5",
       "glob": {
         ".": "14.0.3",
-        "minimatch": "11.0.4"
+        "minimatch": "11.0.5"
       }
     },
     "grunt-chmod": {

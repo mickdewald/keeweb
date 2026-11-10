@@ -182,6 +182,7 @@
     "electron@43.4.0": true
   },
   "devDependencies": {
+    "@typescript-eslint/utils": "8.72.1",
     "@capacitor/android": "8.6.0",
     "@capacitor/app": "8.1.2",
     "@capacitor/cli": "8.6.0",

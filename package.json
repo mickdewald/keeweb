@@ -66,7 +66,7 @@
     "grunt-webpack": "8.0.0",
     "handlebars": "4.7.10",
     "handlebars-loader": "1.7.3",
-    "html-minifier": "5.0.1",
+    "html-minifier": "5.0.2",
     "ignore-loader": "0.1.2",
     "jquery": "4.0.0",
     "json-loader": "0.5.7",
@@ -106,7 +106,7 @@
     "webpack-dev-server": "6.1.0",
     "@babel/eslint-parser": "8.0.7",
     "@babel/eslint-plugin": "8.1.0",
-    "eslint-plugin-import-x": "4.18.0",
+    "eslint-plugin-import-x": "4.18.1",
     "globals": "17.14.0"
   },
   "optionalDependencies": {
@@ -182,7 +182,7 @@
     "electron@43.4.0": true
   },
   "devDependencies": {
-    "@typescript-eslint/utils": "8.72.1",
+    "@typescript-eslint/utils": "8.72.2",
     "@capacitor/android": "8.6.0",
     "@capacitor/app": "8.1.2",
     "@capacitor/cli": "8.6.0",
